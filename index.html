@@ -15,6 +15,21 @@
   --red:#f85149;--orange:#f0883e;--yellow:#e3b341;
   --green:#3fb950;--blue:#58a6ff;--cyan:#79c0ff;--purple:#bc8cff;
 }
+body.day{
+  --bg:#f0f2f5;--s1:#ffffff;--s2:#f6f8fa;--s3:#eaeef2;
+  --b1:#d0d7de;--b2:#c6cdd5;--b3:#8c959f;
+  --t1:#1f2328;--t2:#636c76;--t3:#9198a1;
+}
+body.day .leaflet-container{background:#d4e2f0!important;}
+body.day .ticker{background:rgba(248,81,73,.06);border-color:rgba(248,81,73,.2);}
+body.day .ticker-text{color:var(--t2);}
+body.day .map-timebar,body.day .map-zoombar .zbtn,body.day .map-regionbar{background:rgba(255,255,255,.92);}
+body.day .spin-sm{border-color:var(--b2);border-top-color:var(--blue);}
+.theme-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .2s;border-radius:2px;line-height:1;}
+.theme-btn:hover{border-color:var(--b3);color:var(--t1);}
+.translate-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .2s;border-radius:2px;letter-spacing:1px;}
+.translate-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.07);}
+.translate-btn:hover{border-color:var(--b3);color:var(--t1);}
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
 button{font-family:inherit;cursor:pointer;}
@@ -223,7 +238,9 @@ button{font-family:inherit;cursor:pointer;}
       <span class="ts">NOTICIAS <b id="st-n" style="color:var(--green)">—</b></span>
     </div>
     <div class="ml">
-      <button class="btn" id="ref-btn" onclick="loadFeed(true)">↻ ACTUALIZAR</button>
+      <button class="translate-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐 EN</button>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night mode">🌙</button>
+      <button class="btn" id="ref-btn" onclick="refreshAll(true)">↻ REFRESH</button>
     </div>
   </div>
 
@@ -679,10 +696,15 @@ function startClock(){
 // ══════════════════════════════════════════════════════════
 // MAP INIT
 // ══════════════════════════════════════════════════════════
+let TILE_DARK_BASE, TILE_DARK_LABELS, TILE_DAY_BASE, TILE_DAY_LABELS;
 function initMap(){
   MAP=L.map('map',{zoomControl:false,attributionControl:false,minZoom:2}).setView([20,15],2.5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(MAP);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(MAP);
+  TILE_DARK_BASE  =L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
+  TILE_DARK_LABELS=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
+  TILE_DAY_BASE   =L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
+  TILE_DAY_LABELS =L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
+  TILE_DARK_BASE.addTo(MAP);
+  TILE_DARK_LABELS.addTo(MAP);
   LAYERS.forEach(l=>{LG[l.id]=L.layerGroup();});
   CONFLICTS.forEach(c=>{
     const sz={critical:24,high:18,med:13,low:10,latent:8}[c.intensity]||12;
@@ -944,6 +966,92 @@ function updateTicker(items){
   document.getElementById('st-a').textContent=alerts;
   const now=new Date();
   document.getElementById('ft-updated').textContent=`${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
+}
+
+// ══════════════════════════════════════════════════════════
+// THEME — day / night
+// ══════════════════════════════════════════════════════════
+let isDark=true;
+function toggleTheme(){
+  isDark=!isDark;
+  const btn=document.getElementById('theme-btn');
+  if(isDark){
+    document.body.classList.remove('day');
+    btn.textContent='🌙';
+    MAP.removeLayer(TILE_DAY_BASE); MAP.removeLayer(TILE_DAY_LABELS);
+    TILE_DARK_BASE.addTo(MAP); TILE_DARK_LABELS.addTo(MAP);
+  } else {
+    document.body.classList.add('day');
+    btn.textContent='☀️';
+    MAP.removeLayer(TILE_DARK_BASE); MAP.removeLayer(TILE_DARK_LABELS);
+    TILE_DAY_BASE.addTo(MAP); TILE_DAY_LABELS.addTo(MAP);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// TRANSLATION — Google Translate unofficial API
+// ══════════════════════════════════════════════════════════
+let translateOn=false;
+const transCache={};
+
+async function translateText(text){
+  if(!text||!text.trim()) return text;
+  if(transCache[text]) return transCache[text];
+  try{
+    const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
+    const data=await r.json();
+    const translated=(data[0]||[]).map(s=>s[0]||'').join('').trim();
+    if(translated) transCache[text]=translated;
+    return translated||text;
+  }catch(e){ return text; }
+}
+
+async function translateItems(items){
+  // translate in batches of 5 parallel to avoid rate limits
+  const result=[...items];
+  for(let i=0;i<result.length;i+=5){
+    const batch=result.slice(i,i+5);
+    await Promise.all(batch.map(async item=>{
+      item._origTitle=item._origTitle||item.title;
+      item._origDesc=item._origDesc||item.desc;
+      if(translateOn){
+        item.title=await translateText(item._origTitle);
+        if(item._origDesc) item.desc=await translateText(item._origDesc.slice(0,150));
+      } else {
+        item.title=item._origTitle;
+        item.desc=item._origDesc;
+      }
+    }));
+  }
+  return result;
+}
+
+function toggleTranslate(btn){
+  translateOn=!translateOn;
+  btn.classList.toggle('on',translateOn);
+  btn.textContent=translateOn?'🌐 EN ✓':'🌐 EN';
+  // Re-render current panels with translation applied
+  if(translateOn){
+    // translate and re-render both caches
+    translateItems(mediaCache.data).then(()=>renderMedia());
+    translateItems(osintCache.data).then(()=>renderOSINT());
+  } else {
+    translateItems(mediaCache.data).then(()=>renderMedia());
+    translateItems(osintCache.data).then(()=>renderOSINT());
+  }
+}
+
+// Also auto-translate after loading if toggle is on
+const _origLoadMedia=loadMedia;
+async function loadMedia(force=false){
+  await _origLoadMedia(force);
+  if(translateOn){ await translateItems(mediaCache.data); renderMedia(); }
+}
+const _origLoadOSINT=loadOSINT;
+async function loadOSINT(force=false){
+  await _origLoadOSINT(force);
+  if(translateOn){ await translateItems(osintCache.data); renderOSINT(); }
 }
 
 // ══════════════════════════════════════════════════════════
