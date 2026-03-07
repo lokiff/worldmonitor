@@ -132,6 +132,37 @@ button{font-family:inherit;cursor:pointer;}
 /* SIDEBAR RIGHT */
 .sr{width:480px;flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
 
+/* TABS */
+.tabs{flex-shrink:0;display:flex;align-items:center;background:var(--s2);border-bottom:2px solid var(--b1);}
+.tab{padding:8px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-bottom:-2px;white-space:nowrap;}
+.tab:hover{color:var(--t1);}
+.tab.on{color:var(--t1);border-bottom-color:var(--blue);}
+.tab-refresh{margin-left:auto;display:flex;align-items:center;gap:6px;padding-right:8px;}
+.tab-timer{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
+.tab-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
+.tab-panel.hidden{display:none;}
+
+/* GDELT */
+.gdelt-info{flex-shrink:0;padding:7px 12px;background:rgba(88,166,255,.04);border-bottom:1px solid rgba(88,166,255,.1);display:flex;flex-direction:column;gap:2px;}
+.gdelt-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue);letter-spacing:1px;}
+.gdelt-sub{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
+.gdelt-item{padding:9px 12px 8px;border-bottom:1px solid rgba(33,38,45,.55);cursor:pointer;transition:background .1s;animation:fadeup .3s ease both;}
+.gdelt-item:hover{background:var(--s2);}
+.gdelt-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.gdelt-tone{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;}
+.tone-neg{background:rgba(248,81,73,.15);color:var(--red);}
+.tone-neu{background:rgba(139,148,158,.1);color:var(--t2);}
+.tone-pos{background:rgba(63,185,80,.1);color:var(--green);}
+.gdelt-src{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t2);background:var(--s3);padding:1px 5px;border-radius:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gdelt-time{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
+.gdelt-title{font-size:12px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:2px;}
+.gdelt-loc{font-size:10px;color:var(--t2);}
+.gdelt-loc b{color:var(--cyan);}
+
+/* OSINT tag */
+.tag-tg{background:rgba(36,161,222,.15);color:#24a1de;border:1px solid rgba(36,161,222,.2);}
+.tag-osint{background:rgba(188,140,255,.12);color:var(--purple);}
+
 /* feed */
 .ffilters{flex-shrink:0;display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid var(--b1);flex-wrap:wrap;}
 .ffbtn{padding:2px 8px;background:transparent;border:1px solid var(--b2);border-radius:2px;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .12s;letter-spacing:.5px;}
@@ -245,34 +276,63 @@ button{font-family:inherit;cursor:pointer;}
     <!-- RIGHT SIDEBAR -->
     <div class="sr">
 
-      <!-- Feed category filters -->
-      <div class="ffilters">
-        <button class="ffbtn on" onclick="filterCat('all',this)">TODO</button>
-        <button class="ffbtn"    onclick="filterCat('ukraine',this)">UCRANIA</button>
-        <button class="ffbtn"    onclick="filterCat('mideast',this)">M.ESTE</button>
-        <button class="ffbtn"    onclick="filterCat('africa',this)">ÁFRICA</button>
-        <button class="ffbtn"    onclick="filterCat('asia',this)">ASIA</button>
-        <button class="ffbtn"    onclick="filterCat('americas',this)">AMÉRICAS</button>
-        <button class="ffbtn"    onclick="filterCat('breaking',this)">🔴 FLASH</button>
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab on" onclick="switchTab('media',this)">📰 MEDIOS</button>
+        <button class="tab"    onclick="switchTab('osint',this)">📡 OSINT/TELEGRAM</button>
+        <button class="tab"    onclick="switchTab('gdelt',this)">🌐 GDELT</button>
+        <div class="tab-refresh">
+          <span id="refresh-countdown" class="tab-timer">↻ 2:00</span>
+          <button class="frefresh" onclick="refreshAll(true)">REFRESH</button>
+        </div>
       </div>
 
-      <!-- Source filters -->
-      <div class="fsource-bar" id="source-bar">
-        <span class="fsrc-label">FUENTES</span>
-        <!-- filled by JS -->
+      <!-- MEDIA panel -->
+      <div class="tab-panel" id="panel-media">
+        <div class="ffilters">
+          <button class="ffbtn on" onclick="filterCat('all',this,'media')">TODO</button>
+          <button class="ffbtn"    onclick="filterCat('ukraine',this,'media')">UCRANIA</button>
+          <button class="ffbtn"    onclick="filterCat('mideast',this,'media')">M.ESTE</button>
+          <button class="ffbtn"    onclick="filterCat('africa',this,'media')">ÁFRICA</button>
+          <button class="ffbtn"    onclick="filterCat('asia',this,'media')">ASIA</button>
+          <button class="ffbtn"    onclick="filterCat('breaking',this,'media')">🔴 FLASH</button>
+        </div>
+        <div class="farea" id="feed-media">
+          <div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>
+        </div>
       </div>
 
-      <!-- Feed -->
-      <div class="farea" id="feed-area">
-        <div class="fstatus"><div class="spin-sm"></div>Conectando con fuentes...</div>
+      <!-- OSINT/TELEGRAM panel -->
+      <div class="tab-panel hidden" id="panel-osint">
+        <div class="ffilters">
+          <button class="ffbtn on" onclick="filterCat('all',this,'osint')">TODO</button>
+          <button class="ffbtn"    onclick="filterCat('ukraine',this,'osint')">UCRANIA</button>
+          <button class="ffbtn"    onclick="filterCat('mideast',this,'osint')">M.ESTE</button>
+          <button class="ffbtn"    onclick="filterCat('africa',this,'osint')">ÁFRICA</button>
+          <button class="ffbtn"    onclick="filterCat('asia',this,'osint')">ASIA</button>
+        </div>
+        <div class="farea" id="feed-osint">
+          <div class="fstatus"><div class="spin-sm"></div>Cargando canales OSINT...</div>
+        </div>
+      </div>
+
+      <!-- GDELT panel -->
+      <div class="tab-panel hidden" id="panel-gdelt">
+        <div class="gdelt-info">
+          <span class="gdelt-label">⚡ GDELT — EVENTOS GLOBALES EN TIEMPO REAL</span>
+          <span class="gdelt-sub">Última hora · actualización automática</span>
+        </div>
+        <div class="farea" id="feed-gdelt">
+          <div class="fstatus"><div class="spin-sm"></div>Consultando GDELT API...</div>
+        </div>
       </div>
 
       <!-- Footer -->
       <div class="ffooter">
-        <span class="ffooter-stat">Fuentes: <b id="ft-sources">0</b></span>
-        <span class="ffooter-stat">Items: <b id="ft-items">0</b></span>
+        <span class="ffooter-stat">Medios: <b id="ft-media">0</b></span>
+        <span class="ffooter-stat">OSINT: <b id="ft-osint">0</b></span>
+        <span class="ffooter-stat">GDELT: <b id="ft-gdelt">0</b></span>
         <span class="ffooter-stat" id="ft-updated">—</span>
-        <button class="frefresh" id="ref-btn2" onclick="loadFeed(true)">↻ REFRESH</button>
       </div>
 
     </div>
@@ -562,61 +622,72 @@ const RESOURCES = [
   {n:'Bab el-Mandeb',      lat:12.6,  lng:43.5,  w:'Geoeconómico',t:'ch',   d:'4.2 Mb/d. Bajo ataque Houthi. Comercio redirigido -14% 2024.'},
 ];
 
+
 // ══════════════════════════════════════════════════════════
-// RSS SOURCES — 30 fuentes
+// FUENTES MEDIOS — 23 RSS
 // ══════════════════════════════════════════════════════════
-const RSS_SOURCES = [
-  // Generalistas internacionales
-  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                  n:'BBC World',       cat:'general'},
-  {url:'https://www.aljazeera.com/xml/rss/all.xml',                    n:'Al Jazeera',      cat:'general'},
-  {url:'https://feeds.reuters.com/reuters/worldNews',                   n:'Reuters World',   cat:'general'},
-  {url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',       n:'NYT World',       cat:'general'},
-  {url:'https://www.theguardian.com/world/rss',                        n:'Guardian',        cat:'general'},
-  {url:'https://feeds.skynews.com/feeds/rss/world.xml',               n:'Sky News',        cat:'general'},
-  {url:'https://www.france24.com/en/rss',                              n:'France 24',       cat:'general'},
-  {url:'https://apnews.com/apf-intlnews.rss',                         n:'AP News',         cat:'general'},
-  {url:'https://www.dw.com/en/top-stories/rss',                       n:'DW',              cat:'general'},
-  {url:'https://feeds.nbcnews.com/nbcnews/public/world',              n:'NBC World',       cat:'general'},
-  // Defensa / seguridad / OSINT
-  {url:'https://www.understandingwar.org/feed',                        n:'ISW',             cat:'defense'},
-  {url:'https://www.bellingcat.com/feed/',                             n:'Bellingcat',      cat:'osint'},
-  {url:'https://foreignpolicy.com/feed/',                              n:'Foreign Policy',  cat:'analysis'},
-  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', n:'Defense News', cat:'defense'},
-  {url:'https://thedefensepost.com/feed/',                             n:'Defense Post',    cat:'defense'},
-  {url:'https://www.janes.com/feeds/news',                            n:'Janes',           cat:'defense'},
-  {url:'https://breakingdefense.com/feed/',                           n:'Breaking Defense',cat:'defense'},
-  {url:'https://www.militarytimes.com/arc/outboundfeeds/rss/',        n:'Military Times',  cat:'defense'},
-  // Oriente Medio
-  {url:'https://www.timesofisrael.com/feed/',                         n:'Times of Israel', cat:'mideast'},
-  {url:'https://www.haaretz.com/cmlink/1.628765',                     n:'Haaretz',         cat:'mideast'},
-  {url:'https://www.middleeasteye.net/rss',                           n:'ME Eye',          cat:'mideast'},
-  // Europa del Este / Rusia
-  {url:'https://www.kyivindependent.com/rss/',                        n:'Kyiv Independent',cat:'ukraine'},
-  {url:'https://meduza.io/rss/en/all',                                n:'Meduza',          cat:'ukraine'},
-  // África
-  {url:'https://www.theafricareport.com/feed/',                       n:'Africa Report',   cat:'africa'},
-  {url:'https://allafrica.com/tools/headlines/rdf/latest/headlines.rdf', n:'AllAfrica',    cat:'africa'},
-  // Asia
-  {url:'https://www.scmp.com/rss/91/feed',                            n:'SCMP',            cat:'asia'},
-  {url:'https://www.rfa.org/english/news/rss2.html',                  n:'Radio Free Asia', cat:'asia'},
-  // Análisis geopolítico
-  {url:'https://www.crisisgroup.org/rss.xml',                         n:'ICG',             cat:'analysis'},
-  {url:'https://acleddata.com/feed/',                                  n:'ACLED',           cat:'analysis'},
-  {url:'https://www.cfr.org/rss.xml',                                  n:'CFR',             cat:'analysis'},
+const MEDIA_SOURCES = [
+  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                       n:'BBC World',        cat:'general'},
+  {url:'https://www.aljazeera.com/xml/rss/all.xml',                         n:'Al Jazeera',       cat:'general'},
+  {url:'https://feeds.reuters.com/reuters/worldNews',                        n:'Reuters',          cat:'general'},
+  {url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',            n:'NYT World',        cat:'general'},
+  {url:'https://www.theguardian.com/world/rss',                             n:'Guardian',         cat:'general'},
+  {url:'https://feeds.skynews.com/feeds/rss/world.xml',                    n:'Sky News',         cat:'general'},
+  {url:'https://www.france24.com/en/rss',                                   n:'France 24',        cat:'general'},
+  {url:'https://apnews.com/apf-intlnews.rss',                              n:'AP News',          cat:'general'},
+  {url:'https://www.dw.com/en/top-stories/rss',                            n:'DW',               cat:'general'},
+  {url:'https://www.understandingwar.org/feed',                             n:'ISW',              cat:'ukraine'},
+  {url:'https://www.kyivindependent.com/rss/',                             n:'Kyiv Independent', cat:'ukraine'},
+  {url:'https://meduza.io/rss/en/all',                                      n:'Meduza',           cat:'ukraine'},
+  {url:'https://www.timesofisrael.com/feed/',                              n:'Times of Israel',  cat:'mideast'},
+  {url:'https://www.middleeasteye.net/rss',                                n:'ME Eye',           cat:'mideast'},
+  {url:'https://www.bellingcat.com/feed/',                                  n:'Bellingcat',       cat:'general'},
+  {url:'https://foreignpolicy.com/feed/',                                   n:'Foreign Policy',   cat:'general'},
+  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', n:'Defense News',     cat:'general'},
+  {url:'https://breakingdefense.com/feed/',                                n:'Breaking Defense', cat:'general'},
+  {url:'https://www.theafricareport.com/feed/',                            n:'Africa Report',    cat:'africa'},
+  {url:'https://www.scmp.com/rss/91/feed',                                 n:'SCMP',             cat:'asia'},
+  {url:'https://www.rfa.org/english/news/rss2.html',                       n:'Radio Free Asia',  cat:'asia'},
+  {url:'https://www.crisisgroup.org/rss.xml',                              n:'ICG',              cat:'general'},
+  {url:'https://www.cfr.org/rss.xml',                                       n:'CFR',              cat:'general'},
+];
+
+// ══════════════════════════════════════════════════════════
+// CANALES OSINT / TELEGRAM (via rsshub.app)
+// ══════════════════════════════════════════════════════════
+const OSINT_SOURCES = [
+  {url:'https://rsshub.app/telegram/channel/rybar',             n:'Rybar',            cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/intelslava',        n:'Intel Slava Z',    cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/ukrainewar_report', n:'UA War Report',    cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/UkraineNow',        n:'Ukraine Now',      cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/war_monitor',       n:'War Monitor',      cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/osintdefender',     n:'OSINTdefender',    cat:'general', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/IntelCrab',         n:'Intel Crab',       cat:'general', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/GeoConfirmed',      n:'GeoConfirmed',     cat:'general', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/QudsNen',           n:'Quds News',        cat:'mideast', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/SyrianCivilWarMap', n:'Syria Map',        cat:'mideast', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/sahelien',          n:'Sahel Intel',      cat:'africa',  type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/DeepStateUA',       n:'DeepState UA',     cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/conflictmonitor',   n:'Conflict Monitor', cat:'general', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/milchronicles',     n:'Mil Chronicles',   cat:'ukraine', type:'tg'},
+  {url:'https://rsshub.app/telegram/channel/OSINT_channel',     n:'OSINT CH',         cat:'general', type:'tg'},
 ];
 
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let MAP, LG={}, feedData=[], activeCat='all', activeSrc='all', feedCache={ts:0,data:[]};
+let MAP, LG={};
+let mediaCache={ts:0,data:[]}, osintCache={ts:0,data:[]}, gdeltCache={ts:0,data:[]};
+let activeCatMedia='all', activeCatOsint='all';
+let activeTab='media', countdownSecs=120;
 
 // ══════════════════════════════════════════════════════════
 // CLOCK
 // ══════════════════════════════════════════════════════════
 function startClock(){
   const el=document.getElementById('clock');
-  const tick=()=>{ const d=new Date(); el.textContent=[d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds()].map(n=>String(n).padStart(2,'0')).join(':'); };
-  tick(); setInterval(tick,1000);
+  const tick=()=>{const d=new Date();el.textContent=[d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds()].map(n=>String(n).padStart(2,'0')).join(':');};
+  tick();setInterval(tick,1000);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -626,9 +697,7 @@ function initMap(){
   MAP=L.map('map',{zoomControl:false,attributionControl:false,minZoom:2}).setView([20,15],2.5);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(MAP);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(MAP);
-  LAYERS.forEach(l=>{ LG[l.id]=L.layerGroup(); });
-
-  // Conflict markers
+  LAYERS.forEach(l=>{LG[l.id]=L.layerGroup();});
   CONFLICTS.forEach(c=>{
     const sz={critical:24,high:18,med:13,low:10,latent:8}[c.intensity]||12;
     const bc={critical:'#f85149',high:'#f85149',med:'#f0883e',low:'#58a6ff',latent:'#484f58'}[c.intensity];
@@ -642,100 +711,14 @@ function initMap(){
       .addTo(LG['conflicts']);
   });
   LG['conflicts'].addTo(MAP);
-
-  // Mil bases — con detalles por operador
-  MIL_BASES.forEach(b=>{
-    const col={EEUU:'#79c0ff','EEUU/NATO':'#79c0ff','EEUU/UK':'#58a6ff','EEUU/Qatar':'#79c0ff','EEUU/UAE':'#79c0ff','EEUU/Kuwait':'#79c0ff','EEUU/Iraq':'#79c0ff','EEUU/Yibuti':'#79c0ff','EEUU/Kenya':'#79c0ff','EEUU/Níger':'#444c56','EEUU/Japón':'#79c0ff','EEUU/Corea S.':'#79c0ff','EEUU/Turquía':'#79c0ff','EEUU/Honduras':'#79c0ff',Rusia:'#f85149','Rusia/Siria':'#f85149','Rusia/Mali':'#f85149','Rusia/CSTO':'#f85149',China:'#e3b341','China/Camboya':'#e3b341',UK:'#3fb950','EEUU/UK':'#58a6ff',Francia:'#bc8cff','Noruega/NATO':'#79c0ff',OTAN:'#79c0ff','Kazajistán':'#484f58','Hist.':'#444c56'}[b.w]||'#8b949e';
-    const icon=L.divIcon({className:'',html:`<div style="width:9px;height:9px;background:rgba(0,0,0,.3);border:1.5px solid ${col};border-radius:2px;transform:rotate(45deg);"></div>`,iconSize:[9,9],iconAnchor:[4.5,4.5]});
-    L.marker([b.lat,b.lng],{icon}).bindPopup(`<div class="pt">⬛ ${b.n}</div><div class="ps">${b.w}</div><div class="pb">${b.t}</div>`).addTo(LG['bases']);
-  });
-
-  // Nuclear
-  NUCLEAR.forEach(n=>{
-    const icon=L.divIcon({className:'',html:`<div style="width:11px;height:11px;border-radius:50%;background:rgba(188,140,255,.18);border:1.5px solid #bc8cff;"></div>`,iconSize:[11,11],iconAnchor:[5.5,5.5]});
-    L.marker([n.lat,n.lng],{icon}).bindPopup(`<div class="pt">☢ ${n.n}</div><div class="ps">${n.w}</div><div class="pb">${n.t}</div>`).addTo(LG['nuclear']);
-  });
-
-  // Cables submarinos — cada uno con su color
-  CABLES.forEach(c=>{
-    L.polyline(c.pts,{color:c.col||'#3fb950',weight:1.5,opacity:.55,dashArray:'5,4'})
-      .bindPopup(`<div class="pt">🔌 ${c.n}</div><div class="ps">CABLE SUBMARINO</div>`)
-      .addTo(LG['cables']);
-  });
-
-  // Gas / Oleoductos — actualizado 2025
-  const PIPELINES = [
-    // Activos
-    {n:'TurkStream (Rusia→Turquía/SE Europa)',  col:'#f0883e', st:'ACTIVO',  pts:[[45.0,37.5],[41.8,36.5],[41.0,28.0],[42.5,22.0],[44.5,18.5],[46.0,18.8],[47.5,19.0]]},
-    {n:'Power of Siberia 1 (Rusia→China)',       col:'#f0883e', st:'ACTIVO',  pts:[[52.0,107.5],[48.0,118.0],[43.5,121.0],[40.0,115.0]]},
-    {n:'Blue Stream (Rusia→Turquía/Mar Negro)',  col:'#f0883e', st:'ACTIVO',  pts:[[44.5,38.0],[42.5,36.5],[41.0,36.0],[41.0,34.0],[41.0,29.0]]},
-    {n:'BTC (Bakú→Tbilisi→Ceyhan)',             col:'#3fb950', st:'ACTIVO',  pts:[[40.5,50.0],[41.5,45.0],[41.7,43.0],[37.0,36.0]]},
-    {n:'Trans-Adriatic Pipeline (TAP)',          col:'#3fb950', st:'ACTIVO',  pts:[[41.0,20.0],[41.5,15.5],[40.5,18.0]]},
-    {n:'TANAP (Azerbaiyán→Turquía)',             col:'#3fb950', st:'ACTIVO',  pts:[[41.5,45.0],[40.5,40.0],[37.0,36.0],[37.0,27.0],[41.0,26.0],[41.0,20.0]]},
-    {n:'Gaseoducto Argelia→Italia (TRANSMED)',   col:'#3fb950', st:'ACTIVO',  pts:[[36.5,9.0],[37.5,11.0],[38.5,13.0],[40.5,14.5]]},
-    {n:'Gaseoducto Argelia→España (Medgaz)',     col:'#3fb950', st:'ACTIVO',  pts:[[36.5,0.5],[38.5,-1.0],[40.5,-0.3]]},
-    {n:'Yamal-Europa (Rusia→Belarus→Polonia)',   col:'#484f58', st:'PARADO',  pts:[[58.0,55.0],[56.0,44.0],[55.0,37.0],[54.0,28.0],[52.5,21.0],[52.5,16.5],[53.5,14.5]]},
-    {n:'Nord Stream 1 & 2 (saboteados Sep 2022)',col:'#f85149', st:'DESTRUIDO',pts:[[59.5,28.0],[57.5,19.5],[55.0,15.5],[54.2,13.0]]},
-    {n:'Brotherhood / Soyuz (expirado dic 2024)',col:'#484f58', st:'PARADO',  pts:[[52.0,58.0],[52.0,45.0],[51.0,32.0],[50.0,24.0],[49.0,18.0],[48.2,17.2]]},
-    {n:'Power of Siberia 2 (PLANIFICADO 2030)',  col:'#e3b341', st:'PROYECTO',pts:[[68.0,68.0],[62.0,80.0],[52.0,100.0],[47.5,106.0],[40.0,111.0]]},
-    // Oleoductos
-    {n:'Druzhba (Rusia→Europa Central)',         col:'#bc8cff', st:'PARCIAL', pts:[[53.0,32.0],[52.0,24.0],[51.5,17.0],[50.0,14.5],[48.2,17.2],[47.5,19.0]]},
-    {n:'ESPO (Rusia→China/Pacifico)',            col:'#bc8cff', st:'ACTIVO',  pts:[[57.0,60.0],[58.0,80.0],[56.0,103.0],[52.0,116.0],[48.8,132.0]]},
-  ];
-  const stcol={'ACTIVO':'#f0883e','PARADO':'#484f58','DESTRUIDO':'#f85149','PROYECTO':'#e3b341','PARCIAL':'#bc8cff'};
-  PIPELINES.forEach(p=>{
-    L.polyline(p.pts,{color:p.col,weight:p.st==='DESTRUIDO'?1.5:p.st==='PROYECTO'?1:2,opacity:p.st==='PARADO'?0.25:p.st==='PROYECTO'?0.35:0.55,dashArray:p.st==='PARADO'||p.st==='DESTRUIDO'?'4,6':p.st==='PROYECTO'?'8,8':null})
-      .bindPopup(`<div class="pt">⛽ ${p.n}</div><div class="ps">ESTADO: <span style="color:${stcol[p.st]}">${p.st}</span></div>`)
-      .addTo(LG['pipelines']);
-  });
-
-  // Recursos críticos
-  const RESC_ICONS={
-    ree:{sym:'◆',col:'#e3b341',bg:'rgba(227,179,65,.18)',label:'REE'},
-    li: {sym:'⬡',col:'#58a6ff',bg:'rgba(88,166,255,.15)',label:'Litio'},
-    co: {sym:'●',col:'#bc8cff',bg:'rgba(188,140,255,.15)',label:'Cobalto'},
-    cu: {sym:'▲',col:'#f0883e',bg:'rgba(240,136,62,.15)',label:'Cobre'},
-    ni: {sym:'■',col:'#3fb950',bg:'rgba(63,185,80,.14)',label:'Níquel'},
-    gr: {sym:'◉',col:'#8b949e',bg:'rgba(139,148,158,.14)',label:'Grafito'},
-    ch: {sym:'✦',col:'#f85149',bg:'rgba(248,81,73,.18)',label:'Choke Point'},
-  };
-  RESOURCES.forEach(r=>{
-    const ri=RESC_ICONS[r.t]||RESC_ICONS.ree;
-    const sz=r.t==='ch'?14:10;
-    const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;background:${ri.bg};border:1.5px solid ${ri.col};border-radius:${r.t==='li'?'3px':r.t==='ch'?'50%':'2px'};display:flex;align-items:center;justify-content:center;font-size:${sz-4}px;color:${ri.col};line-height:1;">${ri.sym}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
-    L.marker([r.lat,r.lng],{icon})
-      .bindPopup(`<div class="pt">${ri.sym} ${r.n}</div><div class="ps">${r.w} · <span style="color:${ri.col}">${ri.label}</span></div><div class="pb">${r.d}</div>`,{maxWidth:260})
-      .addTo(LG['resources']);
-  });
-
 }
-
 
 // ══════════════════════════════════════════════════════════
-// UI
+// UI HELPERS
 // ══════════════════════════════════════════════════════════
-function togglePanel(hdr){
-  hdr.classList.toggle('closed');
-  hdr.nextElementSibling.classList.toggle('closed');
-}
-function setTime(btn){
-  btn.closest('.map-timebar').querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-}
+function setTime(btn){btn.closest('.map-timebar').querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 const REGIONS={global:[20,15,2.5],europe:[52,15,4],mena:[28,42,4],africa:[5,22,3.5],asia:[25,105,3.5],americas:[4,-72,3],caucasus:[41,46,5.5]};
-function setRegion(btn,r){
-  document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const [la,ln,z]=REGIONS[r]; MAP.flyTo([la,ln],z,{duration:1.2});
-}
-
-function toggleLayer(id){
-  const l=LAYERS.find(x=>x.id===id); l.on=!l.on;
-  l.on?LG[id].addTo(MAP):MAP.removeLayer(LG[id]);
-  const btn=document.getElementById('lb-'+id);
-  btn.classList.toggle('on',l.on);
-  btn.querySelector('.ldot').style.boxShadow=l.on?`0 0 5px ${l.color}`:'';
-}
+function setRegion(btn,r){document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');const[la,ln,z]=REGIONS[r];MAP.flyTo([la,ln],z,{duration:1.2});}
 
 const INTENSITY_ORDER={critical:0,high:1,med:2,low:3,latent:4};
 function renderConflicts(){
@@ -743,14 +726,9 @@ function renderConflicts(){
   document.getElementById('conflict-list').innerHTML=sorted.map(c=>{
     const bc={critical:'bc',high:'bh',med:'bm',low:'bl',latent:'bn'}[c.intensity];
     const label={critical:'CRÍTICO',high:'ALTO',med:'MEDIO',low:'BAJO',latent:'LATENTE'}[c.intensity];
-    return `<div class="ci" id="ci-${c.id}" onclick="selectConflict('${c.id}')">
-      <div class="cdot ${c.intensity}"></div>
-      <div class="cinfo"><div class="cname">${c.name}</div><div class="creg">${c.region}</div></div>
-      <div class="cbadge ${bc}">${label}</div>
-    </div>`;
+    return `<div class="ci" id="ci-${c.id}" onclick="selectConflict('${c.id}')"><div class="cdot ${c.intensity}"></div><div class="cinfo"><div class="cname">${c.name}</div><div class="creg">${c.region}</div></div><div class="cbadge ${bc}">${label}</div></div>`;
   }).join('');
 }
-
 function selectConflict(id){
   document.querySelectorAll('.ci').forEach(e=>e.classList.remove('on'));
   const el=document.getElementById('ci-'+id);
@@ -759,58 +737,79 @@ function selectConflict(id){
   if(c) MAP.flyTo([c.lat,c.lng],5,{duration:1.4});
 }
 
-function renderLayers(){
-  document.getElementById('layer-grid').innerHTML=LAYERS.map(l=>`
-    <button class="lbtn${l.on?' on':''}" id="lb-${l.id}" onclick="toggleLayer('${l.id}')">
-      <div class="ldot" style="background:${l.color};${l.on?'box-shadow:0 0 5px '+l.color:''}"></div>${l.label}
-    </button>`).join('');
-}
-
-function renderStability(){
-  document.getElementById('stab-list').innerHTML=STABILITY.map(s=>`
-    <div class="srow">
-      <div class="sname">${s.n}</div>
-      <div class="sbg"><div class="sbar" style="width:${s.s}%;background:${s.c}"></div></div>
-      <div class="sval">${s.s}</div>
-    </div>`).join('');
-}
-
-function renderSourceBar(){
-  const bar=document.getElementById('source-bar');
-  const cats=[...new Set(RSS_SOURCES.map(s=>s.cat))];
-  bar.innerHTML=`<span class="fsrc-label">FUENTES</span>
-    <button class="fsrc-btn on" id="sb-all" onclick="filterSrc('all',this)">TODAS (${RSS_SOURCES.length})</button>
-    ${cats.map(c=>`<button class="fsrc-btn" id="sb-${c}" onclick="filterSrc('${c}',this)">${c.toUpperCase()} (${RSS_SOURCES.filter(s=>s.cat===c).length})</button>`).join('')}`;
+// ══════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════
+function switchTab(tab,btn){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('panel-'+tab).classList.remove('hidden');
 }
 
 // ══════════════════════════════════════════════════════════
-// RSS FEED
+// AUTO-REFRESH — cada 2 minutos
 // ══════════════════════════════════════════════════════════
-function parseRSS(xml,src,cat){
+function startCountdown(){
+  countdownSecs=120;
+  const el=document.getElementById('refresh-countdown');
+  setInterval(()=>{
+    countdownSecs--;
+    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);}
+    const m=Math.floor(countdownSecs/60),s=String(countdownSecs%60).padStart(2,'0');
+    if(el) el.textContent=`↻ ${m}:${s}`;
+  },1000);
+}
+function refreshAll(force=true){loadMedia(force);loadOSINT(force);loadGDELT(force);}
+
+// ══════════════════════════════════════════════════════════
+// CORS PROXY FALLBACK
+// ══════════════════════════════════════════════════════════
+const CORS_PROXIES=[
+  url=>`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  url=>`https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+async function fetchRSS(url){
+  for(const fn of CORS_PROXIES){
+    try{
+      const r=await fetch(fn(url),{signal:AbortSignal.timeout(10000)});
+      if(!r.ok) continue;
+      const text=await r.text();
+      try{const j=JSON.parse(text);if(j.contents&&j.contents.length>100)return j.contents;}
+      catch(e){if(text.length>100)return text;}
+    }catch(e){}
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════
+// RSS PARSER
+// ══════════════════════════════════════════════════════════
+function parseRSS(xml,src,cat,type='rss'){
   const items=[],re=/<item[^>]*>([\s\S]*?)<\/item>/gi;
   let m;
   while((m=re.exec(xml))!==null){
     const b=m[1];
     const g=tag=>{const r=b.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?<\\/${tag}>`,'si'));return r?r[1].replace(/<[^>]+>/g,'').trim():'';};
-    const title=g('title').slice(0,200);
-    const link=g('link')||g('guid');
+    const title=g('title').slice(0,200),link=g('link')||g('guid');
     const pubDate=g('pubDate')||g('dc:date')||new Date().toUTCString();
-    const desc=g('description').replace(/&[a-z]+;/g,' ').replace(/\s+/g,' ').trim().slice(0,160);
-    if(title) items.push({title,link,pubDate,desc,src,cat});
+    const desc=g('description').replace(/&[a-z]+;/g,' ').replace(/\s+/g,' ').trim().slice(0,200);
+    if(title) items.push({title,link,pubDate,desc,src,cat,type});
   }
   if(!items.length){
     const re2=/<entry[^>]*>([\s\S]*?)<\/entry>/gi;
     while((m=re2.exec(xml))!==null){
       const b=m[1];
       const g=tag=>{const r=b.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?<\\/${tag}>`,'si'));return r?r[1].replace(/<[^>]+>/g,'').trim():'';};
-      const title=g('title').slice(0,200);
-      const pubDate=g('updated')||g('published')||new Date().toUTCString();
-      const desc=g('summary').replace(/&[a-z]+;/g,' ').trim().slice(0,160);
+      const title=g('title').slice(0,200),pubDate=g('updated')||g('published')||new Date().toUTCString();
+      const desc=g('summary').replace(/&[a-z]+;/g,' ').trim().slice(0,200);
       const lm=b.match(/<link[^>]+href="([^"]+)"/i);
-      if(title) items.push({title,link:lm?lm[1]:'',pubDate,desc,src,cat});
+      if(title) items.push({title,link:lm?lm[1]:'',pubDate,desc,src,cat,type});
     }
   }
-  return items.slice(0,10);
+  return items.slice(0,12);
 }
 
 const CLASSIFY=t=>{
@@ -823,133 +822,147 @@ const CLASSIFY=t=>{
   return 'i';
 };
 const REGION_KW={
-  ukraine:/ukrain|russia|kyiv|moscow|donetsk|zaporizhzhia|kherson|kursk/i,
+  ukraine:/ukrain|russia|kyiv|moscow|donetsk|zaporizhzhia|kherson|kursk|kremlin|zelensky/i,
   mideast:/gaza|israel|hamas|idf|lebanon|iran|iraq|syria|yemen|houthi|tehran/i,
-  africa:/africa|sudan|congo|somalia|mali|ethiopia|nigeria|sahel|chad|niger|burkina|rwanda|mozambique/i,
+  africa:/africa|sudan|congo|somalia|mali|ethiopia|nigeria|sahel|chad|niger|burkina|rwanda/i,
   asia:/china|taiwan|korea|japan|myanmar|vietnam|philippin|asia|pacific|burma|beijing/i,
   americas:/venezuel|haiti|colombia|brazil|mexico|carib|latin|america/i,
-  breaking:/breaking|flash|urgent|alert/i,
 };
-const TAG={b:['tag-b','🔴 FLASH'],s:['tag-s','💥 STRIKE'],d:['tag-d','🕊 DIPLO'],m:['tag-m','⚔ MIL'],e:['tag-e','📈 ECONOMÍA'],i:['tag-i','📡 INTEL']};
+const TAG={b:['tag-b','🔴 FLASH'],s:['tag-s','💥 STRIKE'],d:['tag-d','🕊 DIPLO'],m:['tag-m','⚔ MIL'],e:['tag-e','📈 ECON'],i:['tag-i','📡 INTEL']};
 
 function timeAgo(s){
   const n=Date.now()-new Date(s);
-  if(isNaN(n)) return '?';
-  if(n<60000) return 'ahora';
-  if(n<3600000) return `${Math.floor(n/60000)}m`;
-  if(n<86400000) return `${Math.floor(n/3600000)}h`;
+  if(isNaN(n))return '?';
+  if(n<60000)return 'ahora';
+  if(n<3600000)return `${Math.floor(n/60000)}m`;
+  if(n<86400000)return `${Math.floor(n/3600000)}h`;
   return `${Math.floor(n/86400000)}d`;
 }
 
-// Múltiples proxies CORS — si uno falla prueba el siguiente
-const CORS_PROXIES = [
-  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-];
-
-async function fetchRSS(url) {
-  for (const proxyFn of CORS_PROXIES) {
-    try {
-      const r = await fetch(proxyFn(url), {signal: AbortSignal.timeout(10000)});
-      if (!r.ok) continue;
-      const text = await r.text();
-      // allorigins devuelve JSON con .contents; los otros devuelven XML directo
-      try {
-        const j = JSON.parse(text);
-        if (j.contents && j.contents.length > 100) return j.contents;
-      } catch(e) {
-        if (text.length > 100) return text;
-      }
-    } catch(e) { /* prueba siguiente proxy */ }
-  }
-  return null;
-}
-
-let loadedSources=0;
-async function loadFeed(force=false){
-  const btn=document.getElementById('ref-btn');
-  const btn2=document.getElementById('ref-btn2');
-  btn.textContent='↻ ...'; btn2.textContent='↻ ...';
-
-  if(!force && Date.now()-feedCache.ts<5*60*1000 && feedCache.data.length){
-    renderFeed(); btn.textContent='↻ ACTUALIZAR'; btn2.textContent='↻ REFRESH'; return;
-  }
-
-  loadedSources=0;
-  document.getElementById('feed-area').innerHTML=`<div class="fstatus"><div class="spin-sm"></div><div class="fstatus-detail" id="load-detail">Conectando con 0/${RSS_SOURCES.length} fuentes...</div></div>`;
-
-  const all=[];
-  await Promise.allSettled(RSS_SOURCES.map(async src=>{
-    try{
-      const xml = await fetchRSS(src.url);
-      if (!xml) return;
-      const items=parseRSS(xml, src.n, src.cat);
-      items.forEach(i=>all.push(i));
-      loadedSources++;
-      const el=document.getElementById('load-detail');
-      if(el) el.textContent=`Cargadas ${loadedSources}/${RSS_SOURCES.length} fuentes... (${all.length} noticias)`;
-    }catch(e){}
-  }));
-
-  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  feedCache={ts:Date.now(),data:all};
-
-  const alerts=all.filter(i=>{ const t=CLASSIFY(i.title); return t==='b'||t==='s'; }).length;
-  document.getElementById('st-n').textContent=all.length;
-  document.getElementById('st-a').textContent=alerts;
-  document.getElementById('ft-sources').textContent=loadedSources;
-  document.getElementById('ft-items').textContent=all.length;
-  const now=new Date();
-  document.getElementById('ft-updated').textContent=`${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
-
-  const tickerText=all.slice(0,15).map(i=>`◉ ${i.title} [${i.src}]`).join('   ');
-  document.getElementById('ticker').textContent=tickerText||'SIN DATOS';
-
-  renderFeed();
-  btn.textContent='↻ ACTUALIZAR'; btn2.textContent='↻ REFRESH';
-}
-
-function filterCat(f,btn){
-  activeCat=f;
-  document.querySelectorAll('.ffbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderFeed();
-}
-
-function filterSrc(f,btn){
-  activeSrc=f;
-  document.querySelectorAll('.fsrc-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderFeed();
-}
-
-function renderFeed(){
-  const area=document.getElementById('feed-area');
-  let items=feedCache.data;
-
-  // Source filter
-  if(activeSrc!=='all') items=items.filter(i=>i.cat===activeSrc);
-
-  // Category filter
-  if(activeCat==='breaking') items=items.filter(i=>{ const t=CLASSIFY(i.title); return t==='b'||t==='s'; });
-  else if(activeCat!=='all'){ const re=REGION_KW[activeCat]; if(re) items=items.filter(i=>re.test(i.title+' '+(i.desc||''))); }
-
-  if(!items.length){ area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin resultados para este filtro.</div>'; return; }
-
-  area.innerHTML=items.slice(0,50).map((item,i)=>{
+function renderItems(items,areaId){
+  const area=document.getElementById(areaId);
+  if(!items.length){area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin resultados.</div>';return;}
+  area.innerHTML=items.slice(0,60).map((item,i)=>{
     const t=CLASSIFY(item.title),[cls,label]=TAG[t]||TAG['i'];
     const safeLink=(item.link||'').replace(/'/g,"\\'");
-    return `<div class="fitem" style="animation-delay:${Math.min(i,.15)*0.04}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
-      <div class="ftop">
-        <span class="ftag ${cls}">${label}</span>
-        <span class="fsrc">${item.src}</span>
-        <span class="ftime">${timeAgo(item.pubDate)}</span>
-      </div>
+    const isTg=item.type==='tg';
+    const tagHtml=isTg?`<span class="ftag tag-tg">📲 TELEGRAM</span>`:`<span class="ftag ${cls}">${label}</span>`;
+    return `<div class="fitem" style="animation-delay:${Math.min(i,20)*0.025}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
+      <div class="ftop">${tagHtml}<span class="fsrc">${item.src}</span><span class="ftime">${timeAgo(item.pubDate)}</span></div>
       <div class="ftitle">${item.title}</div>
-      ${item.desc?`<div class="fdesc">${item.desc}…</div>`:''}
+      ${item.desc&&item.desc!==item.title?`<div class="fdesc">${item.desc}…</div>`:''}
     </div>`;
   }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// LOAD MEDIA
+// ══════════════════════════════════════════════════════════
+async function loadMedia(force=false){
+  if(!force&&Date.now()-mediaCache.ts<120000&&mediaCache.data.length){renderMedia();return;}
+  document.getElementById('feed-media').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>`;
+  const all=[];
+  await Promise.allSettled(MEDIA_SOURCES.map(async src=>{
+    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(i=>all.push(i));}catch(e){}
+  }));
+  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  mediaCache={ts:Date.now(),data:all};
+  document.getElementById('ft-media').textContent=all.length;
+  updateTicker(all);
+  renderMedia();
+}
+
+function filterCat(f,btn,panel){
+  if(panel==='media') activeCatMedia=f;
+  else activeCatOsint=f;
+  btn.closest('.ffilters').querySelectorAll('.ffbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(panel==='media') renderMedia(); else renderOSINT();
+}
+
+function renderMedia(){
+  let items=mediaCache.data;
+  if(activeCatMedia==='breaking') items=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';});
+  else if(activeCatMedia!=='all'){const re=REGION_KW[activeCatMedia];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
+  renderItems(items,'feed-media');
+}
+
+// ══════════════════════════════════════════════════════════
+// LOAD OSINT / TELEGRAM
+// ══════════════════════════════════════════════════════════
+async function loadOSINT(force=false){
+  if(!force&&Date.now()-osintCache.ts<120000&&osintCache.data.length){renderOSINT();return;}
+  document.getElementById('feed-osint').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Conectando con canales Telegram...</div>`;
+  const all=[];
+  await Promise.allSettled(OSINT_SOURCES.map(async src=>{
+    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'tg').forEach(i=>all.push(i));}catch(e){}
+  }));
+  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  osintCache={ts:Date.now(),data:all};
+  document.getElementById('ft-osint').textContent=all.length;
+  renderOSINT();
+}
+
+function renderOSINT(){
+  let items=osintCache.data;
+  if(activeCatOsint!=='all'){const re=REGION_KW[activeCatOsint];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
+  renderItems(items,'feed-osint');
+}
+
+// ══════════════════════════════════════════════════════════
+// LOAD GDELT
+// ══════════════════════════════════════════════════════════
+async function loadGDELT(force=false){
+  if(!force&&Date.now()-gdeltCache.ts<120000&&gdeltCache.data.length){renderGDELT();return;}
+  document.getElementById('feed-gdelt').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Consultando GDELT...</div>`;
+  try{
+    const query='war OR conflict OR attack OR military OR missile OR explosion OR troops';
+    const url=`https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&maxrecords=50&timespan=2h&sort=hybridrel&format=json`;
+    const xml=await fetchRSS(url);
+    if(!xml) throw new Error('no data');
+    const data=JSON.parse(xml);
+    const articles=(data.articles||[]).map(a=>({
+      title:a.title||'',link:a.url||'',
+      pubDate:a.seendate?a.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/,'$1-$2-$3T$4:$5:$6Z'):new Date().toISOString(),
+      src:a.domain||'GDELT',country:a.sourcecountry||'',lang:a.language||'',
+      tone:parseFloat(a.tone||0),cat:'general',type:'gdelt'
+    }));
+    gdeltCache={ts:Date.now(),data:articles};
+    document.getElementById('ft-gdelt').textContent=articles.length;
+    renderGDELT();
+  }catch(e){
+    document.getElementById('feed-gdelt').innerHTML=`<div class="fstatus"><div class="fstatus-detail" style="color:var(--t3)">GDELT no disponible ahora.<br>Auto-reintento en 2 min.</div></div>`;
+  }
+}
+
+function renderGDELT(){
+  const area=document.getElementById('feed-gdelt');
+  const items=gdeltCache.data;
+  if(!items.length){area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin datos GDELT.</div>';return;}
+  area.innerHTML=items.slice(0,60).map((item,i)=>{
+    const tone=item.tone||0;
+    const toneCls=tone<-5?'tone-neg':tone>2?'tone-pos':'tone-neu';
+    const toneLabel=tone<-5?'🔴 NEGATIVO':tone>2?'🟢 POSITIVO':'⚪ NEUTRAL';
+    const safeLink=(item.link||'').replace(/'/g,"\\'");
+    return `<div class="gdelt-item" style="animation-delay:${Math.min(i,20)*0.025}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
+      <div class="gdelt-top"><span class="gdelt-tone ${toneCls}">${toneLabel}</span><span class="gdelt-src">${item.src}</span><span class="gdelt-time">${timeAgo(item.pubDate)}</span></div>
+      <div class="gdelt-title">${item.title}</div>
+      ${item.country?`<div class="gdelt-loc">📍 <b>${item.country}</b>${item.lang?' · '+item.lang:''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// TICKER
+// ══════════════════════════════════════════════════════════
+function updateTicker(items){
+  const top=items.slice(0,15).map(i=>`◉ ${i.title} [${i.src}]`).join('   ');
+  document.getElementById('ticker').textContent=top||'SIN DATOS';
+  const alerts=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';}).length;
+  document.getElementById('st-n').textContent=items.length;
+  document.getElementById('st-a').textContent=alerts;
+  const now=new Date();
+  document.getElementById('ft-updated').textContent=`${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -959,9 +972,10 @@ function init(){
   startClock();
   initMap();
   renderConflicts();
-  renderSourceBar();
-  loadFeed();
-  setInterval(()=>loadFeed(),5*60*1000);
+  startCountdown();
+  loadMedia();
+  loadOSINT();
+  loadGDELT();
 }
 init();
 </script>
