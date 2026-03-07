@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORLD MONITOR — Global Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#080c10;--s1:#0d1117;--s2:#161b22;--s3:#1c2128;
+  --b1:#21262d;--b2:#30363d;--b3:#444c56;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --red:#f85149;--orange:#f0883e;--yellow:#e3b341;
+  --green:#3fb950;--blue:#58a6ff;--cyan:#79c0ff;--purple:#bc8cff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
+button{font-family:inherit;cursor:pointer;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:var(--b2);}
+.app{display:flex;flex-direction:column;height:100vh;}
+.main{flex:1;display:flex;min-height:0;}
+
+/* TOPBAR */
+.topbar{height:46px;flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:14px;z-index:500;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;}
+.logo b{color:var(--red);}
+.live{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);letter-spacing:2px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t2);}
+.clock b{color:var(--t1);}
+.sep{width:1px;height:20px;background:var(--b2);}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;}
+.pill-orange{color:var(--orange);border-color:rgba(240,136,62,.3);background:rgba(240,136,62,.06);}
+.pill-red{color:var(--red);border-color:rgba(248,81,73,.35);background:rgba(248,81,73,.07);}
+.topbar-stats{display:flex;gap:14px;}
+.ts{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);}
+.ts b{color:var(--t1);}
+.ml{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{padding:4px 11px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .15s;letter-spacing:1px;border-radius:2px;}
+.btn:hover{border-color:var(--b3);color:var(--t1);}
+
+/* TICKER */
+.ticker{height:25px;flex-shrink:0;background:rgba(248,81,73,.08);border-bottom:1px solid rgba(248,81,73,.15);display:flex;align-items:center;overflow:hidden;}
+.ticker-tag{flex-shrink:0;background:var(--red);color:#000;height:100%;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;padding:0 12px;display:flex;align-items:center;gap:5px;}
+.tdot{width:5px;height:5px;border-radius:50%;background:#000;animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
+.ticker-text{display:inline-block;padding-left:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);animation:tickscroll 180s linear infinite;}
+@keyframes tickscroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* SIDEBAR LEFT */
+.sl{width:268px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+.phdr{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--s2);border-bottom:1px solid var(--b1);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--t2);cursor:pointer;user-select:none;flex-shrink:0;transition:color .15s;}
+.phdr:hover{color:var(--t1);}
+.phdr .arr{margin-left:auto;transition:transform .2s;}
+.phdr.closed .arr{transform:rotate(-90deg);}
+.pbody{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+.pbody.closed{display:none;}
+
+/* conflict list */
+.ci{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(33,38,45,.5);}
+.ci:hover{background:var(--s2);}
+.ci.on{background:var(--s3);border-left:2px solid var(--blue);padding-left:10px;}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cdot.critical{background:var(--red);box-shadow:0 0 7px var(--red);animation:pulse 1.5s ease-in-out infinite;}
+.cdot.high{background:var(--red);box-shadow:0 0 5px var(--red);}
+.cdot.med{background:var(--orange);box-shadow:0 0 4px var(--orange);}
+.cdot.low{background:var(--blue);}
+.cdot.latent{background:var(--t3);}
+.cinfo{flex:1;min-width:0;}
+.cname{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.creg{font-size:9px;color:var(--t2);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+.cbadge{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;flex-shrink:0;letter-spacing:.5px;}
+.bc{background:rgba(248,81,73,.2);color:var(--red);border:1px solid rgba(248,81,73,.25);}
+.bh{background:rgba(248,81,73,.13);color:var(--red);}
+.bm{background:rgba(240,136,62,.11);color:var(--orange);}
+.bl{background:rgba(88,166,255,.1);color:var(--blue);}
+.bn{background:rgba(72,79,88,.2);color:var(--t3);}
+
+/* layers */
+.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;}
+.lbtn{display:flex;align-items:center;gap:5px;padding:5px 7px;border:1px solid var(--b2);border-radius:3px;background:transparent;font-size:10px;color:var(--t2);transition:all .15s;width:100%;text-align:left;}
+.lbtn:hover{border-color:var(--b3);color:var(--t1);}
+.lbtn.on{color:var(--t1);border-color:var(--b3);}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* stability */
+.srow{display:flex;align-items:center;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(33,38,45,.4);}
+.sname{width:80px;font-size:10px;color:var(--t2);flex-shrink:0;}
+.sbg{flex:1;height:3px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.sbar{height:100%;border-radius:2px;transition:width 1s ease;}
+.sval{width:22px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);}
+
+/* MAP */
+.map-wrap{flex:1;position:relative;display:flex;flex-direction:column;min-width:0;}
+#map{flex:1;}
+.leaflet-container{background:#0a0f14!important;}
+@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.6)}50%{box-shadow:0 0 0 12px rgba(248,81,73,0)}}
+@keyframes ch{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.5)}50%{box-shadow:0 0 0 9px rgba(248,81,73,0)}}
+@keyframes cm{0%,100%{box-shadow:0 0 0 0 rgba(240,136,62,.5)}50%{box-shadow:0 0 0 7px rgba(240,136,62,0)}}
+@keyframes cl{0%,100%{box-shadow:0 0 0 0 rgba(88,166,255,.4)}50%{box-shadow:0 0 0 5px rgba(88,166,255,0)}}
+
+.map-timebar{position:absolute;top:10px;left:10px;z-index:400;background:rgba(8,12,16,.9);border:1px solid var(--b1);border-radius:3px;display:flex;overflow:hidden;backdrop-filter:blur(4px);}
+.tbtn{padding:4px 9px;background:transparent;border:none;border-right:1px solid var(--b1);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .12s;}
+.tbtn:last-child{border-right:none;}
+.tbtn.on,.tbtn:hover{background:var(--s2);color:var(--t1);}
+
+.map-zoombar{position:absolute;top:10px;right:10px;z-index:400;display:flex;flex-direction:column;gap:4px;}
+.zbtn{width:28px;height:28px;background:rgba(8,12,16,.9);border:1px solid var(--b1);color:var(--t2);font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .15s;backdrop-filter:blur(4px);}
+.zbtn:hover{color:var(--t1);border-color:var(--b3);}
+
+.map-regionbar{position:absolute;bottom:0;left:0;right:0;z-index:400;background:rgba(8,12,16,.88);border-top:1px solid var(--b1);display:flex;align-items:center;height:32px;padding:0 12px;gap:4px;backdrop-filter:blur(4px);overflow-x:auto;scrollbar-width:none;}
+.map-regionbar::-webkit-scrollbar{display:none;}
+.rlabel{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:1px;flex-shrink:0;margin-right:4px;}
+.rbtn{padding:2px 9px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .12s;border-radius:2px;white-space:nowrap;flex-shrink:0;}
+.rbtn:hover,.rbtn.on{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.05);}
+
+.leaflet-popup-content-wrapper{background:var(--s2)!important;color:var(--t1)!important;border:1px solid var(--b2)!important;border-radius:4px!important;box-shadow:0 4px 24px rgba(0,0,0,.7)!important;}
+.leaflet-popup-content{margin:10px 14px!important;}
+.leaflet-popup-tip{background:var(--s2)!important;}
+.leaflet-popup-close-button{color:var(--t2)!important;top:6px!important;right:8px!important;}
+.pt{font-weight:600;font-size:13px;margin-bottom:3px;}
+.ps{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);margin-bottom:6px;letter-spacing:.5px;}
+.pb{font-size:10px;color:var(--t2);line-height:1.6;}
+.pb b{color:var(--t1);}
+.pu-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 6px;border-radius:2px;margin-top:7px;letter-spacing:1px;}
+
+/* SIDEBAR RIGHT */
+.sr{width:300px;flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+
+/* feed */
+.ffilters{flex-shrink:0;display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid var(--b1);flex-wrap:wrap;}
+.ffbtn{padding:2px 8px;background:transparent;border:1px solid var(--b2);border-radius:2px;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .12s;letter-spacing:.5px;}
+.ffbtn:hover,.ffbtn.on{border-color:var(--b3);color:var(--t1);background:var(--s2);}
+
+/* feed source selector */
+.fsource-bar{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--b1);overflow-x:auto;scrollbar-width:none;}
+.fsource-bar::-webkit-scrollbar{display:none;}
+.fsrc-btn{padding:2px 7px;background:transparent;border:1px solid var(--b2);border-radius:2px;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:7px;transition:all .12s;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;}
+.fsrc-btn:hover,.fsrc-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.05);}
+.fsrc-label{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1px;flex-shrink:0;}
+
+.farea{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+.farea::-webkit-scrollbar{width:2px;}
+
+.fitem{padding:9px 12px 8px;border-bottom:1px solid rgba(33,38,45,.55);cursor:pointer;transition:background .1s;animation:fadeup .35s ease both;}
+.fitem:hover{background:var(--s2);}
+@keyframes fadeup{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.ftop{display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
+.ftag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;letter-spacing:.5px;flex-shrink:0;}
+.tag-b{background:rgba(248,81,73,.18);color:var(--red);border:1px solid rgba(248,81,73,.2);}
+.tag-s{background:rgba(240,136,62,.13);color:var(--orange);}
+.tag-d{background:rgba(88,166,255,.1);color:var(--blue);}
+.tag-m{background:rgba(188,140,255,.1);color:var(--purple);}
+.tag-i{background:rgba(121,192,255,.08);color:var(--cyan);}
+.tag-e{background:rgba(63,185,80,.08);color:var(--green);}
+.fsrc{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t2);background:var(--s3);padding:1px 5px;border-radius:2px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ftime{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);white-space:nowrap;}
+.ftitle{font-size:11px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:2px;}
+.fdesc{font-size:10px;color:var(--t2);line-height:1.45;}
+.fstatus{display:flex;align-items:center;justify-content:center;gap:8px;padding:28px 16px;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:10px;flex-direction:column;}
+.fstatus-detail{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace;text-align:center;line-height:1.6;}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.spin-sm{width:12px;height:12px;border:1px solid var(--b2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+
+/* feed footer */
+.ffooter{flex-shrink:0;border-top:1px solid var(--b1);padding:5px 12px;display:flex;align-items:center;gap:8px;}
+.ffooter-stat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
+.ffooter-stat b{color:var(--t2);}
+.frefresh{margin-left:auto;padding:3px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .15s;border-radius:2px;letter-spacing:1px;}
+.frefresh:hover{border-color:var(--green);color:var(--green);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">WORLD<b>MONITOR</b></div>
+    <div class="live"><div class="live-dot"></div>LIVE</div>
+    <div class="clock">UTC <b id="clock">--:--:--</b></div>
+    <div class="sep"></div>
+    <div class="pill pill-red" id="threat-pill">▲ CRÍTICO: 3 TEATROS ACTIVOS</div>
+    <div class="sep"></div>
+    <div class="topbar-stats">
+      <span class="ts">CONFLICTOS <b id="st-c">21</b></span>
+      <span class="ts">ALERTAS <b id="st-a" style="color:var(--red)">—</b></span>
+      <span class="ts">NOTICIAS <b id="st-n" style="color:var(--green)">—</b></span>
+    </div>
+    <div class="ml">
+      <button class="btn" id="ref-btn" onclick="loadFeed(true)">↻ ACTUALIZAR</button>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-tag"><div class="tdot"></div>FLASH</div>
+    <div class="ticker-scroll"><span class="ticker-text" id="ticker">CONECTANDO CON FUENTES RSS — CARGANDO INTELIGENCIA EN TIEMPO REAL...</span></div>
+  </div>
+
+  <div class="main">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sl">
+      <div class="phdr">● CONFLICTOS ACTIVOS // MAR 2026</div>
+      <div style="flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;">
+        <div id="conflict-list"></div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="map-wrap">
+      <div id="map"></div>
+
+      <div class="map-timebar">
+        <button class="tbtn" onclick="setTime(this)">1H</button>
+        <button class="tbtn" onclick="setTime(this)">6H</button>
+        <button class="tbtn on" onclick="setTime(this)">24H</button>
+        <button class="tbtn" onclick="setTime(this)">48H</button>
+        <button class="tbtn" onclick="setTime(this)">7D</button>
+      </div>
+
+      <div class="map-zoombar">
+        <button class="zbtn" onclick="MAP.zoomIn()">+</button>
+        <button class="zbtn" onclick="MAP.zoomOut()">−</button>
+        <button class="zbtn" onclick="MAP.flyTo([20,15],2.5,{duration:1})">⊕</button>
+      </div>
+
+      <div class="map-regionbar">
+        <span class="rlabel">REGIÓN</span>
+        <button class="rbtn on"  onclick="setRegion(this,'global')">GLOBAL</button>
+        <button class="rbtn"     onclick="setRegion(this,'europe')">EUROPA</button>
+        <button class="rbtn"     onclick="setRegion(this,'mena')">MENA</button>
+        <button class="rbtn"     onclick="setRegion(this,'africa')">ÁFRICA</button>
+        <button class="rbtn"     onclick="setRegion(this,'asia')">ASIA-PAC</button>
+        <button class="rbtn"     onclick="setRegion(this,'americas')">AMÉRICAS</button>
+        <button class="rbtn"     onclick="setRegion(this,'caucasus')">CÁUCASO</button>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sr">
+
+      <!-- Feed category filters -->
+      <div class="ffilters">
+        <button class="ffbtn on" onclick="filterCat('all',this)">TODO</button>
+        <button class="ffbtn"    onclick="filterCat('ukraine',this)">UCRANIA</button>
+        <button class="ffbtn"    onclick="filterCat('mideast',this)">M.ESTE</button>
+        <button class="ffbtn"    onclick="filterCat('africa',this)">ÁFRICA</button>
+        <button class="ffbtn"    onclick="filterCat('asia',this)">ASIA</button>
+        <button class="ffbtn"    onclick="filterCat('americas',this)">AMÉRICAS</button>
+        <button class="ffbtn"    onclick="filterCat('breaking',this)">🔴 FLASH</button>
+      </div>
+
+      <!-- Source filters -->
+      <div class="fsource-bar" id="source-bar">
+        <span class="fsrc-label">FUENTES</span>
+        <!-- filled by JS -->
+      </div>
+
+      <!-- Feed -->
+      <div class="farea" id="feed-area">
+        <div class="fstatus"><div class="spin-sm"></div>Conectando con fuentes...</div>
+      </div>
+
+      <!-- Footer -->
+      <div class="ffooter">
+        <span class="ffooter-stat">Fuentes: <b id="ft-sources">0</b></span>
+        <span class="ffooter-stat">Items: <b id="ft-items">0</b></span>
+        <span class="ffooter-stat" id="ft-updated">—</span>
+        <button class="frefresh" id="ref-btn2" onclick="loadFeed(true)">↻ REFRESH</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONFLICTOS — actualizados a marzo 2026
+// ══════════════════════════════════════════════════════════
+const CONFLICTS = [
+  // CRITICAL — guerra activa con grandes bajas
+  {
+    id:'iran-israel', name:'Irán – Israel – EEUU', region:'Oriente Medio', intensity:'critical',
+    lat:32.0, lng:44.0,
+    desc:'<b>OPERACIÓN SHIELD OF JUDAH</b> — Feb-Mar 2026. Ataques conjuntos EEUU/Israel sobre instalaciones nucleares y liderazgo iraní. Retaliación iraní con misiles sobre Israel, UAE, Arabia Saudí. Khamenei eliminado. Estado de emergencia en Israel. Tráfico aéreo en Golfo Pérsico severamente afectado.',
+    tags:['mideast'], updated:'Mar 2026'
+  },
+  {
+    id:'ukraine', name:'Rusia – Ucrania', region:'Europa Oriental', intensity:'high',
+    lat:49.0, lng:31.5,
+    desc:'<b>Año 4 de la invasión.</b> Avances rusos lentos en Donetsk y Zaporizhzhia. Incursión ucraniana en Kursk Oblast en curso. Movilización rusa continuada. Drones atacan infraestructura energética ucraniana. Conversaciones de paz esporádicas sin resultado.',
+    tags:['ukraine'], updated:'Mar 2026'
+  },
+  {
+    id:'gaza', name:'Israel – Gaza', region:'Oriente Medio', intensity:'high',
+    lat:31.5, lng:34.4,
+    desc:'<b>Mes 17+ de operaciones IDF</b>. Franja de Gaza devastada. +48.000 muertos reportados. Negociaciones de rehenes intermitentes. Hambruna confirmada en norte de Gaza. Operaciones en Rafah continuadas. Frente libanés relativamente estabilizado desde acuerdo nov 2024.',
+    tags:['mideast'], updated:'Mar 2026'
+  },
+  {
+    id:'sudan', name:'Sudán – Guerra Civil', region:'NE África', intensity:'high',
+    lat:15.5, lng:30.0,
+    desc:'<b>SAF vs RSF</b> — conflicto más mortífero del mundo en 2024-25. +150.000 muertos estimados. +10M desplazados. Darfur bajo control RSF casi total. Jartum devastada. Sin perspectiva de negociación. Bloqueada por potencias regionales.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'myanmar', name:'Myanmar – Guerra Civil', region:'SE Asia', intensity:'high',
+    lat:20.5, lng:96.5,
+    desc:'<b>Junta en retirada.</b> Coalición de resistencia (MNDAA, TNLA, AA + PDF) controla +60% del territorio. Mandalay bajo presión rebelde. Junta pierde acceso a fronteras clave. Economía colapsada. Crisis humanitaria masiva en zonas en conflicto.',
+    tags:['asia'], updated:'Mar 2026'
+  },
+  {
+    id:'drc', name:'DRC – Congo Este', region:'África Central', intensity:'high',
+    lat:-1.5, lng:29.1,
+    desc:'<b>M23 captura Goma</b> (ene 2026) y avanza hacia Bukavu. Rwanda acusada de apoyo directo. MONUSCO ya retirada. +6M desplazados en Kivu Norte. Crisis humanitaria más grave del continente. Riesgo de balcanización del este.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'sahel', name:'Sahel – Insurgencia', region:'África Occ.', intensity:'high',
+    lat:14.0, lng:-2.0,
+    desc:'<b>JNIM e ISWAP</b> controlan amplias zonas rurales en Mali, Burkina Faso y Níger. Juntas militares (AES) con apoyo ruso-Wagner. Francia y EEUU expulsados. Población civil atrapada. Ataques semanales a ciudades medianas.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  // HIGH
+  {
+    id:'haiti', name:'Haití – Pandillas', region:'Caribe', intensity:'high',
+    lat:18.5, lng:-72.3,
+    desc:'<b>G9 y GSMP controlan ~85% de P-au-Prince.</b> Fuerza multinacional keniana (MSS) operativa pero con recursos limitados. Estado prácticamente inexistente. +700.000 desplazados. Violencia sexual sistémica. Riesgo de hambruna urbana.',
+    tags:['americas'], updated:'Mar 2026'
+  },
+  {
+    id:'somalia', name:'Somalia – Al-Shabaab', region:'Este África', intensity:'high',
+    lat:5.0, lng:46.0,
+    desc:'<b>Al-Shabaab recupera territorios</b> del sur tras retirada de ATMIS. Ataques en Mogadiscio persisten. Financiación vía impuestos "khat". EEUU mantiene strikes con drones. Cooperación Somalia-Etiopía-Kenya reforzada pero insuficiente.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'northkorea', name:'Corea del Norte – Proxy', region:'Este Asia', intensity:'high',
+    lat:38.5, lng:127.5,
+    desc:'<b>15.000+ tropas DPRK confirmadas en Rusia</b> (Kursk Oblast), con bajas significativas. Kim Jong-un consolida relación Moscú-Pyongyang. Ensayos de misiles continuados. Arsenal nuclear estimado en 50-60 armas. Transferencias de munición masivas a Rusia.',
+    tags:['asia'], updated:'Mar 2026'
+  },
+  // MEDIUM
+  {
+    id:'taiwan', name:'Estrecho de Taiwán', region:'Este Asia', intensity:'med',
+    lat:23.5, lng:121.0,
+    desc:'Ejercicios PLA "Joint Sword" periódicos. Incursiones ADIZ casi diarias. Tensión elevada tras elecciones taiwanesas 2024. EEUU aprueba ventas de armas por $19B. Riesgo de escalada calculada pero sin conflicto abierto previsto a corto plazo.',
+    tags:['asia'], updated:'Mar 2026'
+  },
+  {
+    id:'scs', name:'Mar del Sur de China', region:'SE Asia', intensity:'med',
+    lat:12.0, lng:113.5,
+    desc:'Incidentes Filipinas–China en Ayungin Shoal (Second Thomas) casi semanales. Cañones de agua, láser y abordajes reportados. EEUU reafirma defensa mutua con Manila. Vietnam y Malaysia también bajo presión. ASEAN bloqueada.',
+    tags:['asia'], updated:'Mar 2026'
+  },
+  {
+    id:'yemen', name:'Yemen – Houthis', region:'Oriente Medio', intensity:'med',
+    lat:15.0, lng:48.0,
+    desc:'Ataques Houthi al tráfico marítimo del Mar Rojo continúan (>100 ataques desde oct 2023). Represalias EEUU/UK insuficientes para detenerlos. Estrecho de Bab el-Mandeb en riesgo. Comercio global redirigido vía Cabo de Buena Esperanza (+30% coste).',
+    tags:['mideast'], updated:'Mar 2026'
+  },
+  {
+    id:'ethiopia', name:'Etiopía – Conflictos', region:'Este África', intensity:'med',
+    lat:9.0, lng:40.0,
+    desc:'Conflicto Amhara activo post-Tigray (acuerdo Pretoria 2022 frágil). Insurgencia Oromia (OLA) en Oromia occidental. Tensión con Somalia por acceso al mar. +1M desplazados. Presión económica creciente.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'mozambique', name:'Mozambique – Cabo Delgado', region:'África Sur.', intensity:'med',
+    lat:-13.0, lng:38.5,
+    desc:'<b>ISWAP-Mozambique</b> activo en Cabo Delgado pese a operaciones Rwanda/SADC. Proyecto LNG de TotalEnergies paralizado. +1M desplazados. Crisis política post-electoral (oct 2024) agrava la situación.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'nagorno', name:'Armenia – Azerbaiyán', region:'Cáucaso', intensity:'med',
+    lat:40.5, lng:47.0,
+    desc:'Nagorno-Karabaj vaciado étnicamente (sep 2023). Negociaciones de paz Armenia-Azerbaiyán en proceso. Baku presiona por "corredor de Zangezur". Riesgo de nueva operación militar azerbaiyana en territorio armenio.',
+    tags:['caucasus'], updated:'Mar 2026'
+  },
+  {
+    id:'georgia', name:'Georgia – Crisis Política', region:'Cáucaso', intensity:'med',
+    lat:42.0, lng:43.5,
+    desc:'Protestas masivas pro-UE tras fraude electoral (oct-dic 2024). Gobierno pro-ruso Georgian Dream en el poder. Represión policial. Dos regiones ocupadas por Rusia (Abjasia, S. Osetia). Proceso de adhesión UE congelado.',
+    tags:['caucasus'], updated:'Mar 2026'
+  },
+  // LOW / LATENT
+  {
+    id:'venezuela', name:'Venezuela – Esequibo', region:'Sudamérica', intensity:'low',
+    lat:6.5, lng:-63.0,
+    desc:'Reclamación del Esequibo (2/3 de Guyana). Referéndum venezolano dic 2023. Movilizaciones militares. Caso ante la CIJ activo. Guyana con boom petrolero (ExxonMobil). Mediación CARICOM en curso.',
+    tags:['americas'], updated:'Mar 2026'
+  },
+  {
+    id:'pakistan', name:'Pakistán – Baluchistán/KP', region:'Asia Sur', intensity:'low',
+    lat:30.0, lng:69.0,
+    desc:'TTP (Tehrik-i-Taliban Pakistán) ataques continuados desde Afganistán. BLA activo en Baluchistán (atentados a infraestructura CPEC). Tensión civil-militar. Crisis económica severa. Relaciones Pakistan-India frías pero estables.',
+    tags:['asia'], updated:'Mar 2026'
+  },
+  {
+    id:'sahara', name:'Sáhara Occidental', region:'Norte África', intensity:'low',
+    lat:24.0, lng:-13.0,
+    desc:'Polisario-Marruecos: combates esporádicos desde ruptura del cese el fuego (2020). ONU sin avances. España y Francia reconocen plan marroquí de autonomía. Argelia apoya Polisario. Sin perspectiva de resolución.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'nigeria', name:'Nigeria – Insurgencias', region:'África Occ.', intensity:'low',
+    lat:10.0, lng:8.0,
+    desc:'Boko Haram e ISWAP activos en noreste (lago Chad). Bandidos en noroeste. Crisis de seguridad en zona centrocinto. Ejército nigeriano bajo presión. +3M desplazados en noreste.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+];
+
+// ══════════════════════════════════════════════════════════
+// STABILITY INDEX — actualizado Mar 2026
+// ══════════════════════════════════════════════════════════
+const STABILITY = [
+  {n:'Sudán',      s:6,  c:'#f85149'}, {n:'Haití',      s:8,  c:'#f85149'},
+  {n:'Myanmar',    s:12, c:'#f85149'}, {n:'Siria',      s:15, c:'#f85149'},
+  {n:'Yemen',      s:16, c:'#f85149'}, {n:'DRC',        s:18, c:'#f85149'},
+  {n:'Irán',       s:22, c:'#f85149'}, {n:'Rusia',      s:24, c:'#f85149'},
+  {n:'Ucrania',    s:21, c:'#f85149'}, {n:'Corea N.',   s:25, c:'#f0883e'},
+  {n:'Mali',       s:18, c:'#f85149'}, {n:'Somalia',    s:20, c:'#f85149'},
+  {n:'Venezuela',  s:30, c:'#f0883e'}, {n:'Pakistán',   s:38, c:'#e3b341'},
+  {n:'Etiopía',    s:32, c:'#f0883e'}, {n:'Israel',     s:40, c:'#e3b341'},
+  {n:'Turquía',    s:50, c:'#58a6ff'}, {n:'China',      s:58, c:'#3fb950'},
+  {n:'India',      s:55, c:'#58a6ff'}, {n:'Georgia',    s:35, c:'#f0883e'},
+];
+
+// ══════════════════════════════════════════════════════════
+// MAP LAYERS DATA — actualizado Mar 2026
+// ══════════════════════════════════════════════════════════
+const LAYERS = [
+  {id:'conflicts',  label:'Conflictos',        color:'#f85149', on:true},
+];
+
+// ── BASES MILITARES (EEUU + aliados + rivales) ──────────
+const MIL_BASES = [
+  // EEUU — Europa / OTAN
+  {n:'Ramstein AFB',        lat:49.44, lng:7.60,   w:'EEUU/NATO',  t:'HQ USAFE, base aérea estratégica'},
+  {n:'USAG Grafenwöhr',     lat:49.70, lng:11.91,  w:'EEUU/NATO',  t:'Mayor campo de entrenamiento de combate en Europa'},
+  {n:'RAF Lakenheath',      lat:52.41, lng:0.56,   w:'EEUU/UK',    t:'F-35A; mayor base táctica USAF en Europa'},
+  {n:'RAF Mildenhall',      lat:52.36, lng:0.49,   w:'EEUU/UK',    t:'KC-135 reabastecimiento; inteligencia SIGINT'},
+  {n:'Aviano AB',           lat:46.03, lng:12.60,  w:'EEUU/NATO',  t:'F-16CJ; caza táctico S. Europa'},
+  {n:'Incirlik AB',         lat:37.00, lng:35.43,  w:'EEUU/Turquía',t:'Armas nucleares B61; posición clave MENA'},
+  {n:'Sigonella NAS',       lat:37.40, lng:15.04,  w:'EEUU/NATO',  t:'Centro drones / logística Mediterráneo'},
+  {n:'Camp Darby',          lat:43.68, lng:10.34,  w:'EEUU/NATO',  t:'Mayor depósito armas EEUU fuera de CONUS'},
+  // EEUU — Oriente Medio
+  {n:'Al-Udeid AB',         lat:25.12, lng:51.32,  w:'EEUU/Qatar', t:'HQ AFCENT; 10.000+ militares EEUU'},
+  {n:'Al Dhafra AB',        lat:24.25, lng:54.55,  w:'EEUU/UAE',   t:'F-35, U-2, RQ-4 Global Hawk'},
+  {n:'Camp Arifjan',        lat:29.20, lng:47.93,  w:'EEUU/Kuwait',t:'HQ ARCENT; logística terrestre'},
+  {n:'Ain Al Asad AB',      lat:33.79, lng:42.44,  w:'EEUU/Iraq',  t:'Atacado por Irán ene 2020; operativo'},
+  {n:'NSA Bahrain (5th Flt)',lat:26.23, lng:50.59,  w:'EEUU',       t:'HQ 5ª Flota; comando naval Golfo Pérsico'},
+  // EEUU — África
+  {n:'Camp Lemonnier',      lat:11.55, lng:43.17,  w:'EEUU/Yibuti',t:'HQ CJTF-HOA; drones Oriente Medio/Somalia'},
+  {n:'Manda Bay AB',        lat:-2.00, lng:41.20,  w:'EEUU/Kenya', t:'Atacada Al-Shabaab ene 2020'},
+  {n:'Agadez (Air Base 201)',lat:16.97, lng:8.00,   w:'EEUU/Níger', t:'Base drones MQ-9 Reaper; expulsados 2024'},
+  // EEUU — Asia-Pacífico
+  {n:'Camp Humphreys',      lat:37.11, lng:127.06, w:'EEUU/Corea S.',t:'Mayor base exterior EEUU por superficie'},
+  {n:'Osan AB',             lat:37.08, lng:127.03, w:'EEUU/Corea S.',t:'A-10, F-16; primera respuesta contra DPRK'},
+  {n:'Yokosuka Fleet',      lat:35.29, lng:139.67, w:'EEUU/Japón',  t:'HQ 7ª Flota; USS Ronald Reagan (CV)'},
+  {n:'Kadena AB',           lat:26.35, lng:127.77, w:'EEUU/Japón',  t:'Mayor base USAF en Asia'},
+  {n:'Andersen AFB (Guam)', lat:13.58, lng:144.93, w:'EEUU',        t:'Bombarderos B-52, B-2; pivote Pacífico'},
+  {n:'Diego Garcia',        lat:-7.31, lng:72.41,  w:'EEUU/UK',     t:'Base naval/aérea; bombarderos estratégicos'},
+  // EEUU — LATAM
+  {n:'Soto Cano AB',        lat:14.38, lng:-87.62, w:'EEUU/Honduras',t:'JTF-Bravo; operaciones antinarcóticos'},
+  // OTAN — sin EEUU
+  {n:'Bardufoss (NO)',       lat:69.06, lng:18.53,  w:'Noruega/NATO',t:'Defensa Ártico; creciente importancia'},
+  {n:'Ämari AB (Estonia)',   lat:59.26, lng:24.21,  w:'OTAN',        t:'Caza avanzado OTAN flanco Este'},
+  // Rusia
+  {n:'Tartus (Naval)',       lat:34.89, lng:35.88,  w:'Rusia/Siria', t:'Única base naval rusa en Mediterráneo'},
+  {n:'Khmeimim AB',         lat:35.40, lng:35.95,  w:'Rusia/Siria', t:'Base aérea estratégica Siria; Su-35, S-400'},
+  {n:'Hmeymim (Mali)',       lat:12.53, lng:-8.00,  w:'Rusia/Mali',  t:'Wagner/África Corps; hub logístico Sahel'},
+  {n:'Kant AB (Kirguistán)', lat:42.85, lng:74.85,  w:'Rusia/CSTO',  t:'Su-25, Mi-8; base CSTO'},
+  // China
+  {n:'Djibouti (PLA Naval)', lat:11.54, lng:43.05,  w:'China',       t:'Primera base exterior PLA; logística naval'},
+  {n:'Ream Naval (Camboya)', lat:10.58, lng:103.77, w:'China/Camboya',t:'Presencia PLA emergente; acceso naval'},
+  // UK / Francia
+  {n:'RAF Akrotiri',         lat:34.59, lng:33.01,  w:'UK',          t:'Zona soberana UK; base estratégica E.Medio'},
+  {n:'Base 188 (Djibout-FR)',lat:11.55, lng:43.13,  w:'Francia',     t:'Mayor base exterior Francia'},
+  {n:'Base Aérienne 160 (Emiratos)',lat:24.41, lng:54.69,w:'Francia', t:'Única base francesa Golfo Pérsico'},
+];
+
+const NUCLEAR = [
+  {n:'Fordo',          lat:34.90, lng:51.71,  w:'Irán',     t:'Enriquecimiento al 90%+ — atacado Mar 2026'},
+  {n:'Natanz',         lat:33.72, lng:51.93,  w:'Irán',     t:'Planta enriquecimiento — daños reportados'},
+  {n:'Parchin',        lat:35.52, lng:51.78,  w:'Irán',     t:'Investigación armas / instalaciones militares'},
+  {n:'Yongbyon',       lat:39.78, lng:125.75, w:'DPRK',     t:'Reactor 5MW + reprocesamiento Pu; activo'},
+  {n:'Punggye-ri',     lat:41.28, lng:129.08, w:'DPRK',     t:'Sitio de ensayos nucleares; túneles activos'},
+  {n:'Zaporizhzhia',   lat:47.51, lng:34.59,  w:'Ucrania',  t:'Mayor central europea; zona de conflicto'},
+  {n:'Dimona',         lat:31.02, lng:35.15,  w:'Israel',   t:'Arsenal nuclear no declarado (~90 cabezas)'},
+  {n:'Bushehr',        lat:28.83, lng:50.89,  w:'Irán',     t:'Central Nuclear civil; bajo supervisión AIEA'},
+  {n:'Chashma',        lat:32.39, lng:71.55,  w:'Pakistán', t:'Reactor CANDU civil/militar'},
+  {n:'Khushab',        lat:32.07, lng:72.25,  w:'Pakistán', t:'Producción Pu; 4 reactores'},
+  {n:'Semipalatinsk',  lat:50.07, lng:78.43,  w:'Kazajistán',t:'Antigua zona ensayos nucleares soviéticos'},
+];
+
+// ── CABLES SUBMARINOS (TeleGeography 2025) ──────────────
+const CABLES = [
+  // Transpacífico
+  {n:'JUPITER (EEUU-Japón-Filipinas)',     col:'#3fb950', pts:[[37,-122],[21,-158],[14,145],[34,135],[35,139]]},
+  {n:'Pacific Light Cable (EEUU-HK)',      col:'#3fb950', pts:[[34,-118],[21,-158],[22,114]]},
+  {n:'Trans-Pacific Express',              col:'#58a6ff', pts:[[37,-122],[21,-158],[37,126],[35,139]]},
+  // Transatlántico
+  {n:'Dunant (Google, EEUU-Francia)',      col:'#79c0ff', pts:[[40,-74],[48,-5],[48,2]]},
+  {n:'Grace Hopper (Google, EEUU-UK-ES)', col:'#79c0ff', pts:[[40,-74],[51,-6],[43,-8]]},
+  {n:'MAREA (EEUU-España)',                col:'#58a6ff', pts:[[40,-74],[43,-8]]},
+  // Europa-Asia (vía Egipto — crítico)
+  {n:'SEA-ME-WE 5',                        col:'#f0883e', pts:[[51,4],[38,13],[31,32],[13,50],[22,88],[1,104],[22,114],[34,135]]},
+  {n:'SEA-ME-WE 6 (2025)',                 col:'#e3b341', pts:[[51,4],[36,14],[31,32],[12,44],[22,73],[5,80],[1,104],[22,114]]},
+  {n:'PEACE Cable',                        col:'#bc8cff', pts:[[22,88],[13,50],[11,43],[3,-6],[51,4]]},
+  {n:'EIG (Europa-India Gateway)',         col:'#ff7b72', pts:[[51,4],[37,15],[31,32],[27,37],[22,57],[22,72]]},
+  // Circumáfrica
+  {n:'2Africa (Meta, 45.000km)',           col:'#3fb950', pts:[[51,4],[36,5],[22,-17],[5,-5],[-26,29],[-34,26],[22,38],[22,57],[22,72]]},
+  {n:'WASACE (en construcción)',           col:'#444c56', pts:[[40,-74],[5,-5],[-10,15],[-26,29]]},
+  // Intra-Asia
+  {n:'SJC2 (Japón-Singapur)',              col:'#58a6ff', pts:[[35,139],[22,114],[1,104]]},
+  {n:'AAG (Asia-America Gateway)',         col:'#79c0ff', pts:[[1,104],[22,114],[34,135],[21,-158],[34,-118]]},
+];
+
+// ── RECURSOS CRÍTICOS (USGS 2024-2025) ─────────────────
+// tipo: ree=tierras raras, li=litio, co=cobalto, cu=cobre, ni=níquel, gr=grafito, ch=choke point
+const RESOURCES = [
+  // Tierras raras (REE) — China domina el 70% producción
+  {n:'Bayan Obo',          lat:41.8,  lng:110.0, w:'China',       t:'ree',  d:'Mayor depósito REE del mundo. 70% producción mundial China.'},
+  {n:'Liyang / Jiangxi',   lat:26.0,  lng:115.0, w:'China',       t:'ree',  d:'REE iónicas — neodimio, disprosio, terbio para magnetos.'},
+  {n:'Mountain Pass',      lat:35.5,  lng:-115.5,w:'EEUU',        t:'ree',  d:'Único productor REE en EEUU operativo. Relanzado 2022.'},
+  {n:'Lynas (Mt. Weld)',    lat:-28.4, lng:122.0, w:'Australia',   t:'ree',  d:'Mayor productor REE fuera de China. Procesado en Malasia.'},
+  {n:'Kvanefjeld',          lat:61.0,  lng:-45.0, w:'Groenlandia', t:'ree',  d:'Gran depósito REE + uranio. Geopolítica Trump/Dinamarca.'},
+  {n:'Serra Verde',         lat:-14.0, lng:-48.5, w:'Brasil',      t:'ree',  d:'Primera producción REE de Brasil 2024. 5.000 MT/año en 2026.'},
+  // Litio — "Triángulo del Litio"
+  {n:'Salar de Atacama',   lat:-23.5, lng:-68.2, w:'Chile',       t:'li',   d:'Mayor reserva litio del mundo. SQM / Albemarle.'},
+  {n:'Salar de Uyuni',     lat:-20.5, lng:-67.5, w:'Bolivia',     t:'li',   d:'Mayores reservas estimadas. Producción aún limitada.'},
+  {n:'Puna / Jujuy',       lat:-23.2, lng:-66.5, w:'Argentina',   t:'li',   d:'Litio en expansión; Lithium Americas y otros.'},
+  {n:'Greenbushes (WA)',   lat:-33.8, lng:116.1, w:'Australia',   t:'li',   d:'Mayor mina litio en roca dura del mundo. Talison/Albemarle.'},
+  {n:'Ucrania (Donetsk)',  lat:48.0,  lng:37.5,  w:'Ucrania',     t:'li',   d:'Reservas litio/titanio en zona de conflicto. Objeto de acuerdo Trump.'},
+  {n:'Manono (DRC)',        lat:-7.3,  lng:27.4,  w:'DRC',         t:'li',   d:'Gran depósito litio en espodumena. AVZ Minerals.'},
+  // Cobalto — DRC domina 70%
+  {n:'Katanga / Lualaba',  lat:-10.5, lng:26.0,  w:'DRC',         t:'co',   d:'70%+ reservas mundiales cobalto. Extractores artesanales.'},
+  {n:'Bou Azzer',          lat:30.5,  lng:-6.9,  w:'Marruecos',   t:'co',   d:'Mayor productor cobalto fuera DRC/Rusia.'},
+  {n:'Sudbury Basin',      lat:46.5,  lng:-81.0, w:'Canadá',      t:'co',   d:'Níquel-cobalto. Vale / Glencore.'},
+  // Cobre — crítico semiconductores y renovables
+  {n:'Escondida',          lat:-24.3, lng:-69.0, w:'Chile',       t:'cu',   d:'Mayor mina cobre del mundo. BHP. 1.2M ton/año.'},
+  {n:'Collahuasi',         lat:-20.8, lng:-68.6, w:'Chile',       t:'cu',   d:'Anglo American / Glencore. Top 5 mundial.'},
+  {n:'Quellaveco',         lat:-16.9, lng:-70.6, w:'Perú',        t:'cu',   d:'Anglo American. 300.000 ton/año desde 2022.'},
+  {n:'Kamoa-Kakula',       lat:-10.8, lng:26.6,  w:'DRC',         t:'cu',   d:'Ivanhoe Mines. Crece hacia #1 mundial.'},
+  // Níquel — Indonesia domina
+  {n:'Sulawesi / Morowali',lat:-2.5,  lng:122.0, w:'Indonesia',   t:'ni',   d:'71% refinado níquel mundial para 2030. Inversión china masiva.'},
+  {n:'Norilsk',            lat:69.3,  lng:88.2,  w:'Rusia',       t:'ni',   d:'Nornickel. Paladio, platino, níquel. Bajo sanciones parciales.'},
+  // Grafito — China 90%
+  {n:'Shandong / Heilongjiang',lat:37.0,lng:117.0,w:'China',      t:'gr',   d:'90% grafito natural del mundo. Esencial para baterías Li-ion.'},
+  {n:'Balama',             lat:-13.3, lng:38.6,  w:'Mozambique',  t:'gr',   d:'Syrah Resources. Mayor proyecto grafito fuera China.'},
+  // Choke points geoeconómicos
+  {n:'Estrecho de Hormuz', lat:26.5,  lng:56.3,  w:'Geoeconómico',t:'ch',   d:'20.9 Mb/d de petróleo (21% mundial). Controlado por Irán.'},
+  {n:'Estrecho de Malaca', lat:2.0,   lng:101.7, w:'Geoeconómico',t:'ch',   d:'23.2 Mb/d petróleo (29% mundial). Ruta China-India-Japón.'},
+  {n:'Canal de Suez',      lat:30.7,  lng:32.3,  w:'Geoeconómico',t:'ch',   d:'4.9 Mb/d petróleo + cables submarinos. Houthis causan desvíos.'},
+  {n:'Bab el-Mandeb',      lat:12.6,  lng:43.5,  w:'Geoeconómico',t:'ch',   d:'4.2 Mb/d. Bajo ataque Houthi. Comercio redirigido -14% 2024.'},
+];
+
+// ══════════════════════════════════════════════════════════
+// RSS SOURCES — 30 fuentes
+// ══════════════════════════════════════════════════════════
+const RSS_SOURCES = [
+  // Generalistas internacionales
+  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                  n:'BBC World',       cat:'general'},
+  {url:'https://www.aljazeera.com/xml/rss/all.xml',                    n:'Al Jazeera',      cat:'general'},
+  {url:'https://feeds.reuters.com/reuters/worldNews',                   n:'Reuters World',   cat:'general'},
+  {url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',       n:'NYT World',       cat:'general'},
+  {url:'https://www.theguardian.com/world/rss',                        n:'Guardian',        cat:'general'},
+  {url:'https://feeds.skynews.com/feeds/rss/world.xml',               n:'Sky News',        cat:'general'},
+  {url:'https://www.france24.com/en/rss',                              n:'France 24',       cat:'general'},
+  {url:'https://apnews.com/apf-intlnews.rss',                         n:'AP News',         cat:'general'},
+  {url:'https://www.dw.com/en/top-stories/rss',                       n:'DW',              cat:'general'},
+  {url:'https://feeds.nbcnews.com/nbcnews/public/world',              n:'NBC World',       cat:'general'},
+  // Defensa / seguridad / OSINT
+  {url:'https://www.understandingwar.org/feed',                        n:'ISW',             cat:'defense'},
+  {url:'https://www.bellingcat.com/feed/',                             n:'Bellingcat',      cat:'osint'},
+  {url:'https://foreignpolicy.com/feed/',                              n:'Foreign Policy',  cat:'analysis'},
+  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', n:'Defense News', cat:'defense'},
+  {url:'https://thedefensepost.com/feed/',                             n:'Defense Post',    cat:'defense'},
+  {url:'https://www.janes.com/feeds/news',                            n:'Janes',           cat:'defense'},
+  {url:'https://breakingdefense.com/feed/',                           n:'Breaking Defense',cat:'defense'},
+  {url:'https://www.militarytimes.com/arc/outboundfeeds/rss/',        n:'Military Times',  cat:'defense'},
+  // Oriente Medio
+  {url:'https://www.timesofisrael.com/feed/',                         n:'Times of Israel', cat:'mideast'},
+  {url:'https://www.haaretz.com/cmlink/1.628765',                     n:'Haaretz',         cat:'mideast'},
+  {url:'https://www.middleeasteye.net/rss',                           n:'ME Eye',          cat:'mideast'},
+  // Europa del Este / Rusia
+  {url:'https://www.kyivindependent.com/rss/',                        n:'Kyiv Independent',cat:'ukraine'},
+  {url:'https://meduza.io/rss/en/all',                                n:'Meduza',          cat:'ukraine'},
+  // África
+  {url:'https://www.theafricareport.com/feed/',                       n:'Africa Report',   cat:'africa'},
+  {url:'https://allafrica.com/tools/headlines/rdf/latest/headlines.rdf', n:'AllAfrica',    cat:'africa'},
+  // Asia
+  {url:'https://www.scmp.com/rss/91/feed',                            n:'SCMP',            cat:'asia'},
+  {url:'https://www.rfa.org/english/news/rss2.html',                  n:'Radio Free Asia', cat:'asia'},
+  // Análisis geopolítico
+  {url:'https://www.crisisgroup.org/rss.xml',                         n:'ICG',             cat:'analysis'},
+  {url:'https://acleddata.com/feed/',                                  n:'ACLED',           cat:'analysis'},
+  {url:'https://www.cfr.org/rss.xml',                                  n:'CFR',             cat:'analysis'},
+];
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let MAP, LG={}, feedData=[], activeCat='all', activeSrc='all', feedCache={ts:0,data:[]};
+
+// ══════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════
+function startClock(){
+  const el=document.getElementById('clock');
+  const tick=()=>{ const d=new Date(); el.textContent=[d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds()].map(n=>String(n).padStart(2,'0')).join(':'); };
+  tick(); setInterval(tick,1000);
+}
+
+// ══════════════════════════════════════════════════════════
+// MAP INIT
+// ══════════════════════════════════════════════════════════
+function initMap(){
+  MAP=L.map('map',{zoomControl:false,attributionControl:false,minZoom:2}).setView([20,15],2.5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(MAP);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(MAP);
+  LAYERS.forEach(l=>{ LG[l.id]=L.layerGroup(); });
+
+  // Conflict markers
+  CONFLICTS.forEach(c=>{
+    const sz={critical:24,high:18,med:13,low:10,latent:8}[c.intensity]||12;
+    const bc={critical:'#f85149',high:'#f85149',med:'#f0883e',low:'#58a6ff',latent:'#484f58'}[c.intensity];
+    const bg={critical:'rgba(248,81,73,.22)',high:'rgba(248,81,73,.16)',med:'rgba(240,136,62,.15)',low:'rgba(88,166,255,.12)',latent:'rgba(72,79,88,.2)'}[c.intensity];
+    const an={critical:'cp',high:'ch',med:'cm',low:'cl',latent:'none'}[c.intensity];
+    const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};border:1.5px solid ${bc};animation:${an} 2s ease-in-out infinite;cursor:pointer;"></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const tagColor={critical:'rgba(248,81,73,.2)',high:'rgba(248,81,73,.14)',med:'rgba(240,136,62,.12)',low:'rgba(88,166,255,.1)',latent:'rgba(72,79,88,.15)'}[c.intensity];
+    L.marker([c.lat,c.lng],{icon})
+      .bindPopup(`<div class="pt">${c.name}</div><div class="ps">${c.region.toUpperCase()} · ${c.intensity.toUpperCase()} · ${c.updated}</div><div class="pb">${c.desc}</div><div><span class="pu-tag" style="background:${tagColor};color:${bc}">${c.intensity.toUpperCase()}</span></div>`,{maxWidth:280})
+      .on('click',()=>selectConflict(c.id))
+      .addTo(LG['conflicts']);
+  });
+  LG['conflicts'].addTo(MAP);
+
+  // Mil bases — con detalles por operador
+  MIL_BASES.forEach(b=>{
+    const col={EEUU:'#79c0ff','EEUU/NATO':'#79c0ff','EEUU/UK':'#58a6ff','EEUU/Qatar':'#79c0ff','EEUU/UAE':'#79c0ff','EEUU/Kuwait':'#79c0ff','EEUU/Iraq':'#79c0ff','EEUU/Yibuti':'#79c0ff','EEUU/Kenya':'#79c0ff','EEUU/Níger':'#444c56','EEUU/Japón':'#79c0ff','EEUU/Corea S.':'#79c0ff','EEUU/Turquía':'#79c0ff','EEUU/Honduras':'#79c0ff',Rusia:'#f85149','Rusia/Siria':'#f85149','Rusia/Mali':'#f85149','Rusia/CSTO':'#f85149',China:'#e3b341','China/Camboya':'#e3b341',UK:'#3fb950','EEUU/UK':'#58a6ff',Francia:'#bc8cff','Noruega/NATO':'#79c0ff',OTAN:'#79c0ff','Kazajistán':'#484f58','Hist.':'#444c56'}[b.w]||'#8b949e';
+    const icon=L.divIcon({className:'',html:`<div style="width:9px;height:9px;background:rgba(0,0,0,.3);border:1.5px solid ${col};border-radius:2px;transform:rotate(45deg);"></div>`,iconSize:[9,9],iconAnchor:[4.5,4.5]});
+    L.marker([b.lat,b.lng],{icon}).bindPopup(`<div class="pt">⬛ ${b.n}</div><div class="ps">${b.w}</div><div class="pb">${b.t}</div>`).addTo(LG['bases']);
+  });
+
+  // Nuclear
+  NUCLEAR.forEach(n=>{
+    const icon=L.divIcon({className:'',html:`<div style="width:11px;height:11px;border-radius:50%;background:rgba(188,140,255,.18);border:1.5px solid #bc8cff;"></div>`,iconSize:[11,11],iconAnchor:[5.5,5.5]});
+    L.marker([n.lat,n.lng],{icon}).bindPopup(`<div class="pt">☢ ${n.n}</div><div class="ps">${n.w}</div><div class="pb">${n.t}</div>`).addTo(LG['nuclear']);
+  });
+
+  // Cables submarinos — cada uno con su color
+  CABLES.forEach(c=>{
+    L.polyline(c.pts,{color:c.col||'#3fb950',weight:1.5,opacity:.55,dashArray:'5,4'})
+      .bindPopup(`<div class="pt">🔌 ${c.n}</div><div class="ps">CABLE SUBMARINO</div>`)
+      .addTo(LG['cables']);
+  });
+
+  // Gas / Oleoductos — actualizado 2025
+  const PIPELINES = [
+    // Activos
+    {n:'TurkStream (Rusia→Turquía/SE Europa)',  col:'#f0883e', st:'ACTIVO',  pts:[[45.0,37.5],[41.8,36.5],[41.0,28.0],[42.5,22.0],[44.5,18.5],[46.0,18.8],[47.5,19.0]]},
+    {n:'Power of Siberia 1 (Rusia→China)',       col:'#f0883e', st:'ACTIVO',  pts:[[52.0,107.5],[48.0,118.0],[43.5,121.0],[40.0,115.0]]},
+    {n:'Blue Stream (Rusia→Turquía/Mar Negro)',  col:'#f0883e', st:'ACTIVO',  pts:[[44.5,38.0],[42.5,36.5],[41.0,36.0],[41.0,34.0],[41.0,29.0]]},
+    {n:'BTC (Bakú→Tbilisi→Ceyhan)',             col:'#3fb950', st:'ACTIVO',  pts:[[40.5,50.0],[41.5,45.0],[41.7,43.0],[37.0,36.0]]},
+    {n:'Trans-Adriatic Pipeline (TAP)',          col:'#3fb950', st:'ACTIVO',  pts:[[41.0,20.0],[41.5,15.5],[40.5,18.0]]},
+    {n:'TANAP (Azerbaiyán→Turquía)',             col:'#3fb950', st:'ACTIVO',  pts:[[41.5,45.0],[40.5,40.0],[37.0,36.0],[37.0,27.0],[41.0,26.0],[41.0,20.0]]},
+    {n:'Gaseoducto Argelia→Italia (TRANSMED)',   col:'#3fb950', st:'ACTIVO',  pts:[[36.5,9.0],[37.5,11.0],[38.5,13.0],[40.5,14.5]]},
+    {n:'Gaseoducto Argelia→España (Medgaz)',     col:'#3fb950', st:'ACTIVO',  pts:[[36.5,0.5],[38.5,-1.0],[40.5,-0.3]]},
+    {n:'Yamal-Europa (Rusia→Belarus→Polonia)',   col:'#484f58', st:'PARADO',  pts:[[58.0,55.0],[56.0,44.0],[55.0,37.0],[54.0,28.0],[52.5,21.0],[52.5,16.5],[53.5,14.5]]},
+    {n:'Nord Stream 1 & 2 (saboteados Sep 2022)',col:'#f85149', st:'DESTRUIDO',pts:[[59.5,28.0],[57.5,19.5],[55.0,15.5],[54.2,13.0]]},
+    {n:'Brotherhood / Soyuz (expirado dic 2024)',col:'#484f58', st:'PARADO',  pts:[[52.0,58.0],[52.0,45.0],[51.0,32.0],[50.0,24.0],[49.0,18.0],[48.2,17.2]]},
+    {n:'Power of Siberia 2 (PLANIFICADO 2030)',  col:'#e3b341', st:'PROYECTO',pts:[[68.0,68.0],[62.0,80.0],[52.0,100.0],[47.5,106.0],[40.0,111.0]]},
+    // Oleoductos
+    {n:'Druzhba (Rusia→Europa Central)',         col:'#bc8cff', st:'PARCIAL', pts:[[53.0,32.0],[52.0,24.0],[51.5,17.0],[50.0,14.5],[48.2,17.2],[47.5,19.0]]},
+    {n:'ESPO (Rusia→China/Pacifico)',            col:'#bc8cff', st:'ACTIVO',  pts:[[57.0,60.0],[58.0,80.0],[56.0,103.0],[52.0,116.0],[48.8,132.0]]},
+  ];
+  const stcol={'ACTIVO':'#f0883e','PARADO':'#484f58','DESTRUIDO':'#f85149','PROYECTO':'#e3b341','PARCIAL':'#bc8cff'};
+  PIPELINES.forEach(p=>{
+    L.polyline(p.pts,{color:p.col,weight:p.st==='DESTRUIDO'?1.5:p.st==='PROYECTO'?1:2,opacity:p.st==='PARADO'?0.25:p.st==='PROYECTO'?0.35:0.55,dashArray:p.st==='PARADO'||p.st==='DESTRUIDO'?'4,6':p.st==='PROYECTO'?'8,8':null})
+      .bindPopup(`<div class="pt">⛽ ${p.n}</div><div class="ps">ESTADO: <span style="color:${stcol[p.st]}">${p.st}</span></div>`)
+      .addTo(LG['pipelines']);
+  });
+
+  // Recursos críticos
+  const RESC_ICONS={
+    ree:{sym:'◆',col:'#e3b341',bg:'rgba(227,179,65,.18)',label:'REE'},
+    li: {sym:'⬡',col:'#58a6ff',bg:'rgba(88,166,255,.15)',label:'Litio'},
+    co: {sym:'●',col:'#bc8cff',bg:'rgba(188,140,255,.15)',label:'Cobalto'},
+    cu: {sym:'▲',col:'#f0883e',bg:'rgba(240,136,62,.15)',label:'Cobre'},
+    ni: {sym:'■',col:'#3fb950',bg:'rgba(63,185,80,.14)',label:'Níquel'},
+    gr: {sym:'◉',col:'#8b949e',bg:'rgba(139,148,158,.14)',label:'Grafito'},
+    ch: {sym:'✦',col:'#f85149',bg:'rgba(248,81,73,.18)',label:'Choke Point'},
+  };
+  RESOURCES.forEach(r=>{
+    const ri=RESC_ICONS[r.t]||RESC_ICONS.ree;
+    const sz=r.t==='ch'?14:10;
+    const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;background:${ri.bg};border:1.5px solid ${ri.col};border-radius:${r.t==='li'?'3px':r.t==='ch'?'50%':'2px'};display:flex;align-items:center;justify-content:center;font-size:${sz-4}px;color:${ri.col};line-height:1;">${ri.sym}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    L.marker([r.lat,r.lng],{icon})
+      .bindPopup(`<div class="pt">${ri.sym} ${r.n}</div><div class="ps">${r.w} · <span style="color:${ri.col}">${ri.label}</span></div><div class="pb">${r.d}</div>`,{maxWidth:260})
+      .addTo(LG['resources']);
+  });
+
+}
+
+
+// ══════════════════════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════════════════════
+function togglePanel(hdr){
+  hdr.classList.toggle('closed');
+  hdr.nextElementSibling.classList.toggle('closed');
+}
+function setTime(btn){
+  btn.closest('.map-timebar').querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+const REGIONS={global:[20,15,2.5],europe:[52,15,4],mena:[28,42,4],africa:[5,22,3.5],asia:[25,105,3.5],americas:[4,-72,3],caucasus:[41,46,5.5]};
+function setRegion(btn,r){
+  document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const [la,ln,z]=REGIONS[r]; MAP.flyTo([la,ln],z,{duration:1.2});
+}
+
+function toggleLayer(id){
+  const l=LAYERS.find(x=>x.id===id); l.on=!l.on;
+  l.on?LG[id].addTo(MAP):MAP.removeLayer(LG[id]);
+  const btn=document.getElementById('lb-'+id);
+  btn.classList.toggle('on',l.on);
+  btn.querySelector('.ldot').style.boxShadow=l.on?`0 0 5px ${l.color}`:'';
+}
+
+const INTENSITY_ORDER={critical:0,high:1,med:2,low:3,latent:4};
+function renderConflicts(){
+  const sorted=[...CONFLICTS].sort((a,b)=>INTENSITY_ORDER[a.intensity]-INTENSITY_ORDER[b.intensity]);
+  document.getElementById('conflict-list').innerHTML=sorted.map(c=>{
+    const bc={critical:'bc',high:'bh',med:'bm',low:'bl',latent:'bn'}[c.intensity];
+    const label={critical:'CRÍTICO',high:'ALTO',med:'MEDIO',low:'BAJO',latent:'LATENTE'}[c.intensity];
+    return `<div class="ci" id="ci-${c.id}" onclick="selectConflict('${c.id}')">
+      <div class="cdot ${c.intensity}"></div>
+      <div class="cinfo"><div class="cname">${c.name}</div><div class="creg">${c.region}</div></div>
+      <div class="cbadge ${bc}">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectConflict(id){
+  document.querySelectorAll('.ci').forEach(e=>e.classList.remove('on'));
+  const el=document.getElementById('ci-'+id);
+  if(el){el.classList.add('on');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  const c=CONFLICTS.find(x=>x.id===id);
+  if(c) MAP.flyTo([c.lat,c.lng],5,{duration:1.4});
+}
+
+function renderLayers(){
+  document.getElementById('layer-grid').innerHTML=LAYERS.map(l=>`
+    <button class="lbtn${l.on?' on':''}" id="lb-${l.id}" onclick="toggleLayer('${l.id}')">
+      <div class="ldot" style="background:${l.color};${l.on?'box-shadow:0 0 5px '+l.color:''}"></div>${l.label}
+    </button>`).join('');
+}
+
+function renderStability(){
+  document.getElementById('stab-list').innerHTML=STABILITY.map(s=>`
+    <div class="srow">
+      <div class="sname">${s.n}</div>
+      <div class="sbg"><div class="sbar" style="width:${s.s}%;background:${s.c}"></div></div>
+      <div class="sval">${s.s}</div>
+    </div>`).join('');
+}
+
+function renderSourceBar(){
+  const bar=document.getElementById('source-bar');
+  const cats=[...new Set(RSS_SOURCES.map(s=>s.cat))];
+  bar.innerHTML=`<span class="fsrc-label">FUENTES</span>
+    <button class="fsrc-btn on" id="sb-all" onclick="filterSrc('all',this)">TODAS (${RSS_SOURCES.length})</button>
+    ${cats.map(c=>`<button class="fsrc-btn" id="sb-${c}" onclick="filterSrc('${c}',this)">${c.toUpperCase()} (${RSS_SOURCES.filter(s=>s.cat===c).length})</button>`).join('')}`;
+}
+
+// ══════════════════════════════════════════════════════════
+// RSS FEED
+// ══════════════════════════════════════════════════════════
+function parseRSS(xml,src,cat){
+  const items=[],re=/<item[^>]*>([\s\S]*?)<\/item>/gi;
+  let m;
+  while((m=re.exec(xml))!==null){
+    const b=m[1];
+    const g=tag=>{const r=b.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?<\\/${tag}>`,'si'));return r?r[1].replace(/<[^>]+>/g,'').trim():'';};
+    const title=g('title').slice(0,200);
+    const link=g('link')||g('guid');
+    const pubDate=g('pubDate')||g('dc:date')||new Date().toUTCString();
+    const desc=g('description').replace(/&[a-z]+;/g,' ').replace(/\s+/g,' ').trim().slice(0,160);
+    if(title) items.push({title,link,pubDate,desc,src,cat});
+  }
+  if(!items.length){
+    const re2=/<entry[^>]*>([\s\S]*?)<\/entry>/gi;
+    while((m=re2.exec(xml))!==null){
+      const b=m[1];
+      const g=tag=>{const r=b.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?<\\/${tag}>`,'si'));return r?r[1].replace(/<[^>]+>/g,'').trim():'';};
+      const title=g('title').slice(0,200);
+      const pubDate=g('updated')||g('published')||new Date().toUTCString();
+      const desc=g('summary').replace(/&[a-z]+;/g,' ').trim().slice(0,160);
+      const lm=b.match(/<link[^>]+href="([^"]+)"/i);
+      if(title) items.push({title,link:lm?lm[1]:'',pubDate,desc,src,cat});
+    }
+  }
+  return items.slice(0,10);
+}
+
+const CLASSIFY=t=>{
+  t=t.toLowerCase();
+  if(/breaking|flash|urgent|alert/.test(t)) return 'b';
+  if(/attack|strike|bomb|missile|killed|dead|explos|casualt|shelling/.test(t)) return 's';
+  if(/ceasefire|negotiat|talks|accord|deal|sanction|diplo|treaty/.test(t)) return 'd';
+  if(/military|troops|forces|army|navy|fighter|weapon|tank|deploy/.test(t)) return 'm';
+  if(/economy|market|trade|gdp|inflation|crisis|energy|oil|gas/.test(t)) return 'e';
+  return 'i';
+};
+const REGION_KW={
+  ukraine:/ukrain|russia|kyiv|moscow|donetsk|zaporizhzhia|kherson|kursk/i,
+  mideast:/gaza|israel|hamas|idf|lebanon|iran|iraq|syria|yemen|houthi|tehran/i,
+  africa:/africa|sudan|congo|somalia|mali|ethiopia|nigeria|sahel|chad|niger|burkina|rwanda|mozambique/i,
+  asia:/china|taiwan|korea|japan|myanmar|vietnam|philippin|asia|pacific|burma|beijing/i,
+  americas:/venezuel|haiti|colombia|brazil|mexico|carib|latin|america/i,
+  breaking:/breaking|flash|urgent|alert/i,
+};
+const TAG={b:['tag-b','🔴 FLASH'],s:['tag-s','💥 STRIKE'],d:['tag-d','🕊 DIPLO'],m:['tag-m','⚔ MIL'],e:['tag-e','📈 ECONOMÍA'],i:['tag-i','📡 INTEL']};
+
+function timeAgo(s){
+  const n=Date.now()-new Date(s);
+  if(isNaN(n)) return '?';
+  if(n<60000) return 'ahora';
+  if(n<3600000) return `${Math.floor(n/60000)}m`;
+  if(n<86400000) return `${Math.floor(n/3600000)}h`;
+  return `${Math.floor(n/86400000)}d`;
+}
+
+// Múltiples proxies CORS — si uno falla prueba el siguiente
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+async function fetchRSS(url) {
+  for (const proxyFn of CORS_PROXIES) {
+    try {
+      const r = await fetch(proxyFn(url), {signal: AbortSignal.timeout(10000)});
+      if (!r.ok) continue;
+      const text = await r.text();
+      // allorigins devuelve JSON con .contents; los otros devuelven XML directo
+      try {
+        const j = JSON.parse(text);
+        if (j.contents && j.contents.length > 100) return j.contents;
+      } catch(e) {
+        if (text.length > 100) return text;
+      }
+    } catch(e) { /* prueba siguiente proxy */ }
+  }
+  return null;
+}
+
+let loadedSources=0;
+async function loadFeed(force=false){
+  const btn=document.getElementById('ref-btn');
+  const btn2=document.getElementById('ref-btn2');
+  btn.textContent='↻ ...'; btn2.textContent='↻ ...';
+
+  if(!force && Date.now()-feedCache.ts<5*60*1000 && feedCache.data.length){
+    renderFeed(); btn.textContent='↻ ACTUALIZAR'; btn2.textContent='↻ REFRESH'; return;
+  }
+
+  loadedSources=0;
+  document.getElementById('feed-area').innerHTML=`<div class="fstatus"><div class="spin-sm"></div><div class="fstatus-detail" id="load-detail">Conectando con 0/${RSS_SOURCES.length} fuentes...</div></div>`;
+
+  const all=[];
+  await Promise.allSettled(RSS_SOURCES.map(async src=>{
+    try{
+      const xml = await fetchRSS(src.url);
+      if (!xml) return;
+      const items=parseRSS(xml, src.n, src.cat);
+      items.forEach(i=>all.push(i));
+      loadedSources++;
+      const el=document.getElementById('load-detail');
+      if(el) el.textContent=`Cargadas ${loadedSources}/${RSS_SOURCES.length} fuentes... (${all.length} noticias)`;
+    }catch(e){}
+  }));
+
+  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  feedCache={ts:Date.now(),data:all};
+
+  const alerts=all.filter(i=>{ const t=CLASSIFY(i.title); return t==='b'||t==='s'; }).length;
+  document.getElementById('st-n').textContent=all.length;
+  document.getElementById('st-a').textContent=alerts;
+  document.getElementById('ft-sources').textContent=loadedSources;
+  document.getElementById('ft-items').textContent=all.length;
+  const now=new Date();
+  document.getElementById('ft-updated').textContent=`${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
+
+  const tickerText=all.slice(0,15).map(i=>`◉ ${i.title} [${i.src}]`).join('   ');
+  document.getElementById('ticker').textContent=tickerText||'SIN DATOS';
+
+  renderFeed();
+  btn.textContent='↻ ACTUALIZAR'; btn2.textContent='↻ REFRESH';
+}
+
+function filterCat(f,btn){
+  activeCat=f;
+  document.querySelectorAll('.ffbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFeed();
+}
+
+function filterSrc(f,btn){
+  activeSrc=f;
+  document.querySelectorAll('.fsrc-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFeed();
+}
+
+function renderFeed(){
+  const area=document.getElementById('feed-area');
+  let items=feedCache.data;
+
+  // Source filter
+  if(activeSrc!=='all') items=items.filter(i=>i.cat===activeSrc);
+
+  // Category filter
+  if(activeCat==='breaking') items=items.filter(i=>{ const t=CLASSIFY(i.title); return t==='b'||t==='s'; });
+  else if(activeCat!=='all'){ const re=REGION_KW[activeCat]; if(re) items=items.filter(i=>re.test(i.title+' '+(i.desc||''))); }
+
+  if(!items.length){ area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin resultados para este filtro.</div>'; return; }
+
+  area.innerHTML=items.slice(0,50).map((item,i)=>{
+    const t=CLASSIFY(item.title),[cls,label]=TAG[t]||TAG['i'];
+    const safeLink=(item.link||'').replace(/'/g,"\\'");
+    return `<div class="fitem" style="animation-delay:${Math.min(i,.15)*0.04}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
+      <div class="ftop">
+        <span class="ftag ${cls}">${label}</span>
+        <span class="fsrc">${item.src}</span>
+        <span class="ftime">${timeAgo(item.pubDate)}</span>
+      </div>
+      <div class="ftitle">${item.title}</div>
+      ${item.desc?`<div class="fdesc">${item.desc}…</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+function init(){
+  startClock();
+  initMap();
+  renderConflicts();
+  renderSourceBar();
+  loadFeed();
+  setInterval(()=>loadFeed(),5*60*1000);
+}
+init();
+</script>
+</body>
+</html>
