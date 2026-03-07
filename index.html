@@ -3,354 +3,222 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WORLDMONITOR — Global Intelligence</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<title>WORLD MONITOR — Global Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-/* ── TOKENS ── */
 :root{
-  --bg:#07090d;--s1:#0e1117;--s2:#151b23;--s3:#1c2330;
-  --b1:#1e2635;--b2:#273042;--b3:#3a4560;
-  --t1:#e8edf5;--t2:#8896aa;--t3:#445060;
-  --red:#e84040;--orange:#f08040;--yellow:#e8b840;
-  --green:#30c060;--blue:#4080f0;--cyan:#40c8e0;--purple:#9060e0;
-  --accent:#4080f0;
-  --glow-red:rgba(232,64,64,.25);
-  --glow-blue:rgba(64,128,240,.2);
-  --r:4px;
-  --font-mono:'JetBrains Mono',monospace;
-  --font-sans:'Inter',sans-serif;
+  --bg:#080c10;--s1:#0d1117;--s2:#161b22;--s3:#1c2128;
+  --b1:#21262d;--b2:#30363d;--b3:#444c56;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --red:#f85149;--orange:#f0883e;--yellow:#e3b341;
+  --green:#3fb950;--blue:#58a6ff;--cyan:#79c0ff;--purple:#bc8cff;
 }
 body.day{
-  --bg:#eef1f6;--s1:#ffffff;--s2:#f4f6fa;--s3:#e8ecf2;
-  --b1:#d8dde8;--b2:#c4ccd8;--b3:#9aa4b8;
-  --t1:#1a2030;--t2:#5a6880;--t3:#9aa4b8;
+  --bg:#f0f2f5;--s1:#ffffff;--s2:#f6f8fa;--s3:#eaeef2;
+  --b1:#d0d7de;--b2:#c6cdd5;--b3:#8c959f;
+  --t1:#1f2328;--t2:#636c76;--t3:#9198a1;
 }
+body.day .leaflet-container{background:#d4e2f0!important;}
+body.day .ticker{background:rgba(248,81,73,.06);border-color:rgba(248,81,73,.2);}
+body.day .ticker-text{color:var(--t2);}
+body.day .map-timebar,body.day .map-zoombar .zbtn,body.day .map-regionbar{background:rgba(255,255,255,.92);}
+body.day .spin-sm{border-color:var(--b2);border-top-color:var(--blue);}
+.theme-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .2s;border-radius:2px;line-height:1;}
+.theme-btn:hover{border-color:var(--b3);color:var(--t1);}
+.translate-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .2s;border-radius:2px;letter-spacing:1px;}
+.translate-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.07);}
+.translate-btn:hover{border-color:var(--b3);color:var(--t1);}
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--font-sans);font-size:13px;}
-button{font-family:inherit;cursor:pointer;outline:none;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
+button{font-family:inherit;cursor:pointer;}
 ::-webkit-scrollbar{width:3px;height:3px;}
-::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
-::-webkit-scrollbar-track{background:transparent;}
-
-/* ── LAYOUT ── */
+::-webkit-scrollbar-thumb{background:var(--b2);}
 .app{display:flex;flex-direction:column;height:100vh;}
 .main{flex:1;display:flex;min-height:0;}
 
-/* ── TOPBAR ── */
-.topbar{
-  height:50px;flex-shrink:0;
-  background:var(--s1);
-  border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 16px;gap:12px;
-  z-index:500;
-}
-.logo{
-  font-family:var(--font-mono);font-weight:600;font-size:15px;
-  letter-spacing:3px;color:var(--t1);white-space:nowrap;
-}
-.logo span{color:var(--accent);}
-.live-badge{
-  display:flex;align-items:center;gap:5px;
-  background:rgba(232,64,64,.1);border:1px solid rgba(232,64,64,.2);
-  border-radius:20px;padding:3px 9px;
-  font-family:var(--font-mono);font-size:8px;font-weight:600;
-  color:var(--red);letter-spacing:1.5px;
-}
-.live-dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--red)}50%{opacity:.3;box-shadow:none}}
-.sep{width:1px;height:22px;background:var(--b1);}
-.clock{font-family:var(--font-mono);font-size:11px;color:var(--t2);}
-.clock b{color:var(--t1);font-weight:500;}
+/* TOPBAR */
+.topbar{height:46px;flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:14px;z-index:500;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;}
+.logo b{color:var(--red);}
+.live{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);letter-spacing:2px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t2);}
+.clock b{color:var(--t1);}
+.sep{width:1px;height:20px;background:var(--b2);}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;}
+.pill-orange{color:var(--orange);border-color:rgba(240,136,62,.3);background:rgba(240,136,62,.06);}
+.pill-red{color:var(--red);border-color:rgba(248,81,73,.35);background:rgba(248,81,73,.07);}
+.topbar-stats{display:flex;gap:14px;}
+.ts{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);}
+.ts b{color:var(--t1);}
+.ml{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{padding:4px 11px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .15s;letter-spacing:1px;border-radius:2px;}
+.btn:hover{border-color:var(--b3);color:var(--t1);}
 
-.stat-group{display:flex;gap:16px;}
-.stat{display:flex;flex-direction:column;gap:1px;}
-.stat-val{font-family:var(--font-mono);font-size:13px;font-weight:600;line-height:1;}
-.stat-lbl{font-family:var(--font-mono);font-size:7px;color:var(--t3);letter-spacing:1px;}
-
-.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px;}
-.icon-btn{
-  width:32px;height:32px;
-  background:transparent;border:1px solid var(--b2);border-radius:var(--r);
-  color:var(--t2);font-size:14px;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;
-}
-.icon-btn:hover{border-color:var(--b3);color:var(--t1);background:var(--s2);}
-.icon-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(64,128,240,.08);}
-.pill-btn{
-  padding:0 12px;height:32px;
-  background:transparent;border:1px solid var(--b2);border-radius:var(--r);
-  color:var(--t2);font-family:var(--font-mono);font-size:9px;letter-spacing:1px;
-  transition:all .15s;white-space:nowrap;
-}
-.pill-btn:hover{border-color:var(--b3);color:var(--t1);}
-.pill-btn.refresh{border-color:rgba(64,128,240,.3);color:var(--accent);background:rgba(64,128,240,.06);}
-.pill-btn.refresh:hover{background:rgba(64,128,240,.12);}
-
-/* ── TICKER ── */
-.ticker{
-  height:28px;flex-shrink:0;
-  background:linear-gradient(90deg,rgba(232,64,64,.08),rgba(232,64,64,.03));
-  border-bottom:1px solid rgba(232,64,64,.12);
-  display:flex;align-items:center;overflow:hidden;
-}
-.ticker-tag{
-  flex-shrink:0;background:var(--red);color:#fff;height:100%;
-  font-family:var(--font-mono);font-size:8px;font-weight:600;letter-spacing:2px;
-  padding:0 14px;display:flex;align-items:center;gap:6px;
-}
-.tdot{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink-w 1s step-end infinite;}
-@keyframes blink-w{0%,100%{opacity:1}50%{opacity:0}}
+/* TICKER */
+.ticker{height:25px;flex-shrink:0;background:rgba(248,81,73,.08);border-bottom:1px solid rgba(248,81,73,.15);display:flex;align-items:center;overflow:hidden;}
+.ticker-tag{flex-shrink:0;background:var(--red);color:#000;height:100%;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;padding:0 12px;display:flex;align-items:center;gap:5px;}
+.tdot{width:5px;height:5px;border-radius:50%;background:#000;animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
-.ticker-text{
-  display:inline-block;padding-left:100%;
-  font-family:var(--font-mono);font-size:9px;color:var(--t2);
-  animation:tickscroll 180s linear infinite;
-}
+.ticker-text{display:inline-block;padding-left:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);animation:tickscroll 180s linear infinite;}
 @keyframes tickscroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 
-/* ── MAP ── */
-.map-wrap{flex:1;position:relative;display:flex;flex-direction:column;min-width:0;}
-#map{flex:1;}
-.leaflet-container{background:#07090d!important;}
-body.day .leaflet-container{background:#c8d8e8!important;}
+/* SIDEBAR LEFT — oculto */
+.sl{display:none;}
+.phdr{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--s2);border-bottom:1px solid var(--b1);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--t2);cursor:pointer;user-select:none;flex-shrink:0;transition:color .15s;}
+.phdr:hover{color:var(--t1);}
+.phdr .arr{margin-left:auto;transition:transform .2s;}
+.phdr.closed .arr{transform:rotate(-90deg);}
+.pbody{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+.pbody.closed{display:none;}
 
-@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,.7)}50%{box-shadow:0 0 0 14px rgba(232,64,64,0)}}
-@keyframes ch{0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,.55)}50%{box-shadow:0 0 0 10px rgba(232,64,64,0)}}
-@keyframes cm{0%,100%{box-shadow:0 0 0 0 rgba(240,128,64,.5)}50%{box-shadow:0 0 0 7px rgba(240,128,64,0)}}
-@keyframes cl{0%,100%{box-shadow:0 0 0 0 rgba(64,128,240,.4)}50%{box-shadow:0 0 0 5px rgba(64,128,240,0)}}
-
-/* Map overlay controls */
-.map-ctrl{
-  position:absolute;z-index:400;
-  background:rgba(7,9,13,.88);border:1px solid var(--b1);border-radius:var(--r);
-  backdrop-filter:blur(8px);
-}
-body.day .map-ctrl{background:rgba(255,255,255,.92);}
-
-.map-layers{top:12px;left:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:160px;}
-.map-layers-title{font-family:var(--font-mono);font-size:8px;color:var(--t3);letter-spacing:2px;margin-bottom:2px;}
-.layer-row{display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 0;}
-.layer-row:hover .layer-name{color:var(--t1);}
-.layer-check{
-  width:14px;height:14px;border:1px solid var(--b2);border-radius:2px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  transition:all .15s;font-size:9px;
-}
-.layer-row.on .layer-check{background:var(--accent);border-color:var(--accent);color:#fff;}
-.layer-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.layer-name{font-size:10px;color:var(--t2);transition:color .15s;}
-.layer-count{margin-left:auto;font-family:var(--font-mono);font-size:8px;color:var(--t3);}
-
-.map-zoombar{top:12px;right:12px;display:flex;flex-direction:column;overflow:hidden;}
-.zbtn{
-  width:32px;height:32px;background:transparent;
-  border:none;border-bottom:1px solid var(--b1);
-  color:var(--t2);font-size:16px;font-weight:300;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;
-}
-.zbtn:last-child{border-bottom:none;}
-.zbtn:hover{color:var(--t1);background:var(--s2);}
-
-.map-regionbar{
-  position:absolute;bottom:0;left:0;right:0;z-index:400;
-  background:rgba(7,9,13,.88);border-top:1px solid var(--b1);
-  height:34px;display:flex;align-items:center;padding:0 12px;gap:4px;
-  backdrop-filter:blur(8px);overflow-x:auto;scrollbar-width:none;
-}
-body.day .map-regionbar{background:rgba(255,255,255,.92);}
-.map-regionbar::-webkit-scrollbar{display:none;}
-.rlabel{font-family:var(--font-mono);font-size:7px;color:var(--t3);letter-spacing:2px;flex-shrink:0;margin-right:6px;}
-.rbtn{
-  padding:3px 10px;background:transparent;
-  border:1px solid var(--b2);border-radius:20px;
-  color:var(--t2);font-family:var(--font-mono);font-size:8px;
-  transition:all .12s;white-space:nowrap;flex-shrink:0;
-}
-.rbtn:hover,.rbtn.on{border-color:var(--accent);color:var(--accent);background:rgba(64,128,240,.07);}
-
-/* Popups */
-.leaflet-popup-content-wrapper{
-  background:var(--s2)!important;color:var(--t1)!important;
-  border:1px solid var(--b2)!important;border-radius:6px!important;
-  box-shadow:0 8px 32px rgba(0,0,0,.6)!important;
-}
-.leaflet-popup-content{margin:12px 16px!important;}
-.leaflet-popup-tip{background:var(--s2)!important;}
-.leaflet-popup-close-button{color:var(--t2)!important;top:8px!important;right:10px!important;font-size:16px!important;}
-.pt{font-weight:600;font-size:13px;margin-bottom:4px;color:var(--t1);}
-.ps{font-family:var(--font-mono);font-size:8px;color:var(--t2);margin-bottom:8px;letter-spacing:.5px;}
-.pb{font-size:10px;color:var(--t2);line-height:1.65;max-width:260px;}
-.pb b{color:var(--t1);}
-.pu-tag{
-  display:inline-block;font-family:var(--font-mono);font-size:7px;font-weight:600;
-  padding:2px 7px;border-radius:20px;margin-top:8px;letter-spacing:1px;
-}
-
-/* ── RIGHT SIDEBAR ── */
-.sr{
-  width:460px;flex-shrink:0;
-  background:var(--s1);border-left:1px solid var(--b1);
-  display:flex;flex-direction:column;overflow:hidden;
-}
-
-/* Tabs */
-.tabs{
-  flex-shrink:0;display:flex;align-items:center;
-  background:var(--s2);border-bottom:1px solid var(--b1);
-  padding:0 4px;gap:2px;
-}
-.tab{
-  padding:10px 14px;background:transparent;
-  border:none;border-bottom:2px solid transparent;
-  color:var(--t2);font-family:var(--font-mono);font-size:8px;letter-spacing:1px;
-  cursor:pointer;transition:all .15s;margin-bottom:-1px;white-space:nowrap;
-}
-.tab:hover{color:var(--t1);}
-.tab.on{color:var(--t1);border-bottom-color:var(--accent);}
-.tab-right{margin-left:auto;display:flex;align-items:center;gap:6px;padding-right:6px;}
-.tab-timer{font-family:var(--font-mono);font-size:8px;color:var(--t3);}
-.tab-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
-.tab-panel.hidden{display:none;}
-
-/* Filters */
-.filters{
-  flex-shrink:0;display:flex;gap:3px;padding:7px 10px;
-  border-bottom:1px solid var(--b1);flex-wrap:wrap;
-}
-.fbtn{
-  padding:3px 9px;background:transparent;
-  border:1px solid var(--b1);border-radius:20px;
-  color:var(--t2);font-family:var(--font-mono);font-size:7px;
-  transition:all .12s;letter-spacing:.5px;
-}
-.fbtn:hover,.fbtn.on{border-color:var(--accent);color:var(--accent);background:rgba(64,128,240,.07);}
-
-/* Feed area */
-.farea{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
-.farea::-webkit-scrollbar{width:2px;}
-
-/* Feed item */
-.fitem{
-  padding:10px 14px 9px;border-bottom:1px solid var(--b1);
-  cursor:pointer;transition:background .1s;
-  animation:fadeup .3s ease both;
-}
-.fitem:hover{background:var(--s2);}
-@keyframes fadeup{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
-.ftop{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
-.ftag{
-  font-family:var(--font-mono);font-size:7px;font-weight:600;
-  padding:2px 6px;border-radius:20px;letter-spacing:.5px;flex-shrink:0;
-}
-.tag-b{background:rgba(232,64,64,.15);color:var(--red);border:1px solid rgba(232,64,64,.2);}
-.tag-s{background:rgba(240,128,64,.12);color:var(--orange);}
-.tag-d{background:rgba(64,128,240,.1);color:var(--blue);}
-.tag-m{background:rgba(144,96,224,.1);color:var(--purple);}
-.tag-i{background:rgba(64,200,224,.08);color:var(--cyan);}
-.tag-e{background:rgba(48,192,96,.08);color:var(--green);}
-.tag-tg{background:rgba(36,161,222,.12);color:#24a1de;border:1px solid rgba(36,161,222,.18);}
-.fsrc{
-  font-family:var(--font-mono);font-size:7px;color:var(--t2);
-  background:var(--s3);padding:2px 6px;border-radius:20px;
-  max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.ftime{margin-left:auto;font-family:var(--font-mono);font-size:7px;color:var(--t3);white-space:nowrap;}
-.ftitle{font-size:12px;font-weight:500;color:var(--t1);line-height:1.45;margin-bottom:3px;}
-.fdesc{font-size:10px;color:var(--t2);line-height:1.5;}
-
-.fstatus{
-  display:flex;align-items:center;justify-content:center;
-  gap:8px;padding:32px 16px;color:var(--t3);
-  font-family:var(--font-mono);font-size:9px;flex-direction:column;text-align:center;
-}
-.fstatus-detail{font-size:8px;color:var(--t3);font-family:var(--font-mono);line-height:1.7;}
-@keyframes spin{100%{transform:rotate(360deg)}}
-.spin-sm{
-  width:14px;height:14px;border:1.5px solid var(--b2);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:spin .7s linear infinite;flex-shrink:0;
-}
-
-/* Footer bar */
-.ffooter{
-  flex-shrink:0;border-top:1px solid var(--b1);padding:6px 12px;
-  display:flex;align-items:center;gap:10px;background:var(--s2);
-}
-.ffooter-stat{font-family:var(--font-mono);font-size:8px;color:var(--t3);}
-.ffooter-stat b{color:var(--t2);}
-.frefresh{
-  margin-left:auto;padding:3px 10px;
-  background:transparent;border:1px solid var(--b2);border-radius:3px;
-  color:var(--t2);font-family:var(--font-mono);font-size:7px;
-  transition:all .15s;letter-spacing:1px;
-}
-.frefresh:hover{border-color:var(--green);color:var(--green);}
-
-/* Flights panel */
-.flights-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
-.flights-header{
-  flex-shrink:0;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--b1);
-  display:flex;flex-direction:column;gap:4px;
-}
-.flights-title{font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--t1);letter-spacing:1px;}
-.flights-sub{font-family:var(--font-mono);font-size:8px;color:var(--t2);}
-.flights-links{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
-.flt-link{
-  padding:4px 10px;background:transparent;border:1px solid var(--b2);border-radius:3px;
-  color:var(--t2);font-family:var(--font-mono);font-size:8px;text-decoration:none;
-  transition:all .15s;display:inline-block;
-}
-.flt-link:hover{border-color:var(--accent);color:var(--accent);}
-.flights-iframe{flex:1;border:none;background:var(--s3);}
-.flights-fallback{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:14px;padding:24px;
-}
-.flt-card{
-  width:100%;padding:12px 14px;border:1px solid var(--b1);border-radius:var(--r);
-  background:var(--s2);cursor:pointer;transition:all .15s;text-decoration:none;display:block;
-}
-.flt-card:hover{border-color:var(--accent);background:var(--s3);}
-.flt-card-title{font-size:11px;font-weight:500;color:var(--t1);margin-bottom:3px;}
-.flt-card-desc{font-size:10px;color:var(--t2);line-height:1.5;}
-.flt-card-tag{
-  display:inline-block;margin-top:6px;
-  font-family:var(--font-mono);font-size:7px;
-  padding:2px 7px;border-radius:20px;
-  background:rgba(64,128,240,.1);color:var(--accent);
-}
-
-/* conflict list items (inside map overlay) */
-.ci{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(30,38,53,.6);}
+/* conflict list */
+.ci{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(33,38,45,.5);}
 .ci:hover{background:var(--s2);}
-.ci.on{background:var(--s3);border-left:2px solid var(--accent);}
-.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.cdot.critical{background:var(--red);box-shadow:0 0 7px var(--red);animation:blink 1.5s ease-in-out infinite;}
-.cdot.high{background:var(--red);box-shadow:0 0 4px var(--red);}
-.cdot.med{background:var(--orange);}
+.ci.on{background:var(--s3);border-left:2px solid var(--blue);padding-left:10px;}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cdot.critical{background:var(--red);box-shadow:0 0 7px var(--red);animation:pulse 1.5s ease-in-out infinite;}
+.cdot.high{background:var(--red);box-shadow:0 0 5px var(--red);}
+.cdot.med{background:var(--orange);box-shadow:0 0 4px var(--orange);}
 .cdot.low{background:var(--blue);}
 .cdot.latent{background:var(--t3);}
 .cinfo{flex:1;min-width:0;}
-.cname{font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.creg{font-size:8px;color:var(--t2);font-family:var(--font-mono);margin-top:1px;}
-.cbadge{font-family:var(--font-mono);font-size:7px;font-weight:600;padding:2px 6px;border-radius:20px;flex-shrink:0;}
-.bc{background:rgba(232,64,64,.18);color:var(--red);}
-.bh{background:rgba(232,64,64,.1);color:var(--red);}
-.bm{background:rgba(240,128,64,.1);color:var(--orange);}
-.bl{background:rgba(64,128,240,.1);color:var(--blue);}
-.bn{background:rgba(68,80,96,.15);color:var(--t3);}
+.cname{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.creg{font-size:9px;color:var(--t2);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+.cbadge{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;flex-shrink:0;letter-spacing:.5px;}
+.bc{background:rgba(248,81,73,.2);color:var(--red);border:1px solid rgba(248,81,73,.25);}
+.bh{background:rgba(248,81,73,.13);color:var(--red);}
+.bm{background:rgba(240,136,62,.11);color:var(--orange);}
+.bl{background:rgba(88,166,255,.1);color:var(--blue);}
+.bn{background:rgba(72,79,88,.2);color:var(--t3);}
 
-/* new items badge */
-.new-badge{
-  display:none;
-  background:var(--red);color:#fff;border-radius:20px;
-  font-family:var(--font-mono);font-size:7px;font-weight:600;
-  padding:1px 6px;margin-left:4px;
-}
-.new-badge.show{display:inline;}
+/* layers */
+.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;}
+.lbtn{display:flex;align-items:center;gap:5px;padding:5px 7px;border:1px solid var(--b2);border-radius:3px;background:transparent;font-size:10px;color:var(--t2);transition:all .15s;width:100%;text-align:left;}
+.lbtn:hover{border-color:var(--b3);color:var(--t1);}
+.lbtn.on{color:var(--t1);border-color:var(--b3);}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* stability */
+.srow{display:flex;align-items:center;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(33,38,45,.4);}
+.sname{width:80px;font-size:10px;color:var(--t2);flex-shrink:0;}
+.sbg{flex:1;height:3px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.sbar{height:100%;border-radius:2px;transition:width 1s ease;}
+.sval{width:22px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);}
+
+/* MAP */
+.map-wrap{flex:1;position:relative;display:flex;flex-direction:column;min-width:0;}
+#map{flex:1;}
+.leaflet-container{background:#0a0f14!important;}
+@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.6)}50%{box-shadow:0 0 0 12px rgba(248,81,73,0)}}
+@keyframes ch{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.5)}50%{box-shadow:0 0 0 9px rgba(248,81,73,0)}}
+@keyframes cm{0%,100%{box-shadow:0 0 0 0 rgba(240,136,62,.5)}50%{box-shadow:0 0 0 7px rgba(240,136,62,0)}}
+@keyframes cl{0%,100%{box-shadow:0 0 0 0 rgba(88,166,255,.4)}50%{box-shadow:0 0 0 5px rgba(88,166,255,0)}}
+
+.map-timebar{position:absolute;top:10px;left:10px;z-index:400;background:rgba(8,12,16,.9);border:1px solid var(--b1);border-radius:3px;display:flex;overflow:hidden;backdrop-filter:blur(4px);}
+.tbtn{padding:4px 9px;background:transparent;border:none;border-right:1px solid var(--b1);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .12s;}
+.tbtn:last-child{border-right:none;}
+.tbtn.on,.tbtn:hover{background:var(--s2);color:var(--t1);}
+
+.map-zoombar{position:absolute;top:10px;right:10px;z-index:400;display:flex;flex-direction:column;gap:4px;}
+.zbtn{width:28px;height:28px;background:rgba(8,12,16,.9);border:1px solid var(--b1);color:var(--t2);font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .15s;backdrop-filter:blur(4px);}
+.zbtn:hover{color:var(--t1);border-color:var(--b3);}
+
+.map-regionbar{position:absolute;bottom:0;left:0;right:0;z-index:400;background:rgba(8,12,16,.88);border-top:1px solid var(--b1);display:flex;align-items:center;height:32px;padding:0 12px;gap:4px;backdrop-filter:blur(4px);overflow-x:auto;scrollbar-width:none;}
+.map-regionbar::-webkit-scrollbar{display:none;}
+.rlabel{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:1px;flex-shrink:0;margin-right:4px;}
+.rbtn{padding:2px 9px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .12s;border-radius:2px;white-space:nowrap;flex-shrink:0;}
+.rbtn:hover,.rbtn.on{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.05);}
+
+.leaflet-popup-content-wrapper{background:var(--s2)!important;color:var(--t1)!important;border:1px solid var(--b2)!important;border-radius:4px!important;box-shadow:0 4px 24px rgba(0,0,0,.7)!important;}
+.leaflet-popup-content{margin:10px 14px!important;}
+.leaflet-popup-tip{background:var(--s2)!important;}
+.leaflet-popup-close-button{color:var(--t2)!important;top:6px!important;right:8px!important;}
+.pt{font-weight:600;font-size:13px;margin-bottom:3px;}
+.ps{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);margin-bottom:6px;letter-spacing:.5px;}
+.pb{font-size:10px;color:var(--t2);line-height:1.6;}
+.pb b{color:var(--t1);}
+.pu-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 6px;border-radius:2px;margin-top:7px;letter-spacing:1px;}
+
+/* SIDEBAR RIGHT */
+.sr{width:480px;flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+
+/* TABS */
+.tabs{flex-shrink:0;display:flex;align-items:center;background:var(--s2);border-bottom:2px solid var(--b1);}
+.tab{padding:8px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-bottom:-2px;white-space:nowrap;}
+.tab:hover{color:var(--t1);}
+.tab.on{color:var(--t1);border-bottom-color:var(--blue);}
+.tab-refresh{margin-left:auto;display:flex;align-items:center;gap:6px;padding-right:8px;}
+.tab-timer{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
+.tab-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
+.tab-panel.hidden{display:none;}
+
+/* GDELT */
+.gdelt-info{flex-shrink:0;padding:7px 12px;background:rgba(88,166,255,.04);border-bottom:1px solid rgba(88,166,255,.1);display:flex;flex-direction:column;gap:2px;}
+.gdelt-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue);letter-spacing:1px;}
+.gdelt-sub{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
+.gdelt-item{padding:9px 12px 8px;border-bottom:1px solid rgba(33,38,45,.55);cursor:pointer;transition:background .1s;animation:fadeup .3s ease both;}
+.gdelt-item:hover{background:var(--s2);}
+.gdelt-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.gdelt-tone{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;}
+.tone-neg{background:rgba(248,81,73,.15);color:var(--red);}
+.tone-neu{background:rgba(139,148,158,.1);color:var(--t2);}
+.tone-pos{background:rgba(63,185,80,.1);color:var(--green);}
+.gdelt-src{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t2);background:var(--s3);padding:1px 5px;border-radius:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gdelt-time{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
+.gdelt-title{font-size:12px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:2px;}
+.gdelt-loc{font-size:10px;color:var(--t2);}
+.gdelt-loc b{color:var(--cyan);}
+
+/* OSINT tag */
+.tag-tg{background:rgba(36,161,222,.15);color:#24a1de;border:1px solid rgba(36,161,222,.2);}
+.tag-osint{background:rgba(188,140,255,.12);color:var(--purple);}
+
+/* feed */
+.ffilters{flex-shrink:0;display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid var(--b1);flex-wrap:wrap;}
+.ffbtn{padding:2px 8px;background:transparent;border:1px solid var(--b2);border-radius:2px;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .12s;letter-spacing:.5px;}
+.ffbtn:hover,.ffbtn.on{border-color:var(--b3);color:var(--t1);background:var(--s2);}
+
+/* feed source selector */
+.fsource-bar{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--b1);overflow-x:auto;scrollbar-width:none;}
+.fsource-bar::-webkit-scrollbar{display:none;}
+.fsrc-btn{padding:2px 7px;background:transparent;border:1px solid var(--b2);border-radius:2px;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:7px;transition:all .12s;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;}
+.fsrc-btn:hover,.fsrc-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.05);}
+.fsrc-label{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1px;flex-shrink:0;}
+
+.farea{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+.farea::-webkit-scrollbar{width:2px;}
+
+.fitem{padding:9px 12px 8px;border-bottom:1px solid rgba(33,38,45,.55);cursor:pointer;transition:background .1s;animation:fadeup .35s ease both;}
+.fitem:hover{background:var(--s2);}
+@keyframes fadeup{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.ftop{display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
+.ftag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;letter-spacing:.5px;flex-shrink:0;}
+.tag-b{background:rgba(248,81,73,.18);color:var(--red);border:1px solid rgba(248,81,73,.2);}
+.tag-s{background:rgba(240,136,62,.13);color:var(--orange);}
+.tag-d{background:rgba(88,166,255,.1);color:var(--blue);}
+.tag-m{background:rgba(188,140,255,.1);color:var(--purple);}
+.tag-i{background:rgba(121,192,255,.08);color:var(--cyan);}
+.tag-e{background:rgba(63,185,80,.08);color:var(--green);}
+.fsrc{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t2);background:var(--s3);padding:1px 5px;border-radius:2px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ftime{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);white-space:nowrap;}
+.ftitle{font-size:12px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:3px;}
+.fdesc{font-size:11px;color:var(--t2);line-height:1.5;}
+.fstatus{display:flex;align-items:center;justify-content:center;gap:8px;padding:28px 16px;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:10px;flex-direction:column;}
+.fstatus-detail{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace;text-align:center;line-height:1.6;}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.spin-sm{width:12px;height:12px;border:1px solid var(--b2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+
+/* feed footer */
+.ffooter{flex-shrink:0;border-top:1px solid var(--b1);padding:5px 12px;display:flex;align-items:center;gap:8px;}
+.ffooter-stat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
+.ffooter-stat b{color:var(--t2);}
+.frefresh{margin-left:auto;padding:3px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .15s;border-radius:2px;letter-spacing:1px;}
+.frefresh:hover{border-color:var(--green);color:var(--green);}
 </style>
 </head>
 <body>
@@ -358,81 +226,67 @@ body.day .map-regionbar{background:rgba(255,255,255,.92);}
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="logo">WORLD<span>MONITOR</span></div>
-    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-    <div class="sep"></div>
+    <div class="logo">WORLD<b>MONITOR</b></div>
+    <div class="live"><div class="live-dot"></div>LIVE</div>
     <div class="clock">UTC <b id="clock">--:--:--</b></div>
     <div class="sep"></div>
-    <div class="stat-group">
-      <div class="stat">
-        <div class="stat-val" style="color:var(--red)" id="st-c">21</div>
-        <div class="stat-lbl">CONFLICTS</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="color:var(--orange)" id="st-a">—</div>
-        <div class="stat-lbl">ALERTS</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="color:var(--green)" id="st-n">—</div>
-        <div class="stat-lbl">NEWS</div>
-      </div>
+    <div class="pill pill-red" id="threat-pill">▲ CRÍTICO: 3 TEATROS ACTIVOS</div>
+    <div class="sep"></div>
+    <div class="topbar-stats">
+      <span class="ts">CONFLICTOS <b id="st-c">21</b></span>
+      <span class="ts">ALERTAS <b id="st-a" style="color:var(--red)">—</b></span>
+      <span class="ts">NOTICIAS <b id="st-n" style="color:var(--green)">—</b></span>
     </div>
-    <div class="tb-right">
-      <button class="icon-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐</button>
-      <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night">🌙</button>
-      <div class="sep"></div>
-      <button class="pill-btn refresh" onclick="refreshAll(true)">↻ REFRESH</button>
+    <div class="ml">
+      <button class="translate-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐 EN</button>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night mode">🌙</button>
+      <button class="btn" id="ref-btn" onclick="refreshAll(true)">↻ REFRESH</button>
     </div>
   </div>
 
   <!-- TICKER -->
   <div class="ticker">
-    <div class="ticker-tag"><div class="tdot"></div>BREAKING</div>
-    <div class="ticker-scroll">
-      <span class="ticker-text" id="ticker">CONNECTING TO INTELLIGENCE SOURCES — LOADING REAL-TIME FEED...</span>
-    </div>
+    <div class="ticker-tag"><div class="tdot"></div>FLASH</div>
+    <div class="ticker-scroll"><span class="ticker-text" id="ticker">CONECTANDO CON FUENTES RSS — CARGANDO INTELIGENCIA EN TIEMPO REAL...</span></div>
   </div>
 
   <div class="main">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sl">
+      <div class="phdr">● CONFLICTOS ACTIVOS // MAR 2026</div>
+      <div style="flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;">
+        <div id="conflict-list"></div>
+      </div>
+    </div>
 
     <!-- MAP -->
     <div class="map-wrap">
       <div id="map"></div>
 
-      <!-- Layer controls (floating, top-left) -->
-      <div class="map-ctrl map-layers" id="layer-panel">
-        <div class="map-layers-title">MAP LAYERS</div>
-        <div class="layer-row on" id="lr-conflicts" onclick="toggleLayer('conflicts',this)">
-          <div class="layer-check">✓</div>
-          <div class="layer-dot" style="background:#e84040;box-shadow:0 0 5px #e84040"></div>
-          <div class="layer-name">Conflicts</div>
-          <div class="layer-count">21</div>
-        </div>
-        <div class="layer-row" id="lr-bases" onclick="toggleLayer('bases',this)">
-          <div class="layer-check"></div>
-          <div class="layer-dot" style="background:#4080f0"></div>
-          <div class="layer-name">Military Bases</div>
-          <div class="layer-count">33</div>
-        </div>
+      <div class="map-timebar">
+        <button class="tbtn" onclick="setTime(this)">1H</button>
+        <button class="tbtn" onclick="setTime(this)">6H</button>
+        <button class="tbtn on" onclick="setTime(this)">24H</button>
+        <button class="tbtn" onclick="setTime(this)">48H</button>
+        <button class="tbtn" onclick="setTime(this)">7D</button>
       </div>
 
-      <!-- Zoom controls -->
-      <div class="map-ctrl map-zoombar">
+      <div class="map-zoombar">
         <button class="zbtn" onclick="MAP.zoomIn()">+</button>
         <button class="zbtn" onclick="MAP.zoomOut()">−</button>
-        <button class="zbtn" style="font-size:12px;" onclick="MAP.flyTo([20,15],2.5,{duration:1})">⊕</button>
+        <button class="zbtn" onclick="MAP.flyTo([20,15],2.5,{duration:1})">⊕</button>
       </div>
 
-      <!-- Region bar (bottom) -->
       <div class="map-regionbar">
-        <span class="rlabel">REGION</span>
+        <span class="rlabel">REGIÓN</span>
         <button class="rbtn on"  onclick="setRegion(this,'global')">GLOBAL</button>
-        <button class="rbtn"     onclick="setRegion(this,'europe')">EUROPE</button>
+        <button class="rbtn"     onclick="setRegion(this,'europe')">EUROPA</button>
         <button class="rbtn"     onclick="setRegion(this,'mena')">MENA</button>
-        <button class="rbtn"     onclick="setRegion(this,'africa')">AFRICA</button>
+        <button class="rbtn"     onclick="setRegion(this,'africa')">ÁFRICA</button>
         <button class="rbtn"     onclick="setRegion(this,'asia')">ASIA-PAC</button>
-        <button class="rbtn"     onclick="setRegion(this,'americas')">AMERICAS</button>
-        <button class="rbtn"     onclick="setRegion(this,'caucasus')">CAUCASUS</button>
+        <button class="rbtn"     onclick="setRegion(this,'americas')">AMÉRICAS</button>
+        <button class="rbtn"     onclick="setRegion(this,'caucasus')">CÁUCASO</button>
       </div>
     </div>
 
@@ -441,85 +295,47 @@ body.day .map-regionbar{background:rgba(255,255,255,.92);}
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tab on" onclick="switchTab('media',this)">📰 NEWS</button>
-        <button class="tab"    onclick="switchTab('osint',this)">📲 OSINT <span class="new-badge" id="osint-badge">NEW</span></button>
-        <button class="tab"    onclick="switchTab('flights',this)">✈ FLIGHTS</button>
-        <div class="tab-right">
+        <button class="tab on" onclick="switchTab('media',this)">📰 MEDIOS</button>
+        <button class="tab"    onclick="switchTab('osint',this)">📲 OSINT/TELEGRAM</button>
+        <div class="tab-refresh">
           <span id="refresh-countdown" class="tab-timer">↻ 2:00</span>
+          <button class="frefresh" onclick="refreshAll(true)">REFRESH</button>
         </div>
       </div>
 
-      <!-- NEWS panel -->
+      <!-- MEDIA panel -->
       <div class="tab-panel" id="panel-media">
-        <div class="filters">
-          <button class="fbtn on" onclick="filterCat('all',this,'media')">ALL</button>
-          <button class="fbtn"    onclick="filterCat('ukraine',this,'media')">UKRAINE</button>
-          <button class="fbtn"    onclick="filterCat('mideast',this,'media')">M.EAST</button>
-          <button class="fbtn"    onclick="filterCat('africa',this,'media')">AFRICA</button>
-          <button class="fbtn"    onclick="filterCat('asia',this,'media')">ASIA</button>
-          <button class="fbtn"    onclick="filterCat('breaking',this,'media')">🔴 FLASH</button>
+        <div class="ffilters">
+          <button class="ffbtn on" onclick="filterCat('all',this,'media')">TODO</button>
+          <button class="ffbtn"    onclick="filterCat('ukraine',this,'media')">UCRANIA</button>
+          <button class="ffbtn"    onclick="filterCat('mideast',this,'media')">M.ESTE</button>
+          <button class="ffbtn"    onclick="filterCat('africa',this,'media')">ÁFRICA</button>
+          <button class="ffbtn"    onclick="filterCat('asia',this,'media')">ASIA</button>
+          <button class="ffbtn"    onclick="filterCat('breaking',this,'media')">🔴 FLASH</button>
         </div>
         <div class="farea" id="feed-media">
-          <div class="fstatus"><div class="spin-sm"></div>Loading sources...</div>
+          <div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>
         </div>
       </div>
 
-      <!-- OSINT panel -->
+      <!-- OSINT/TELEGRAM panel -->
       <div class="tab-panel hidden" id="panel-osint">
-        <div class="filters">
-          <button class="fbtn on" onclick="filterCat('all',this,'osint')">ALL</button>
-          <button class="fbtn"    onclick="filterCat('ukraine',this,'osint')">UKRAINE</button>
-          <button class="fbtn"    onclick="filterCat('mideast',this,'osint')">M.EAST</button>
-          <button class="fbtn"    onclick="filterCat('africa',this,'osint')">AFRICA</button>
-          <button class="fbtn"    onclick="filterCat('asia',this,'osint')">ASIA</button>
+        <div class="ffilters">
+          <button class="ffbtn on" onclick="filterCat('all',this,'osint')">TODO</button>
+          <button class="ffbtn"    onclick="filterCat('ukraine',this,'osint')">UCRANIA</button>
+          <button class="ffbtn"    onclick="filterCat('mideast',this,'osint')">M.ESTE</button>
+          <button class="ffbtn"    onclick="filterCat('africa',this,'osint')">ÁFRICA</button>
+          <button class="ffbtn"    onclick="filterCat('asia',this,'osint')">ASIA</button>
         </div>
         <div class="farea" id="feed-osint">
-          <div class="fstatus"><div class="spin-sm"></div>Connecting to Telegram channels...</div>
-        </div>
-      </div>
-
-      <!-- FLIGHTS panel -->
-      <div class="tab-panel hidden" id="panel-flights">
-        <div class="flights-panel">
-          <div class="flights-header">
-            <div class="flights-title">✈ MILITARY FLIGHT TRACKER</div>
-            <div class="flights-sub">Real-time military & government aircraft · ADS-B Exchange</div>
-            <div class="flights-links">
-              <a class="flt-link" href="https://globe.adsbexchange.com/?mil=1" target="_blank">⬡ ADS-B Exchange (Military)</a>
-              <a class="flt-link" href="https://globe.adsbexchange.com/?lat=48&lon=32&zoom=5&mil=1" target="_blank">📍 Ukraine Theatre</a>
-              <a class="flt-link" href="https://globe.adsbexchange.com/?lat=32&lon=45&zoom=5&mil=1" target="_blank">📍 Middle East</a>
-              <a class="flt-link" href="https://www.flightradar24.com/32,45/5" target="_blank">📡 Flightradar24</a>
-            </div>
-          </div>
-          <div class="flights-fallback">
-            <a class="flt-card" href="https://globe.adsbexchange.com/?mil=1" target="_blank">
-              <div class="flt-card-title">🛩 Global Military Traffic</div>
-              <div class="flt-card-desc">Track all military-registered aircraft worldwide in real time. Fighter jets, tankers, surveillance planes, military transports.</div>
-              <span class="flt-card-tag">OPENS ADS-B EXCHANGE →</span>
-            </a>
-            <a class="flt-card" href="https://globe.adsbexchange.com/?lat=48&lon=32&zoom=6&mil=1" target="_blank">
-              <div class="flt-card-title">🇺🇦 Ukraine / Eastern Europe</div>
-              <div class="flt-card-desc">Monitor air activity around the conflict zone. NATO AWACS, reconnaissance aircraft, border patrol flights.</div>
-              <span class="flt-card-tag">OPENS ADS-B EXCHANGE →</span>
-            </a>
-            <a class="flt-card" href="https://globe.adsbexchange.com/?lat=27&lon=50&zoom=6&mil=1" target="_blank">
-              <div class="flt-card-title">🌍 Persian Gulf / Middle East</div>
-              <div class="flt-card-desc">US 5th Fleet area, Israeli Air Force activity, Iranian airspace monitoring, tanker operations.</div>
-              <span class="flt-card-tag">OPENS ADS-B EXCHANGE →</span>
-            </a>
-            <a class="flt-card" href="https://globe.adsbexchange.com/?lat=25&lon=122&zoom=6&mil=1" target="_blank">
-              <div class="flt-card-title">🌏 Taiwan Strait / Pacific</div>
-              <div class="flt-card-desc">PLA Air Force sorties, US Pacific Command flights, ADIZ incursion patterns, B-52 deployments.</div>
-              <span class="flt-card-tag">OPENS ADS-B EXCHANGE →</span>
-            </a>
-          </div>
+          <div class="fstatus"><div class="spin-sm"></div>Cargando canales OSINT...</div>
         </div>
       </div>
 
       <!-- Footer -->
       <div class="ffooter">
-        <span class="ffooter-stat">News: <b id="ft-media">—</b></span>
-        <span class="ffooter-stat">OSINT: <b id="ft-osint">—</b></span>
+        <span class="ffooter-stat">Medios: <b id="ft-media">0</b></span>
+        <span class="ffooter-stat">OSINT: <b id="ft-osint">0</b></span>
         <span class="ffooter-stat" id="ft-updated">—</span>
       </div>
 
@@ -528,6 +344,9 @@ body.day .map-regionbar{background:rgba(255,255,255,.92);}
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// CONFLICTOS — actualizados a marzo 2026
+// ══════════════════════════════════════════════════════════
 const CONFLICTS = [
   // CRITICAL — guerra activa con grandes bajas
   {
@@ -858,67 +677,12 @@ const OSINT_SOURCES = [
 ];
 
 // ══════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════
-// MEDIA SOURCES
-// ══════════════════════════════════════════════════════════
-const MEDIA_SOURCES = [
-  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                       n:'BBC World',        cat:'general'},
-  {url:'https://www.aljazeera.com/xml/rss/all.xml',                         n:'Al Jazeera',       cat:'general'},
-  {url:'https://feeds.reuters.com/reuters/worldNews',                        n:'Reuters',          cat:'general'},
-  {url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',            n:'NYT World',        cat:'general'},
-  {url:'https://www.theguardian.com/world/rss',                             n:'Guardian',         cat:'general'},
-  {url:'https://feeds.skynews.com/feeds/rss/world.xml',                    n:'Sky News',         cat:'general'},
-  {url:'https://www.france24.com/en/rss',                                   n:'France 24',        cat:'general'},
-  {url:'https://apnews.com/apf-intlnews.rss',                              n:'AP News',          cat:'general'},
-  {url:'https://www.dw.com/en/top-stories/rss',                            n:'DW',               cat:'general'},
-  {url:'https://www.understandingwar.org/feed',                             n:'ISW',              cat:'ukraine'},
-  {url:'https://www.kyivindependent.com/rss/',                             n:'Kyiv Independent', cat:'ukraine'},
-  {url:'https://meduza.io/rss/en/all',                                      n:'Meduza',           cat:'ukraine'},
-  {url:'https://www.timesofisrael.com/feed/',                              n:'Times of Israel',  cat:'mideast'},
-  {url:'https://www.middleeasteye.net/rss',                                n:'ME Eye',           cat:'mideast'},
-  {url:'https://www.bellingcat.com/feed/',                                  n:'Bellingcat',       cat:'general'},
-  {url:'https://foreignpolicy.com/feed/',                                   n:'Foreign Policy',   cat:'general'},
-  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', n:'Defense News',     cat:'general'},
-  {url:'https://breakingdefense.com/feed/',                                n:'Breaking Defense', cat:'general'},
-  {url:'https://www.theafricareport.com/feed/',                            n:'Africa Report',    cat:'africa'},
-  {url:'https://www.scmp.com/rss/91/feed',                                 n:'SCMP',             cat:'asia'},
-  {url:'https://www.rfa.org/english/news/rss2.html',                       n:'Radio Free Asia',  cat:'asia'},
-  {url:'https://www.crisisgroup.org/rss.xml',                              n:'ICG',              cat:'general'},
-  {url:'https://www.cfr.org/rss.xml',                                       n:'CFR',              cat:'general'},
-];
-
-// ══════════════════════════════════════════════════════════
-// OSINT / TELEGRAM CHANNELS
-// ══════════════════════════════════════════════════════════
-const OSINT_SOURCES = [
-  {ch:'rybar',             n:'Rybar',            cat:'ukraine'},
-  {ch:'intelslava',        n:'Intel Slava Z',    cat:'ukraine'},
-  {ch:'UkraineNow',        n:'Ukraine Now',      cat:'ukraine'},
-  {ch:'war_monitor',       n:'War Monitor',      cat:'ukraine'},
-  {ch:'DeepStateUA',       n:'DeepState UA',     cat:'ukraine'},
-  {ch:'milchronicles',     n:'Mil Chronicles',   cat:'ukraine'},
-  {ch:'osintdefender',     n:'OSINTdefender',    cat:'general'},
-  {ch:'IntelCrab',         n:'Intel Crab',       cat:'general'},
-  {ch:'GeoConfirmed',      n:'GeoConfirmed',     cat:'general'},
-  {ch:'OSINT_channel',     n:'OSINT CH',         cat:'general'},
-  {ch:'conflictmonitor',   n:'Conflict Monitor', cat:'general'},
-  {ch:'QudsNen',           n:'Quds News',        cat:'mideast'},
-  {ch:'SyrianCivilWarMap', n:'Syria Map',        cat:'mideast'},
-  {ch:'sahelien',          n:'Sahel Intel',      cat:'africa'},
-];
-
-// ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
 let MAP, LG={};
-let TILE_DARK_BASE, TILE_DARK_LABELS, TILE_DAY_BASE, TILE_DAY_LABELS;
 let mediaCache={ts:0,data:[]}, osintCache={ts:0,data:[]};
 let activeCatMedia='all', activeCatOsint='all';
 let activeTab='media', countdownSecs=120;
-let translateOn=false, isDark=true;
-const transCache={};
-let prevMediaCount=0;
 
 // ══════════════════════════════════════════════════════════
 // CLOCK
@@ -930,8 +694,9 @@ function startClock(){
 }
 
 // ══════════════════════════════════════════════════════════
-// MAP
+// MAP INIT
 // ══════════════════════════════════════════════════════════
+let TILE_DARK_BASE, TILE_DARK_LABELS, TILE_DAY_BASE, TILE_DAY_LABELS;
 function initMap(){
   MAP=L.map('map',{zoomControl:false,attributionControl:false,minZoom:2}).setView([20,15],2.5);
   TILE_DARK_BASE  =L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
@@ -940,80 +705,44 @@ function initMap(){
   TILE_DAY_LABELS =L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
   TILE_DARK_BASE.addTo(MAP);
   TILE_DARK_LABELS.addTo(MAP);
-
-  // Conflict layer
-  LG['conflicts']=L.layerGroup();
+  LAYERS.forEach(l=>{LG[l.id]=L.layerGroup();});
   CONFLICTS.forEach(c=>{
     const sz={critical:24,high:18,med:13,low:10,latent:8}[c.intensity]||12;
-    const bc={critical:'#e84040',high:'#e84040',med:'#f08040',low:'#4080f0',latent:'#445060'}[c.intensity];
-    const bg={critical:'rgba(232,64,64,.2)',high:'rgba(232,64,64,.14)',med:'rgba(240,128,64,.14)',low:'rgba(64,128,240,.12)',latent:'rgba(68,80,96,.18)'}[c.intensity];
+    const bc={critical:'#f85149',high:'#f85149',med:'#f0883e',low:'#58a6ff',latent:'#484f58'}[c.intensity];
+    const bg={critical:'rgba(248,81,73,.22)',high:'rgba(248,81,73,.16)',med:'rgba(240,136,62,.15)',low:'rgba(88,166,255,.12)',latent:'rgba(72,79,88,.2)'}[c.intensity];
     const an={critical:'cp',high:'ch',med:'cm',low:'cl',latent:'none'}[c.intensity];
     const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};border:1.5px solid ${bc};animation:${an} 2s ease-in-out infinite;cursor:pointer;"></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const tagColor={critical:'rgba(248,81,73,.2)',high:'rgba(248,81,73,.14)',med:'rgba(240,136,62,.12)',low:'rgba(88,166,255,.1)',latent:'rgba(72,79,88,.15)'}[c.intensity];
     L.marker([c.lat,c.lng],{icon})
-      .bindPopup(`<div class="pt">${c.name}</div><div class="ps">${c.region.toUpperCase()} · ${c.intensity.toUpperCase()} · ${c.updated}</div><div class="pb">${c.desc}</div><div><span class="pu-tag" style="background:${bg};color:${bc}">${c.intensity.toUpperCase()}</span></div>`,{maxWidth:290})
+      .bindPopup(`<div class="pt">${c.name}</div><div class="ps">${c.region.toUpperCase()} · ${c.intensity.toUpperCase()} · ${c.updated}</div><div class="pb">${c.desc}</div><div><span class="pu-tag" style="background:${tagColor};color:${bc}">${c.intensity.toUpperCase()}</span></div>`,{maxWidth:280})
+      .on('click',()=>selectConflict(c.id))
       .addTo(LG['conflicts']);
   });
   LG['conflicts'].addTo(MAP);
-
-  // Military bases layer
-  LG['bases']=L.layerGroup();
-  MIL_BASES.forEach(b=>{
-    const isUS=b.w.includes('EEUU')||b.w.includes('US');
-    const isRU=b.w.includes('Rusia');
-    const isCN=b.w.includes('China');
-    const col=isUS?'#4080f0':isRU?'#e84040':isCN?'#e8b840':'#9060e0';
-    const icon=L.divIcon({
-      className:'',
-      html:`<div style="width:10px;height:10px;transform:rotate(45deg);background:${col};opacity:.85;border:1px solid rgba(255,255,255,.3);cursor:pointer;"></div>`,
-      iconSize:[10,10],iconAnchor:[5,5]
-    });
-    L.marker([b.lat,b.lng],{icon})
-      .bindPopup(`<div class="pt">${b.n}</div><div class="ps">${b.w.toUpperCase()}</div><div class="pb">${b.t}</div>`,{maxWidth:240})
-      .addTo(LG['bases']);
-  });
-  // bases NOT added to map by default
 }
 
 // ══════════════════════════════════════════════════════════
-// LAYER TOGGLE
+// UI HELPERS
 // ══════════════════════════════════════════════════════════
-const layerState={conflicts:true, bases:false};
-function toggleLayer(id, row){
-  layerState[id]=!layerState[id];
-  row.classList.toggle('on', layerState[id]);
-  const check=row.querySelector('.layer-check');
-  check.textContent=layerState[id]?'✓':'';
-  if(layerState[id]) LG[id].addTo(MAP);
-  else MAP.removeLayer(LG[id]);
-}
-
-// ══════════════════════════════════════════════════════════
-// THEME
-// ══════════════════════════════════════════════════════════
-function toggleTheme(){
-  isDark=!isDark;
-  const btn=document.getElementById('theme-btn');
-  if(isDark){
-    document.body.classList.remove('day');
-    btn.textContent='🌙';
-    MAP.removeLayer(TILE_DAY_BASE);MAP.removeLayer(TILE_DAY_LABELS);
-    TILE_DARK_BASE.addTo(MAP);TILE_DARK_LABELS.addTo(MAP);
-  } else {
-    document.body.classList.add('day');
-    btn.textContent='☀️';
-    MAP.removeLayer(TILE_DARK_BASE);MAP.removeLayer(TILE_DARK_LABELS);
-    TILE_DAY_BASE.addTo(MAP);TILE_DAY_LABELS.addTo(MAP);
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-// REGION NAV
-// ══════════════════════════════════════════════════════════
+function setTime(btn){btn.closest('.map-timebar').querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 const REGIONS={global:[20,15,2.5],europe:[52,15,4],mena:[28,42,4],africa:[5,22,3.5],asia:[25,105,3.5],americas:[4,-72,3],caucasus:[41,46,5.5]};
-function setRegion(btn,r){
-  document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const[la,ln,z]=REGIONS[r];MAP.flyTo([la,ln],z,{duration:1.2});
+function setRegion(btn,r){document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');const[la,ln,z]=REGIONS[r];MAP.flyTo([la,ln],z,{duration:1.2});}
+
+const INTENSITY_ORDER={critical:0,high:1,med:2,low:3,latent:4};
+function renderConflicts(){
+  const sorted=[...CONFLICTS].sort((a,b)=>INTENSITY_ORDER[a.intensity]-INTENSITY_ORDER[b.intensity]);
+  document.getElementById('conflict-list').innerHTML=sorted.map(c=>{
+    const bc={critical:'bc',high:'bh',med:'bm',low:'bl',latent:'bn'}[c.intensity];
+    const label={critical:'CRÍTICO',high:'ALTO',med:'MEDIO',low:'BAJO',latent:'LATENTE'}[c.intensity];
+    return `<div class="ci" id="ci-${c.id}" onclick="selectConflict('${c.id}')"><div class="cdot ${c.intensity}"></div><div class="cinfo"><div class="cname">${c.name}</div><div class="creg">${c.region}</div></div><div class="cbadge ${bc}">${label}</div></div>`;
+  }).join('');
+}
+function selectConflict(id){
+  document.querySelectorAll('.ci').forEach(e=>e.classList.remove('on'));
+  const el=document.getElementById('ci-'+id);
+  if(el){el.classList.add('on');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  const c=CONFLICTS.find(x=>x.id===id);
+  if(c) MAP.flyTo([c.lat,c.lng],5,{duration:1.4});
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1025,13 +754,13 @@ function switchTab(tab,btn){
   btn.classList.add('on');
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden'));
   document.getElementById('panel-'+tab).classList.remove('hidden');
-  if(tab==='osint') document.getElementById('osint-badge').classList.remove('show');
 }
 
 // ══════════════════════════════════════════════════════════
-// AUTO-REFRESH COUNTDOWN
+// AUTO-REFRESH — cada 2 minutos
 // ══════════════════════════════════════════════════════════
 function startCountdown(){
+  countdownSecs=120;
   const el=document.getElementById('refresh-countdown');
   setInterval(()=>{
     countdownSecs--;
@@ -1091,33 +820,13 @@ function parseRSS(xml,src,cat,type='rss'){
   return items.slice(0,12);
 }
 
-function parseTelegram(html,src,cat){
-  const items=[];
-  const textRe=/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
-  const dateRe=/<time[^>]+datetime="([^"]+)"/g;
-  const linkRe=/<a class="tgme_widget_message_date"[^>]+href="([^"]+)"/g;
-  const texts=[],dates=[],links=[];
-  let m;
-  while((m=textRe.exec(html))!==null){
-    const t=m[1].replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'').trim();
-    if(t.length>5)texts.push(t);
-  }
-  while((m=dateRe.exec(html))!==null)dates.push(m[1]);
-  while((m=linkRe.exec(html))!==null)links.push(m[1]);
-  const count=Math.min(texts.length,12);
-  for(let i=0;i<count;i++){
-    items.push({title:texts[i].slice(0,200),link:links[i]||`https://t.me/s/${src}`,pubDate:dates[i]||new Date().toISOString(),desc:texts[i].slice(0,300),src,cat,type:'tg'});
-  }
-  return items;
-}
-
 const CLASSIFY=t=>{
   t=t.toLowerCase();
-  if(/breaking|flash|urgent|alert/.test(t))return 'b';
-  if(/attack|strike|bomb|missile|killed|dead|explos|casualt|shelling/.test(t))return 's';
-  if(/ceasefire|negotiat|talks|accord|deal|sanction|diplo|treaty/.test(t))return 'd';
-  if(/military|troops|forces|army|navy|fighter|weapon|tank|deploy/.test(t))return 'm';
-  if(/economy|market|trade|gdp|inflation|crisis|energy|oil|gas/.test(t))return 'e';
+  if(/breaking|flash|urgent|alert/.test(t)) return 'b';
+  if(/attack|strike|bomb|missile|killed|dead|explos|casualt|shelling/.test(t)) return 's';
+  if(/ceasefire|negotiat|talks|accord|deal|sanction|diplo|treaty/.test(t)) return 'd';
+  if(/military|troops|forces|army|navy|fighter|weapon|tank|deploy/.test(t)) return 'm';
+  if(/economy|market|trade|gdp|inflation|crisis|energy|oil|gas/.test(t)) return 'e';
   return 'i';
 };
 const REGION_KW={
@@ -1127,12 +836,12 @@ const REGION_KW={
   asia:/china|taiwan|korea|japan|myanmar|vietnam|philippin|asia|pacific|burma|beijing/i,
   americas:/venezuel|haiti|colombia|brazil|mexico|carib|latin|america/i,
 };
-const TAGS={b:['tag-b','🔴 FLASH'],s:['tag-s','💥 STRIKE'],d:['tag-d','🕊 DIPLO'],m:['tag-m','⚔ MIL'],e:['tag-e','📈 ECON'],i:['tag-i','📡 INTEL']};
+const TAG={b:['tag-b','🔴 FLASH'],s:['tag-s','💥 STRIKE'],d:['tag-d','🕊 DIPLO'],m:['tag-m','⚔ MIL'],e:['tag-e','📈 ECON'],i:['tag-i','📡 INTEL']};
 
 function timeAgo(s){
   const n=Date.now()-new Date(s);
   if(isNaN(n))return '?';
-  if(n<60000)return 'now';
+  if(n<60000)return 'ahora';
   if(n<3600000)return `${Math.floor(n/60000)}m`;
   if(n<86400000)return `${Math.floor(n/3600000)}h`;
   return `${Math.floor(n/86400000)}d`;
@@ -1140,12 +849,13 @@ function timeAgo(s){
 
 function renderItems(items,areaId){
   const area=document.getElementById(areaId);
-  if(!items.length){area.innerHTML='<div class="fstatus"><div class="fstatus-detail">No results for this filter.</div></div>';return;}
+  if(!items.length){area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin resultados.</div>';return;}
   area.innerHTML=items.slice(0,60).map((item,i)=>{
-    const t=CLASSIFY(item.title),[cls,label]=TAGS[t]||TAGS['i'];
+    const t=CLASSIFY(item.title),[cls,label]=TAG[t]||TAG['i'];
     const safeLink=(item.link||'').replace(/'/g,"\\'");
-    const tagHtml=item.type==='tg'?`<span class="ftag tag-tg">📲 TG</span>`:`<span class="ftag ${cls}">${label}</span>`;
-    return `<div class="fitem" style="animation-delay:${Math.min(i,20)*0.022}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
+    const isTg=item.type==='tg';
+    const tagHtml=isTg?`<span class="ftag tag-tg">📲 TELEGRAM</span>`:`<span class="ftag ${cls}">${label}</span>`;
+    return `<div class="fitem" style="animation-delay:${Math.min(i,20)*0.025}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
       <div class="ftop">${tagHtml}<span class="fsrc">${item.src}</span><span class="ftime">${timeAgo(item.pubDate)}</span></div>
       <div class="ftitle">${item.title}</div>
       ${item.desc&&item.desc!==item.title?`<div class="fdesc">${item.desc}…</div>`:''}
@@ -1158,15 +868,12 @@ function renderItems(items,areaId){
 // ══════════════════════════════════════════════════════════
 async function loadMedia(force=false){
   if(!force&&Date.now()-mediaCache.ts<120000&&mediaCache.data.length){renderMedia();return;}
-  document.getElementById('feed-media').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Loading ${MEDIA_SOURCES.length} sources...</div>`;
+  document.getElementById('feed-media').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>`;
   const all=[];
   await Promise.allSettled(MEDIA_SOURCES.map(async src=>{
     try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(i=>all.push(i));}catch(e){}
   }));
   all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  // badge for new items
-  if(prevMediaCount>0&&all.length>prevMediaCount) document.getElementById('osint-badge');
-  prevMediaCount=all.length;
   mediaCache={ts:Date.now(),data:all};
   document.getElementById('ft-media').textContent=all.length;
   updateTicker(all);
@@ -1177,7 +884,7 @@ async function loadMedia(force=false){
 function filterCat(f,btn,panel){
   if(panel==='media') activeCatMedia=f;
   else activeCatOsint=f;
-  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.closest('.ffilters').querySelectorAll('.ffbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   if(panel==='media') renderMedia(); else renderOSINT();
 }
@@ -1190,33 +897,61 @@ function renderMedia(){
 }
 
 // ══════════════════════════════════════════════════════════
-// LOAD OSINT
+// LOAD OSINT — scraping directo t.me/s/canal
 // ══════════════════════════════════════════════════════════
 async function loadOSINT(force=false){
   if(!force&&Date.now()-osintCache.ts<120000&&osintCache.data.length){renderOSINT();return;}
-  document.getElementById('feed-osint').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Connecting to Telegram channels...</div>`;
+  document.getElementById('feed-osint').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Conectando con canales Telegram...</div>`;
   const all=[];
   await Promise.allSettled(OSINT_SOURCES.map(async src=>{
     try{
-      const html=await fetchRSS(`https://t.me/s/${src.ch}`);
-      if(!html)return;
-      parseTelegram(html,src.n,src.cat).forEach(i=>all.push(i));
+      const tmeUrl=`https://t.me/s/${src.ch}`;
+      const html=await fetchRSS(tmeUrl);
+      if(!html) return;
+      parseTelegram(html, src.n, src.cat).forEach(i=>all.push(i));
     }catch(e){}
   }));
   all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
   osintCache={ts:Date.now(),data:all};
   document.getElementById('ft-osint').textContent=all.length;
-  // Show new badge if not on OSINT tab
-  if(activeTab!=='osint'&&all.length>0) document.getElementById('osint-badge').classList.add('show');
   if(translateOn) await translateItems(osintCache.data);
   renderOSINT();
+}
+
+// Parser HTML de t.me/s/canal
+function parseTelegram(html, src, cat){
+  const items=[];
+  // Extraer mensajes del widget público de Telegram
+  const msgRe=/<div class="tgme_widget_message_wrap[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
+  // Método más robusto: buscar bloques de mensaje por su estructura
+  const textRe=/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+  const dateRe=/<time[^>]+datetime="([^"]+)"/g;
+  const linkRe=/<a class="tgme_widget_message_date"[^>]+href="([^"]+)"/g;
+
+  const texts=[], dates=[], links=[];
+  let m;
+  while((m=textRe.exec(html))!==null){
+    const t=m[1].replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'').trim();
+    if(t.length>5) texts.push(t);
+  }
+  while((m=dateRe.exec(html))!==null) dates.push(m[1]);
+  while((m=linkRe.exec(html))!==null) links.push(m[1]);
+
+  const count=Math.min(texts.length, 15);
+  for(let i=0;i<count;i++){
+    const title=texts[i].slice(0,200);
+    const pubDate=dates[i]||new Date().toISOString();
+    const link=links[i]||`https://t.me/s/${src}`;
+    items.push({title,link,pubDate,desc:texts[i].slice(0,300),src,cat,type:'tg'});
+  }
+  return items;
 }
 
 function renderOSINT(){
   let items=osintCache.data;
   if(activeCatOsint!=='all'){const re=REGION_KW[activeCatOsint];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
   if(!items.length){
-    document.getElementById('feed-osint').innerHTML='<div class="fstatus"><div class="fstatus-detail">Telegram channels unavailable.<br>CORS proxies may be rate-limited.<br>Try refreshing in a few minutes.</div></div>';
+    document.getElementById('feed-osint').innerHTML='<div class="fstatus" style="color:var(--t3);flex-direction:column;gap:8px;">Sin datos de canales Telegram.<br><span style="font-size:9px">Algunos canales pueden estar bloqueados por el proxy CORS.</span></div>';
     return;
   }
   renderItems(items,'feed-osint');
@@ -1226,51 +961,78 @@ function renderOSINT(){
 // TICKER
 // ══════════════════════════════════════════════════════════
 function updateTicker(items){
-  const top=items.slice(0,15).map(i=>`◉ ${i.title} [${i.src}]`).join('    ');
-  document.getElementById('ticker').textContent=top||'NO DATA';
+  const top=items.slice(0,15).map(i=>`◉ ${i.title} [${i.src}]`).join('   ');
+  document.getElementById('ticker').textContent=top||'SIN DATOS';
   const alerts=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';}).length;
   document.getElementById('st-n').textContent=items.length;
-  document.getElementById('st-a').textContent=alerts||'—';
+  document.getElementById('st-a').textContent=alerts;
   const now=new Date();
   document.getElementById('ft-updated').textContent=`${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
 }
 
 // ══════════════════════════════════════════════════════════
-// TRANSLATION
+// THEME — day / night
 // ══════════════════════════════════════════════════════════
+let isDark=true;
+function toggleTheme(){
+  isDark=!isDark;
+  const btn=document.getElementById('theme-btn');
+  if(isDark){
+    document.body.classList.remove('day');
+    btn.textContent='🌙';
+    MAP.removeLayer(TILE_DAY_BASE); MAP.removeLayer(TILE_DAY_LABELS);
+    TILE_DARK_BASE.addTo(MAP); TILE_DARK_LABELS.addTo(MAP);
+  } else {
+    document.body.classList.add('day');
+    btn.textContent='☀️';
+    MAP.removeLayer(TILE_DARK_BASE); MAP.removeLayer(TILE_DARK_LABELS);
+    TILE_DAY_BASE.addTo(MAP); TILE_DAY_LABELS.addTo(MAP);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// TRANSLATION — Google Translate unofficial API
+// ══════════════════════════════════════════════════════════
+let translateOn=false;
+const transCache={};
+
 async function translateText(text){
-  if(!text||!text.trim())return text;
-  if(transCache[text])return transCache[text];
+  if(!text||!text.trim()) return text;
+  if(transCache[text]) return transCache[text];
   try{
     const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
     const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
     const data=await r.json();
     const translated=(data[0]||[]).map(s=>s[0]||'').join('').trim();
-    if(translated)transCache[text]=translated;
+    if(translated) transCache[text]=translated;
     return translated||text;
-  }catch(e){return text;}
+  }catch(e){ return text; }
 }
 
 async function translateItems(items){
-  for(let i=0;i<items.length;i+=5){
-    await Promise.all(items.slice(i,i+5).map(async item=>{
+  // translate in batches of 5 parallel to avoid rate limits
+  const result=[...items];
+  for(let i=0;i<result.length;i+=5){
+    const batch=result.slice(i,i+5);
+    await Promise.all(batch.map(async item=>{
       item._origTitle=item._origTitle||item.title;
       item._origDesc=item._origDesc||item.desc;
       if(translateOn){
         item.title=await translateText(item._origTitle);
-        if(item._origDesc)item.desc=await translateText(item._origDesc.slice(0,150));
+        if(item._origDesc) item.desc=await translateText(item._origDesc.slice(0,150));
       } else {
         item.title=item._origTitle;
         item.desc=item._origDesc;
       }
     }));
   }
+  return result;
 }
 
 function toggleTranslate(btn){
   translateOn=!translateOn;
   btn.classList.toggle('on',translateOn);
-  btn.title=translateOn?'Translation ON — click to disable':'Auto-translate to English';
+  btn.textContent=translateOn?'🌐 EN ✓':'🌐 EN';
   translateItems(mediaCache.data).then(()=>renderMedia());
   translateItems(osintCache.data).then(()=>renderOSINT());
 }
@@ -1281,6 +1043,7 @@ function toggleTranslate(btn){
 function init(){
   startClock();
   initMap();
+  renderConflicts();
   startCountdown();
   loadMedia();
   loadOSINT();
