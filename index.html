@@ -279,8 +279,7 @@ button{font-family:inherit;cursor:pointer;}
       <!-- Tabs -->
       <div class="tabs">
         <button class="tab on" onclick="switchTab('media',this)">📰 MEDIOS</button>
-        <button class="tab"    onclick="switchTab('osint',this)">📡 OSINT/TELEGRAM</button>
-        <button class="tab"    onclick="switchTab('gdelt',this)">🌐 GDELT</button>
+        <button class="tab"    onclick="switchTab('osint',this)">📲 OSINT/TELEGRAM</button>
         <div class="tab-refresh">
           <span id="refresh-countdown" class="tab-timer">↻ 2:00</span>
           <button class="frefresh" onclick="refreshAll(true)">REFRESH</button>
@@ -316,22 +315,10 @@ button{font-family:inherit;cursor:pointer;}
         </div>
       </div>
 
-      <!-- GDELT panel -->
-      <div class="tab-panel hidden" id="panel-gdelt">
-        <div class="gdelt-info">
-          <span class="gdelt-label">⚡ GDELT — EVENTOS GLOBALES EN TIEMPO REAL</span>
-          <span class="gdelt-sub">Última hora · actualización automática</span>
-        </div>
-        <div class="farea" id="feed-gdelt">
-          <div class="fstatus"><div class="spin-sm"></div>Consultando GDELT API...</div>
-        </div>
-      </div>
-
       <!-- Footer -->
       <div class="ffooter">
         <span class="ffooter-stat">Medios: <b id="ft-media">0</b></span>
         <span class="ffooter-stat">OSINT: <b id="ft-osint">0</b></span>
-        <span class="ffooter-stat">GDELT: <b id="ft-gdelt">0</b></span>
         <span class="ffooter-stat" id="ft-updated">—</span>
       </div>
 
@@ -653,31 +640,30 @@ const MEDIA_SOURCES = [
 ];
 
 // ══════════════════════════════════════════════════════════
-// CANALES OSINT / TELEGRAM (via rsshub.app)
+// CANALES OSINT / TELEGRAM — scraping directo t.me/s/
 // ══════════════════════════════════════════════════════════
 const OSINT_SOURCES = [
-  {url:'https://rsshub.app/telegram/channel/rybar',             n:'Rybar',            cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/intelslava',        n:'Intel Slava Z',    cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/ukrainewar_report', n:'UA War Report',    cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/UkraineNow',        n:'Ukraine Now',      cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/war_monitor',       n:'War Monitor',      cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/osintdefender',     n:'OSINTdefender',    cat:'general', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/IntelCrab',         n:'Intel Crab',       cat:'general', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/GeoConfirmed',      n:'GeoConfirmed',     cat:'general', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/QudsNen',           n:'Quds News',        cat:'mideast', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/SyrianCivilWarMap', n:'Syria Map',        cat:'mideast', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/sahelien',          n:'Sahel Intel',      cat:'africa',  type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/DeepStateUA',       n:'DeepState UA',     cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/conflictmonitor',   n:'Conflict Monitor', cat:'general', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/milchronicles',     n:'Mil Chronicles',   cat:'ukraine', type:'tg'},
-  {url:'https://rsshub.app/telegram/channel/OSINT_channel',     n:'OSINT CH',         cat:'general', type:'tg'},
+  {ch:'rybar',             n:'Rybar',            cat:'ukraine'},
+  {ch:'intelslava',        n:'Intel Slava Z',    cat:'ukraine'},
+  {ch:'UkraineNow',        n:'Ukraine Now',      cat:'ukraine'},
+  {ch:'war_monitor',       n:'War Monitor',      cat:'ukraine'},
+  {ch:'DeepStateUA',       n:'DeepState UA',     cat:'ukraine'},
+  {ch:'milchronicles',     n:'Mil Chronicles',   cat:'ukraine'},
+  {ch:'osintdefender',     n:'OSINTdefender',    cat:'general'},
+  {ch:'IntelCrab',         n:'Intel Crab',       cat:'general'},
+  {ch:'GeoConfirmed',      n:'GeoConfirmed',     cat:'general'},
+  {ch:'OSINT_channel',     n:'OSINT CH',         cat:'general'},
+  {ch:'conflictmonitor',   n:'Conflict Monitor', cat:'general'},
+  {ch:'QudsNen',           n:'Quds News',        cat:'mideast'},
+  {ch:'SyrianCivilWarMap', n:'Syria Map',        cat:'mideast'},
+  {ch:'sahelien',          n:'Sahel Intel',      cat:'africa'},
 ];
 
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
 let MAP, LG={};
-let mediaCache={ts:0,data:[]}, osintCache={ts:0,data:[]}, gdeltCache={ts:0,data:[]};
+let mediaCache={ts:0,data:[]}, osintCache={ts:0,data:[]};
 let activeCatMedia='all', activeCatOsint='all';
 let activeTab='media', countdownSecs=120;
 
@@ -761,7 +747,7 @@ function startCountdown(){
     if(el) el.textContent=`↻ ${m}:${s}`;
   },1000);
 }
-function refreshAll(force=true){loadMedia(force);loadOSINT(force);loadGDELT(force);}
+function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
 
 // ══════════════════════════════════════════════════════════
 // CORS PROXY FALLBACK
@@ -888,14 +874,19 @@ function renderMedia(){
 }
 
 // ══════════════════════════════════════════════════════════
-// LOAD OSINT / TELEGRAM
+// LOAD OSINT — scraping directo t.me/s/canal
 // ══════════════════════════════════════════════════════════
 async function loadOSINT(force=false){
   if(!force&&Date.now()-osintCache.ts<120000&&osintCache.data.length){renderOSINT();return;}
   document.getElementById('feed-osint').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Conectando con canales Telegram...</div>`;
   const all=[];
   await Promise.allSettled(OSINT_SOURCES.map(async src=>{
-    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'tg').forEach(i=>all.push(i));}catch(e){}
+    try{
+      const tmeUrl=`https://t.me/s/${src.ch}`;
+      const html=await fetchRSS(tmeUrl);
+      if(!html) return;
+      parseTelegram(html, src.n, src.cat).forEach(i=>all.push(i));
+    }catch(e){}
   }));
   all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
   osintCache={ts:Date.now(),data:all};
@@ -903,53 +894,43 @@ async function loadOSINT(force=false){
   renderOSINT();
 }
 
+// Parser HTML de t.me/s/canal
+function parseTelegram(html, src, cat){
+  const items=[];
+  // Extraer mensajes del widget público de Telegram
+  const msgRe=/<div class="tgme_widget_message_wrap[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
+  // Método más robusto: buscar bloques de mensaje por su estructura
+  const textRe=/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+  const dateRe=/<time[^>]+datetime="([^"]+)"/g;
+  const linkRe=/<a class="tgme_widget_message_date"[^>]+href="([^"]+)"/g;
+
+  const texts=[], dates=[], links=[];
+  let m;
+  while((m=textRe.exec(html))!==null){
+    const t=m[1].replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'').trim();
+    if(t.length>5) texts.push(t);
+  }
+  while((m=dateRe.exec(html))!==null) dates.push(m[1]);
+  while((m=linkRe.exec(html))!==null) links.push(m[1]);
+
+  const count=Math.min(texts.length, 15);
+  for(let i=0;i<count;i++){
+    const title=texts[i].slice(0,200);
+    const pubDate=dates[i]||new Date().toISOString();
+    const link=links[i]||`https://t.me/s/${src}`;
+    items.push({title,link,pubDate,desc:texts[i].slice(0,300),src,cat,type:'tg'});
+  }
+  return items;
+}
+
 function renderOSINT(){
   let items=osintCache.data;
   if(activeCatOsint!=='all'){const re=REGION_KW[activeCatOsint];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
-  renderItems(items,'feed-osint');
-}
-
-// ══════════════════════════════════════════════════════════
-// LOAD GDELT
-// ══════════════════════════════════════════════════════════
-async function loadGDELT(force=false){
-  if(!force&&Date.now()-gdeltCache.ts<120000&&gdeltCache.data.length){renderGDELT();return;}
-  document.getElementById('feed-gdelt').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Consultando GDELT...</div>`;
-  try{
-    const query='war OR conflict OR attack OR military OR missile OR explosion OR troops';
-    const url=`https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&maxrecords=50&timespan=2h&sort=hybridrel&format=json`;
-    const xml=await fetchRSS(url);
-    if(!xml) throw new Error('no data');
-    const data=JSON.parse(xml);
-    const articles=(data.articles||[]).map(a=>({
-      title:a.title||'',link:a.url||'',
-      pubDate:a.seendate?a.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/,'$1-$2-$3T$4:$5:$6Z'):new Date().toISOString(),
-      src:a.domain||'GDELT',country:a.sourcecountry||'',lang:a.language||'',
-      tone:parseFloat(a.tone||0),cat:'general',type:'gdelt'
-    }));
-    gdeltCache={ts:Date.now(),data:articles};
-    document.getElementById('ft-gdelt').textContent=articles.length;
-    renderGDELT();
-  }catch(e){
-    document.getElementById('feed-gdelt').innerHTML=`<div class="fstatus"><div class="fstatus-detail" style="color:var(--t3)">GDELT no disponible ahora.<br>Auto-reintento en 2 min.</div></div>`;
+  if(!items.length){
+    document.getElementById('feed-osint').innerHTML='<div class="fstatus" style="color:var(--t3);flex-direction:column;gap:8px;">Sin datos de canales Telegram.<br><span style="font-size:9px">Algunos canales pueden estar bloqueados por el proxy CORS.</span></div>';
+    return;
   }
-}
-
-function renderGDELT(){
-  const area=document.getElementById('feed-gdelt');
-  const items=gdeltCache.data;
-  if(!items.length){area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin datos GDELT.</div>';return;}
-  area.innerHTML=items.slice(0,60).map((item,i)=>{
-    const tone=item.tone||0;
-    const toneCls=tone<-5?'tone-neg':tone>2?'tone-pos':'tone-neu';
-    const toneLabel=tone<-5?'🔴 NEGATIVO':tone>2?'🟢 POSITIVO':'⚪ NEUTRAL';
-    const safeLink=(item.link||'').replace(/'/g,"\\'");
-    return `<div class="gdelt-item" style="animation-delay:${Math.min(i,20)*0.025}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
-      <div class="gdelt-top"><span class="gdelt-tone ${toneCls}">${toneLabel}</span><span class="gdelt-src">${item.src}</span><span class="gdelt-time">${timeAgo(item.pubDate)}</span></div>
-      <div class="gdelt-title">${item.title}</div>
-      ${item.country?`<div class="gdelt-loc">📍 <b>${item.country}</b>${item.lang?' · '+item.lang:''}</div>`:''}
-    </div>`;
-  }).join('');
+  renderItems(items,'feed-osint');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -975,7 +956,6 @@ function init(){
   startCountdown();
   loadMedia();
   loadOSINT();
-  loadGDELT();
 }
 init();
 </script>
