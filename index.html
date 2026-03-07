@@ -877,6 +877,7 @@ async function loadMedia(force=false){
   mediaCache={ts:Date.now(),data:all};
   document.getElementById('ft-media').textContent=all.length;
   updateTicker(all);
+  if(translateOn) await translateItems(mediaCache.data);
   renderMedia();
 }
 
@@ -913,6 +914,7 @@ async function loadOSINT(force=false){
   all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
   osintCache={ts:Date.now(),data:all};
   document.getElementById('ft-osint').textContent=all.length;
+  if(translateOn) await translateItems(osintCache.data);
   renderOSINT();
 }
 
@@ -1031,27 +1033,8 @@ function toggleTranslate(btn){
   translateOn=!translateOn;
   btn.classList.toggle('on',translateOn);
   btn.textContent=translateOn?'🌐 EN ✓':'🌐 EN';
-  // Re-render current panels with translation applied
-  if(translateOn){
-    // translate and re-render both caches
-    translateItems(mediaCache.data).then(()=>renderMedia());
-    translateItems(osintCache.data).then(()=>renderOSINT());
-  } else {
-    translateItems(mediaCache.data).then(()=>renderMedia());
-    translateItems(osintCache.data).then(()=>renderOSINT());
-  }
-}
-
-// Also auto-translate after loading if toggle is on
-const _origLoadMedia=loadMedia;
-async function loadMedia(force=false){
-  await _origLoadMedia(force);
-  if(translateOn){ await translateItems(mediaCache.data); renderMedia(); }
-}
-const _origLoadOSINT=loadOSINT;
-async function loadOSINT(force=false){
-  await _origLoadOSINT(force);
-  if(translateOn){ await translateItems(osintCache.data); renderOSINT(); }
+  translateItems(mediaCache.data).then(()=>renderMedia());
+  translateItems(osintCache.data).then(()=>renderOSINT());
 }
 
 // ══════════════════════════════════════════════════════════
