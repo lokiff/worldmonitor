@@ -240,7 +240,6 @@ button{font-family:inherit;cursor:pointer;}
     <div class="ml">
       <button class="translate-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐 EN</button>
       <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night mode">🌙</button>
-      <button class="btn" id="ai-update-btn" onclick="aiUpdateConflicts()" title="Actualizar conflictos con IA + búsqueda web" style="color:var(--green);border-color:var(--green);">🤖 IA</button>
       <button class="btn" id="ref-btn" onclick="refreshAll(true)">↻ REFRESH</button>
     </div>
   </div>
@@ -352,157 +351,135 @@ button{font-family:inherit;cursor:pointer;}
 // CONFLICTOS — actualizados a marzo 2026
 // ══════════════════════════════════════════════════════════
 const CONFLICTS = [
-
-  // ── CRITICAL ─────────────────────────────────────────────
+  // CRITICAL — guerra activa con grandes bajas
   {
-    id:'iran-war', name:'Guerra Irán – EE.UU. – Israel', region:'Oriente Medio', intensity:'critical',
-    lat:33.5, lng:50.5,
-    desc:'<b>OPERACIÓN EPIC FURY — activa desde 28 feb 2026.</b> EE.UU. e Israel lanzan ~900 ataques en las primeras 12 horas sobre Teherán, Isfahan, Qom, Karaj. Khamenei muerto. Más de 787 civiles muertos en Irán (Cruz Roja iraní). Irán responde con 143 oleadas de misiles y drones contra Israel, bases de EE.UU. en el Golfo (Kuwait, Qatar, Bahréin, EAU, Arabia Saudí, Irak). Estrecho de Ormuz declarado cerrado por la IRGC. Hezbolá reingresa en el conflicto desde el 2 mar con 91 ataques contra el norte de Israel. Israel invade sur del Líbano. Consejo de Liderazgo Provisional iraní formado. Irán contacta a la CIA vía tercero para negociar. EE.UU. exige "rendición incondicional". Sin alto el fuego a 8 mar 2026.',
-    tags:['mideast'], updated:'8 Mar 2026'
+    id:'iran-israel', name:'Irán – Israel – EEUU', region:'Oriente Medio', intensity:'critical',
+    lat:32.0, lng:44.0,
+    desc:'<b>OPERACIÓN SHIELD OF JUDAH</b> — Feb-Mar 2026. Ataques conjuntos EEUU/Israel sobre instalaciones nucleares y liderazgo iraní. Retaliación iraní con misiles sobre Israel, UAE, Arabia Saudí. Khamenei eliminado. Estado de emergencia en Israel. Tráfico aéreo en Golfo Pérsico severamente afectado.',
+    tags:['mideast'], updated:'Mar 2026'
   },
   {
-    id:'sudan', name:'Sudán – Guerra Civil', region:'NE África', intensity:'critical',
-    lat:13.5, lng:27.0,
-    desc:'<b>SAF vs RSF — año 3 del conflicto más mortífero del mundo.</b> El SAF retomó Jartum (mar 2025) y Omdurman, pero los combates se han desplazado a Kordofán del Norte y Sur, donde las RSF lanzan drones casi a diario sobre mercados y hospitales. El SAF intenta ahora una gran ofensiva para retomar Kordofán y Darfur. El RSF sigue controlando todo Darfur tras la caída de El Fasher (oct 2025), con masacres masivas documentadas. Etiopía alberga un campo RSF financiado por EAU (Reuters, feb 2026). +260.000 muertos estimados. 11M desplazados. Famine en 5M de personas. La mayor crisis humanitaria del mundo según la ONU.',
-    tags:['africa'], updated:'8 Mar 2026'
+    id:'ukraine', name:'Rusia – Ucrania', region:'Europa Oriental', intensity:'high',
+    lat:49.0, lng:31.5,
+    desc:'<b>Año 4 de la invasión.</b> Avances rusos lentos en Donetsk y Zaporizhzhia. Incursión ucraniana en Kursk Oblast en curso. Movilización rusa continuada. Drones atacan infraestructura energética ucraniana. Conversaciones de paz esporádicas sin resultado.',
+    tags:['ukraine'], updated:'Mar 2026'
   },
   {
-    id:'ukraine', name:'Rusia – Ucrania', region:'Europa Oriental', intensity:'critical',
-    lat:48.5, lng:36.0,
-    desc:'<b>Año 4 de la invasión a gran escala.</b> Rusia gana ~46 km² en feb 2026 (el menor avance mensual desde jul 2024). Combates intensos en Kostiantynivka y Zaporizhzhia. Ataque ruso con 7.951 drones Shahed en un solo día (6 mar). 10 muertos en Kharkiv por misiles balísticos el 7 mar. ~1.273.000 bajas rusas acumuladas (según Estado Mayor ucraniano). Negociaciones mediadas por Trump (Abu Dabi/Ginebra) aplazadas por el inicio de la guerra con Irán. Ucrania hunde dos fragatas rusas en Novorossiysk el 2 mar. Rusia controla ~20% del territorio ucraniano.',
-    tags:['ukraine'], updated:'8 Mar 2026'
+    id:'gaza', name:'Israel – Gaza', region:'Oriente Medio', intensity:'high',
+    lat:31.5, lng:34.4,
+    desc:'<b>Mes 17+ de operaciones IDF</b>. Franja de Gaza devastada. +48.000 muertos reportados. Negociaciones de rehenes intermitentes. Hambruna confirmada en norte de Gaza. Operaciones en Rafah continuadas. Frente libanés relativamente estabilizado desde acuerdo nov 2024.',
+    tags:['mideast'], updated:'Mar 2026'
   },
   {
-    id:'myanmar', name:'Myanmar – Guerra Civil', region:'SE Asia', intensity:'critical',
-    lat:21.0, lng:95.5,
-    desc:'<b>Junta al borde del colapso territorial.</b> La coalición de resistencia (MNDAA, TNLA, AA + PDF) controla más del 60% del territorio. Mandalay rodeada y bajo asedio. La junta ha perdido acceso a la mayoría de pasos fronterizos. +4.500 civiles muertos en 2025 (AAPP). 100.000+ presos políticos. Economía colapsada: kyat en caída libre. Crisis humanitaria en toda la zona de conflicto. Según ACLED, es el tercer conflicto más mortífero del mundo en 2025.',
-    tags:['asia'], updated:'8 Mar 2026'
-  },
-
-  // ── HIGH ──────────────────────────────────────────────────
-  {
-    id:'gaza', name:'Israel – Gaza (Alto el fuego en riesgo)', region:'Oriente Medio', intensity:'high',
-    lat:31.4, lng:34.3,
-    desc:'<b>Alto el fuego desde 10 oct 2025, amenazado por la guerra con Irán.</b> +72.120 muertos palestinos desde el 7 oct 2023 (incl. 20.179 niños). Israel violó el acuerdo 1.620+ veces (oct 2025–feb 2026). 636 palestinos muertos desde el alto el fuego. Israel cierra los cruces de Gaza el 1 mar 2026 al inicio de la operación contra Irán. WCK advierte quedarse sin suministros. Todos los rehenes vivos devueltos. Fase 2 del Plan Trump: desmovilización Hamas + reconstrucción anunciada el 14 ene, sin avances reales. Hamas aún armado. Israel controla >50% de Gaza.',
-    tags:['mideast'], updated:'8 Mar 2026'
+    id:'sudan', name:'Sudán – Guerra Civil', region:'NE África', intensity:'high',
+    lat:15.5, lng:30.0,
+    desc:'<b>SAF vs RSF</b> — conflicto más mortífero del mundo en 2024-25. +150.000 muertos estimados. +10M desplazados. Darfur bajo control RSF casi total. Jartum devastada. Sin perspectiva de negociación. Bloqueada por potencias regionales.',
+    tags:['africa'], updated:'Mar 2026'
   },
   {
-    id:'drc', name:'DRC – Congo Este (M23/Rwanda)', region:'África Central', intensity:'critical',
-    lat:-1.6, lng:29.2,
-    desc:'<b>M23 controla Goma (ene 2025), Bukavu (feb 2025) y Uvira (dic 2025).</b> Los tres capitales del este bajo control rebelde. 4.000+ tropas rwandesas en el terreno (ONU). EE.UU. sanciona al ejército rwandés (RDF) completo el 2 mar 2026. Washington Accords (dic 2025) y Acuerdo de Doha (nov 2025) firmados pero ignorados en el campo: M23 lanza nueva ofensiva en North Kivu (5 mar 2026). MONUSCO renovada hasta dic 2026. +7M desplazados. Crímenes de lesa humanidad documentados en Goma y Bukavu (ONU). Riesgo de dislocación territorial permanente del este.',
-    tags:['africa'], updated:'8 Mar 2026'
+    id:'myanmar', name:'Myanmar – Guerra Civil', region:'SE Asia', intensity:'high',
+    lat:20.5, lng:96.5,
+    desc:'<b>Junta en retirada.</b> Coalición de resistencia (MNDAA, TNLA, AA + PDF) controla +60% del territorio. Mandalay bajo presión rebelde. Junta pierde acceso a fronteras clave. Economía colapsada. Crisis humanitaria masiva en zonas en conflicto.',
+    tags:['asia'], updated:'Mar 2026'
   },
   {
-    id:'sahel', name:'Sahel – Insurgencia yihadista', region:'África Occidental', intensity:'high',
-    lat:14.5, lng:-3.0,
-    desc:'<b>JNIM avanza hacia Bamako: bloqueo parcial de la capital de Malí desde sep 2025.</b> JNIM e ISWAP controlan amplias zonas rurales en Malí, Burkina Faso y Níger. Las juntas de la AES (Malí, Burkina, Níger) dependen de Wagner/África Corps. Francia y EE.UU. expulsados. Burkina Faso: riesgo creciente de colapso del régimen. El JNIM impide activamente a la población acceder a servicios básicos en zonas controladas.',
-    tags:['africa'], updated:'8 Mar 2026'
+    id:'drc', name:'DRC – Congo Este', region:'África Central', intensity:'high',
+    lat:-1.5, lng:29.1,
+    desc:'<b>M23 captura Goma</b> (ene 2026) y avanza hacia Bukavu. Rwanda acusada de apoyo directo. MONUSCO ya retirada. +6M desplazados en Kivu Norte. Crisis humanitaria más grave del continente. Riesgo de balcanización del este.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  {
+    id:'sahel', name:'Sahel – Insurgencia', region:'África Occ.', intensity:'high',
+    lat:14.0, lng:-2.0,
+    desc:'<b>JNIM e ISWAP</b> controlan amplias zonas rurales en Mali, Burkina Faso y Níger. Juntas militares (AES) con apoyo ruso-Wagner. Francia y EEUU expulsados. Población civil atrapada. Ataques semanales a ciudades medianas.',
+    tags:['africa'], updated:'Mar 2026'
+  },
+  // HIGH
+  {
+    id:'haiti', name:'Haití – Pandillas', region:'Caribe', intensity:'high',
+    lat:18.5, lng:-72.3,
+    desc:'<b>G9 y GSMP controlan ~85% de P-au-Prince.</b> Fuerza multinacional keniana (MSS) operativa pero con recursos limitados. Estado prácticamente inexistente. +700.000 desplazados. Violencia sexual sistémica. Riesgo de hambruna urbana.',
+    tags:['americas'], updated:'Mar 2026'
   },
   {
     id:'somalia', name:'Somalia – Al-Shabaab', region:'Este África', intensity:'high',
-    lat:3.5, lng:43.5,
-    desc:'<b>Al-Shabaab recupera territorio tras la retirada de ATMIS (dic 2024).</b> La misión africana sin recursos suficientes. EE.UU. plantea retirada de asistencia en seguridad, lo que aumentaría el riesgo terrorista. Al-Shabaab controla vastas zonas rurales del sur y centro. Ataques frecuentes en Mogadiscio. CFR lo clasifica como conflicto Tier I para EE.UU. en 2026.',
-    tags:['africa'], updated:'8 Mar 2026'
+    lat:5.0, lng:46.0,
+    desc:'<b>Al-Shabaab recupera territorios</b> del sur tras retirada de ATMIS. Ataques en Mogadiscio persisten. Financiación vía impuestos "khat". EEUU mantiene strikes con drones. Cooperación Somalia-Etiopía-Kenya reforzada pero insuficiente.',
+    tags:['africa'], updated:'Mar 2026'
   },
   {
-    id:'haiti', name:'Haití – Crisis de pandillas', region:'Caribe', intensity:'high',
-    lat:18.5, lng:-72.4,
-    desc:'<b>Las pandillas controlan ~85% de Puerto Príncipe.</b> La Misión Multinacional de Apoyo a la Seguridad (MSS) liderada por Kenia, operativa pero con recursos muy limitados. El Estado es prácticamente inexistente. +700.000 desplazados. Violencia sexual sistémica usada como arma. Riesgo de hambruna urbana. Las pandillas G9 y GSMP han fusionado capacidades militares.',
-    tags:['americas'], updated:'8 Mar 2026'
+    id:'northkorea', name:'Corea del Norte – Proxy', region:'Este Asia', intensity:'high',
+    lat:38.5, lng:127.5,
+    desc:'<b>15.000+ tropas DPRK confirmadas en Rusia</b> (Kursk Oblast), con bajas significativas. Kim Jong-un consolida relación Moscú-Pyongyang. Ensayos de misiles continuados. Arsenal nuclear estimado en 50-60 armas. Transferencias de munición masivas a Rusia.',
+    tags:['asia'], updated:'Mar 2026'
   },
-  {
-    id:'northkorea', name:'Corea del Norte – Proxy ruso', region:'Este Asia', intensity:'high',
-    lat:38.8, lng:128.0,
-    desc:'<b>15.000+ tropas DPRK desplegadas en Rusia</b> (principalmente oblast de Kursk), con bajas significativas. Kim consolida la alianza Moscú-Pyongyang. Transferencias masivas de munición y misiles a Rusia. Arsenal nuclear DPRK: ~50-60 cabezas. Misiles Hwasong-18 (ICBM sólido) ya operativos. Riesgo nuclear elevado ante cualquier cambio de régimen.',
-    tags:['asia'], updated:'8 Mar 2026'
-  },
-
-  // ── MEDIUM ────────────────────────────────────────────────
-  {
-    id:'lebanon', name:'Líbano – Hezbolá / Israel (activo)', region:'Oriente Medio', intensity:'high',
-    lat:33.5, lng:35.5,
-    desc:'<b>Hezbolá lanza 90+ ataques contra Israel desde el 2 mar 2026</b>, rompiendo el alto el fuego de 2024 en solidaridad con Irán. Israel responde con una ola masiva de ataques aéreos en el sur del Líbano y Dahiyeh (Beirut sur). Incursión terrestre israelí limitada con la División 91 en el sur para crear "zona de seguridad". +31 muertos y +149 heridos en Líbano en los primeros días. +300.000 desplazados. El gobierno libanés (PM Nawaf Salam) condena los ataques de Hezbolá y exige que entregue sus armas al Estado.',
-    tags:['mideast'], updated:'8 Mar 2026'
-  },
-  {
-    id:'yemen', name:'Yemen – Houthis (postura de espera)', region:'Oriente Medio', intensity:'med',
-    lat:15.4, lng:44.2,
-    desc:'<b>Los Houthis se contienen frente a la guerra con Irán.</b> Desde el alto el fuego Gaza (oct 2025) habían parado los ataques al Mar Rojo (solo 7 ataques en 2025 vs 150 en 2024). Liderazgo Houthi diezmado por ataques israelíes ago-sep 2025. Retórica de apoyo a Irán pero sin acción militar directa hasta el 8 mar. Si retoman los ataques al tráfico marítimo, el Bab el-Mandeb vuelve a cerrarse efectivamente.',
-    tags:['mideast'], updated:'8 Mar 2026'
-  },
+  // MEDIUM
   {
     id:'taiwan', name:'Estrecho de Taiwán', region:'Este Asia', intensity:'med',
-    lat:23.6, lng:120.8,
-    desc:'<b>Tensión elevada pero estable.</b> Incursiones diarias al ADIZ. El EPL realiza ejercicios "Joint Sword" periódicos. EE.UU. aprobó ventas de armas a Taiwán por $19.000M. La guerra con Irán distrae atención geopolítica. China observa cómo reacciona EE.UU. ante conflictos simultáneos como test estratégico. Elecciones taiwanesas 2024 consolidaron el gobierno pro-independencia (DPP).',
-    tags:['asia'], updated:'8 Mar 2026'
+    lat:23.5, lng:121.0,
+    desc:'Ejercicios PLA "Joint Sword" periódicos. Incursiones ADIZ casi diarias. Tensión elevada tras elecciones taiwanesas 2024. EEUU aprueba ventas de armas por $19B. Riesgo de escalada calculada pero sin conflicto abierto previsto a corto plazo.',
+    tags:['asia'], updated:'Mar 2026'
   },
   {
     id:'scs', name:'Mar del Sur de China', region:'SE Asia', intensity:'med',
-    lat:11.5, lng:114.0,
-    desc:'<b>Incidentes Filipinas-China en Second Thomas Shoal casi semanales.</b> Cañones de agua, láseres y abordajes a embarcaciones de reabastecimiento filipinas. EE.UU. reafirma el Tratado de Defensa Mutua con Manila. Vietnam y Malasia también bajo presión. ASEAN bloqueada para actuar colectivamente. La distracción de EE.UU. con Irán podría alentar mayor agresividad china.',
-    tags:['asia'], updated:'8 Mar 2026'
+    lat:12.0, lng:113.5,
+    desc:'Incidentes Filipinas–China en Ayungin Shoal (Second Thomas) casi semanales. Cañones de agua, láser y abordajes reportados. EEUU reafirma defensa mutua con Manila. Vietnam y Malaysia también bajo presión. ASEAN bloqueada.',
+    tags:['asia'], updated:'Mar 2026'
   },
   {
-    id:'ethiopia', name:'Etiopía – Amhara y Oromia', region:'Este África', intensity:'med',
-    lat:9.5, lng:39.5,
-    desc:'<b>Conflicto Amhara activo</b> (Fano vs ENDF). El acuerdo de Pretoria con Tigray (2022) sigue frágil. Insurgencia OLA en Oromia occidental. Tensión con Somalia por el acceso al mar (acuerdo con Somaliland). +1M desplazados internos en 2025. CFR lista a Etiopía como riesgo Tier II (posible guerra con Eritrea). Participación en el conflicto del Congo Este (RSF) investigada.',
-    tags:['africa'], updated:'8 Mar 2026'
+    id:'yemen', name:'Yemen – Houthis', region:'Oriente Medio', intensity:'med',
+    lat:15.0, lng:48.0,
+    desc:'Ataques Houthi al tráfico marítimo del Mar Rojo continúan (>100 ataques desde oct 2023). Represalias EEUU/UK insuficientes para detenerlos. Estrecho de Bab el-Mandeb en riesgo. Comercio global redirigido vía Cabo de Buena Esperanza (+30% coste).',
+    tags:['mideast'], updated:'Mar 2026'
   },
   {
-    id:'mozambique', name:'Mozambique – Cabo Delgado', region:'África Austral', intensity:'med',
-    lat:-13.2, lng:39.0,
-    desc:'<b>ISWAP-Mozambique</b> mantiene control en Cabo Delgado pese a las operaciones de Rwanda y la SADC. El proyecto LNG de TotalEnergies sigue paralizado. +1M desplazados. La crisis política post-electoral (oct 2024, elecciones impugnadas) agrava la inestabilidad. ACLED lo incluye en el Watchlist 2026.',
-    tags:['africa'], updated:'8 Mar 2026'
+    id:'ethiopia', name:'Etiopía – Conflictos', region:'Este África', intensity:'med',
+    lat:9.0, lng:40.0,
+    desc:'Conflicto Amhara activo post-Tigray (acuerdo Pretoria 2022 frágil). Insurgencia Oromia (OLA) en Oromia occidental. Tensión con Somalia por acceso al mar. +1M desplazados. Presión económica creciente.',
+    tags:['africa'], updated:'Mar 2026'
   },
   {
-    id:'nagorno', name:'Armenia – Azerbaiyán (posguerra)', region:'Cáucaso', intensity:'med',
-    lat:40.2, lng:46.5,
-    desc:'<b>Nagorno-Karabaj vaciado étnicamente (sep 2023).</b> Negociaciones de paz Armenia-Azerbaiyán en curso pero Bakú presiona por el "corredor de Zangezur". Riesgo de nueva operación militar azerbaiyana en territorio armenio soberano. Armenia pivota hacia Occidente (acuerdo de asociación con la UE, compras de armas a Francia/India). Rusia pierde influencia en el Cáucaso Sur.',
-    tags:['caucasus'], updated:'8 Mar 2026'
+    id:'mozambique', name:'Mozambique – Cabo Delgado', region:'África Sur.', intensity:'med',
+    lat:-13.0, lng:38.5,
+    desc:'<b>ISWAP-Mozambique</b> activo en Cabo Delgado pese a operaciones Rwanda/SADC. Proyecto LNG de TotalEnergies paralizado. +1M desplazados. Crisis política post-electoral (oct 2024) agrava la situación.',
+    tags:['africa'], updated:'Mar 2026'
   },
   {
-    id:'georgia', name:'Georgia – Crisis política/pro-rusa', region:'Cáucaso', intensity:'med',
-    lat:41.9, lng:43.3,
-    desc:'<b>Protestas pro-UE reprimidas desde dic 2024.</b> El gobierno Georgian Dream (pro-ruso) en el poder tras elecciones disputadas. Proceso de adhesión a la UE congelado. Dos regiones ocupadas por Rusia: Abjasia y Osetia del Sur. La UE ha suspendido parte de la ayuda pre-adhesión. Riesgo de que Georgia quede atrapada en la órbita rusa de forma permanente.',
-    tags:['caucasus'], updated:'8 Mar 2026'
-  },
-
-  // ── LOW / LATENT ──────────────────────────────────────────
-  {
-    id:'iraq-iran', name:'Irak / Siria – Milicias pro-Irán', region:'Oriente Medio', intensity:'med',
-    lat:33.3, lng:44.0,
-    desc:'<b>La Resistencia Islámica en Irak lanza decenas de ataques desde el 28 feb 2026</b> contra bases de EE.UU. en Irak, Jordania y Kuwait. El aeropuerto de Erbil atacado el 3 mar. EE.UU. responde con ataques contra posiciones PMF en Irak y Siria. El gobierno iraquí condena los ataques de las milicias pero carece de capacidad para controlar a las Fuerzas de Movilización Popular (PMF). La embajada de EE.UU. en Kuwait fue alcanzada por un misil iraní (2 mar). Escalada con riesgo de conflicto directo EE.UU.-Irak si continúa.',
-    tags:['mideast'], updated:'8 Mar 2026'
+    id:'nagorno', name:'Armenia – Azerbaiyán', region:'Cáucaso', intensity:'med',
+    lat:40.5, lng:47.0,
+    desc:'Nagorno-Karabaj vaciado étnicamente (sep 2023). Negociaciones de paz Armenia-Azerbaiyán en proceso. Baku presiona por "corredor de Zangezur". Riesgo de nueva operación militar azerbaiyana en territorio armenio.',
+    tags:['caucasus'], updated:'Mar 2026'
   },
   {
-    id:'venezuela', name:'Venezuela – Colapso/Esequibo', region:'Sudamérica', intensity:'low',
-    lat:7.0, lng:-66.0,
-    desc:'<b>Intento de golpe de estado en dic 2025.</b> Maduro refuerza el control judicial contra la oposición. La disputa territorial por el Esequibo (2/3 de Guyana) en la CIJ. Guyana con boom petrolero ExxonMobil. EE.UU. bajo Trump contempla presión directa. Los grupos armados (ELN, colectivos) controlan zonas rurales. ACLED lista Venezuela como "flashpoint" regional 2026.',
-    tags:['americas'], updated:'8 Mar 2026'
+    id:'georgia', name:'Georgia – Crisis Política', region:'Cáucaso', intensity:'med',
+    lat:42.0, lng:43.5,
+    desc:'Protestas masivas pro-UE tras fraude electoral (oct-dic 2024). Gobierno pro-ruso Georgian Dream en el poder. Represión policial. Dos regiones ocupadas por Rusia (Abjasia, S. Osetia). Proceso de adhesión UE congelado.',
+    tags:['caucasus'], updated:'Mar 2026'
+  },
+  // LOW / LATENT
+  {
+    id:'venezuela', name:'Venezuela – Esequibo', region:'Sudamérica', intensity:'low',
+    lat:6.5, lng:-63.0,
+    desc:'Reclamación del Esequibo (2/3 de Guyana). Referéndum venezolano dic 2023. Movilizaciones militares. Caso ante la CIJ activo. Guyana con boom petrolero (ExxonMobil). Mediación CARICOM en curso.',
+    tags:['americas'], updated:'Mar 2026'
   },
   {
-    id:'pakistan', name:'Pakistán – Afganistán / TTP', region:'Asia Meridional', intensity:'med',
-    lat:31.0, lng:68.5,
-    desc:'<b>Combates militares abiertos Pakistán-Afganistán desde el 4 mar 2026</b> (4º día de enfrentamientos, según Just Security). Afganistán afirma haber disparado contra aviones paquistaníes sobre Kabul. Pakistán intenta atacar la base de Bagram. Los talibanes y Islamabad se acusan mutuamente de alojar al TTP. El TTP (Tehrik-i-Taliban Pakistán) intensifica ataques en KPK y Baluchistán. BLA activo contra infraestructura del CPEC. Crisis económica severa mitigada parcialmente por el FMI.',
-    tags:['asia'], updated:'8 Mar 2026'
-  },
-  {
-    id:'nigeria', name:'Nigeria – Boko Haram/Bandidos', region:'África Occidental', intensity:'low',
-    lat:10.5, lng:8.5,
-    desc:'<b>ISWAP y Boko Haram</b> activos en el noreste (cuenca del lago Chad). Bandidos ("bandits") en el noroeste. Crisis de seguridad en la zona del cinturón central. El ejército nigeriano bajo presión y con recursos limitados. +3M desplazados en el noreste. Nigeria es la economía más grande de África pero con profunda crisis de gobernabilidad.',
-    tags:['africa'], updated:'8 Mar 2026'
+    id:'pakistan', name:'Pakistán – Baluchistán/KP', region:'Asia Sur', intensity:'low',
+    lat:30.0, lng:69.0,
+    desc:'TTP (Tehrik-i-Taliban Pakistán) ataques continuados desde Afganistán. BLA activo en Baluchistán (atentados a infraestructura CPEC). Tensión civil-militar. Crisis económica severa. Relaciones Pakistan-India frías pero estables.',
+    tags:['asia'], updated:'Mar 2026'
   },
   {
     id:'sahara', name:'Sáhara Occidental', region:'Norte África', intensity:'low',
-    lat:24.5, lng:-13.5,
-    desc:'<b>Polisario vs Marruecos:</b> combates esporádicos desde la ruptura del alto el fuego (2020). España y Francia reconocen el plan marroquí de autonomía. Argelia apoya al Polisario y expulsa al embajador español. La ONU sin avances en 30 años. Marruecos consolida control de hecho sobre el territorio.',
-    tags:['africa'], updated:'8 Mar 2026'
+    lat:24.0, lng:-13.0,
+    desc:'Polisario-Marruecos: combates esporádicos desde ruptura del cese el fuego (2020). ONU sin avances. España y Francia reconocen plan marroquí de autonomía. Argelia apoya Polisario. Sin perspectiva de resolución.',
+    tags:['africa'], updated:'Mar 2026'
   },
   {
-    id:'syria', name:'Siria – Transición post-Assad', region:'Oriente Medio', intensity:'low',
-    lat:35.0, lng:38.5,
-    desc:'<b>Assad caído en dic 2024.</b> HTS (Ahmed al-Sharaa) lidera el gobierno de transición. Reformas y reintegración de grupos rebeldes en curso. Células del ISIS activas en el desierto. Israel expande zona de amortiguación y opera libremente en el espacio aéreo sirio. Tensión Israel-Turquía por influencia en el norte. Crisis económica profunda. Países occidentales levantan sanciones gradualmente.',
-    tags:['mideast'], updated:'8 Mar 2026'
+    id:'nigeria', name:'Nigeria – Insurgencias', region:'África Occ.', intensity:'low',
+    lat:10.0, lng:8.0,
+    desc:'Boko Haram e ISWAP activos en noreste (lago Chad). Bandidos en noroeste. Crisis de seguridad en zona centrocinto. Ejército nigeriano bajo presión. +3M desplazados en noreste.',
+    tags:['africa'], updated:'Mar 2026'
   },
 ];
 
@@ -791,7 +768,7 @@ function startCountdown(){
   const el=document.getElementById('refresh-countdown');
   setInterval(()=>{
     countdownSecs--;
-    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);aiUpdateConflicts(true);}
+    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);}
     const m=Math.floor(countdownSecs/60),s=String(countdownSecs%60).padStart(2,'0');
     if(el) el.textContent=`↻ ${m}:${s}`;
   },1000);
@@ -1254,149 +1231,6 @@ function parseReliefWeb(data){
 }
 
 // ══════════════════════════════════════════════════════════
-// AI CONFLICT UPDATER — Claude API + web search
-// ══════════════════════════════════════════════════════════
-const AI_UPDATE_INTERVAL_MS = 60 * 60 * 1000; // 1 hora
-let aiLastUpdated = 0;
-
-const AI_SYSTEM_PROMPT = `Eres un analista de inteligencia geopolítica especializado en conflictos armados globales.
-Tu tarea es devolver ÚNICAMENTE un array JSON válido con el estado actualizado de los conflictos armados y crisis de seguridad del mundo a fecha de hoy.
-
-REGLAS ESTRICTAS:
-1. Responde SOLO con el array JSON. Sin explicaciones, sin markdown, sin texto adicional.
-2. Usa web search para verificar el estado actual de cada conflicto antes de responder.
-3. Cada objeto debe tener EXACTAMENTE estos campos:
-   - id: string snake_case único
-   - name: string (nombre del conflicto en español, conciso)
-   - region: string (región geográfica en español)
-   - intensity: "critical" | "high" | "med" | "low"
-   - lat: number (latitud del epicentro)
-   - lng: number (longitud del epicentro)
-   - desc: string HTML con <b>titular actual</b> y resumen factual de 3-5 líneas con datos concretos (bajas, territorios, actores). Máximo 400 chars.
-   - tags: array de strings de: ["ukraine","mideast","africa","asia","americas","caucasus"]
-   - updated: string con fecha de hoy en formato "D Mmm YYYY"
-
-CRITERIOS DE INTENSIDAD:
-- critical: guerra activa con +100 muertos/semana o más de 50k desplazados recientes
-- high: combates activos regulares, crisis humanitaria grave
-- med: tensión armada, incidentes frecuentes, sin guerra abierta
-- low: tensión latente, sin combates regulares
-
-Incluye entre 20 y 30 conflictos ordenados de mayor a menor intensidad.`;
-
-async function aiUpdateConflicts(auto=false) {
-  const btn = document.getElementById('ai-update-btn');
-  const now = Date.now();
-
-  // Si es auto y ya se actualizó hace menos de 1h, saltar
-  if (auto && (now - aiLastUpdated) < AI_UPDATE_INTERVAL_MS) return;
-
-  // UI feedback
-  if (btn) { btn.textContent = '🤖 ...'; btn.disabled = true; }
-  showAIStatus('🔍 Buscando noticias y analizando conflictos...');
-
-  try {
-    const today = new Date().toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        system: AI_SYSTEM_PROMPT,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{
-          role: 'user',
-          content: `Fecha de hoy: ${today}. Busca las últimas noticias sobre conflictos armados activos en el mundo y devuelve el array JSON actualizado con el estado real de cada conflicto. Prioriza fuentes como Reuters, AP, Al Jazeera, ISW, ACLED, CFR. Busca especialmente: estado de la guerra en Ucrania, Gaza, Sudán, Myanmar, DRC Congo, Sahel, Somalia, Haití, y cualquier nuevo conflicto que haya escalado recientemente.`
-        }]
-      })
-    });
-
-    if (!response.ok) throw new Error(`API error ${response.status}`);
-    const data = await response.json();
-
-    // Extraer texto de todos los bloques (ignorar tool_use)
-    const fullText = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
-
-    if (!fullText) throw new Error('Sin respuesta de texto de la IA');
-
-    // Parsear JSON — limpiar posibles ```json fences
-    const clean = fullText.replace(/```json|```/g, '').trim();
-    // Encontrar el array JSON
-    const arrStart = clean.indexOf('[');
-    const arrEnd = clean.lastIndexOf(']');
-    if (arrStart === -1 || arrEnd === -1) throw new Error('No se encontró array JSON en la respuesta');
-
-    const newConflicts = JSON.parse(clean.slice(arrStart, arrEnd + 1));
-    if (!Array.isArray(newConflicts) || newConflicts.length < 5) throw new Error('Array inválido o vacío');
-
-    // Aplicar al mapa
-    applyNewConflicts(newConflicts);
-    aiLastUpdated = Date.now();
-
-    const ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-    if (btn) { btn.textContent = `🤖 ✓ ${ts}`; btn.disabled = false; btn.style.color='var(--green)'; }
-    showAIStatus(`✓ ${newConflicts.length} conflictos actualizados con IA · ${ts}`, 5000);
-
-  } catch(e) {
-    console.error('AI update error:', e);
-    if (btn) { btn.textContent = '🤖 IA'; btn.disabled = false; btn.style.color='var(--red)'; }
-    showAIStatus(`✗ Error: ${e.message}`, 6000);
-    // Restaurar color después de un momento
-    setTimeout(() => { if(btn) btn.style.color='var(--green)'; }, 8000);
-  }
-}
-
-function applyNewConflicts(newConflicts) {
-  // Reemplazar el array global
-  CONFLICTS.length = 0;
-  newConflicts.forEach(c => {
-    // Normalizar campos por si la IA devuelve algo ligeramente distinto
-    CONFLICTS.push({
-      id: c.id || 'unknown',
-      name: c.name || 'Sin nombre',
-      region: c.region || '',
-      intensity: ['critical','high','med','low'].includes(c.intensity) ? c.intensity : 'low',
-      lat: parseFloat(c.lat) || 0,
-      lng: parseFloat(c.lng) || 0,
-      desc: c.desc || '',
-      tags: Array.isArray(c.tags) ? c.tags : [],
-      updated: c.updated || new Date().toLocaleDateString('es-ES')
-    });
-  });
-
-  // Re-renderizar conflictos en mapa y lista
-  if (LG['conflicts']) {
-    MAP.removeLayer(LG['conflicts']);
-    LG['conflicts'] = L.layerGroup().addTo(MAP);
-  }
-  renderConflicts();
-
-  // Actualizar contador
-  document.getElementById('st-c').textContent = CONFLICTS.length;
-}
-
-// Toast de estado IA
-function showAIStatus(msg, duration=0) {
-  let el = document.getElementById('ai-status-toast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'ai-status-toast';
-    el.style.cssText = `position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:999;
-      background:var(--s2);border:1px solid var(--b2);border-radius:4px;padding:8px 18px;
-      font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t1);
-      box-shadow:0 4px 20px rgba(0,0,0,.6);pointer-events:none;transition:opacity .3s;`;
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity = '1';
-  if (duration > 0) setTimeout(() => { el.style.opacity = '0'; }, duration);
-}
-
-// ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 function init(){
@@ -1406,8 +1240,6 @@ function init(){
   startCountdown();
   loadMedia();
   loadOSINT();
-  // Auto-actualizar conflictos con IA al abrir (con pequeño delay)
-  setTimeout(() => aiUpdateConflicts(true), 3000);
 }
 init();
 </script>
