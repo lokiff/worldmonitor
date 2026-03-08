@@ -660,20 +660,28 @@ const MEDIA_SOURCES = [
 // CANALES OSINT / TELEGRAM — scraping directo t.me/s/
 // ══════════════════════════════════════════════════════════
 const OSINT_SOURCES = [
-  {ch:'rybar',             n:'Rybar',            cat:'ukraine'},
-  {ch:'intelslava',        n:'Intel Slava Z',    cat:'ukraine'},
-  {ch:'UkraineNow',        n:'Ukraine Now',      cat:'ukraine'},
-  {ch:'war_monitor',       n:'War Monitor',      cat:'ukraine'},
-  {ch:'DeepStateUA',       n:'DeepState UA',     cat:'ukraine'},
-  {ch:'milchronicles',     n:'Mil Chronicles',   cat:'ukraine'},
-  {ch:'osintdefender',     n:'OSINTdefender',    cat:'general'},
-  {ch:'IntelCrab',         n:'Intel Crab',       cat:'general'},
-  {ch:'GeoConfirmed',      n:'GeoConfirmed',     cat:'general'},
-  {ch:'OSINT_channel',     n:'OSINT CH',         cat:'general'},
-  {ch:'conflictmonitor',   n:'Conflict Monitor', cat:'general'},
-  {ch:'QudsNen',           n:'Quds News',        cat:'mideast'},
-  {ch:'SyrianCivilWarMap', n:'Syria Map',        cat:'mideast'},
-  {ch:'sahelien',          n:'Sahel Intel',      cat:'africa'},
+  // 🇬🇧 English — Ukraine / Russia
+  {ch:'UkraineNow',           n:'Ukraine Now 🇬🇧',      cat:'ukraine', lang:'en'},
+  {ch:'war_monitor',          n:'War Monitor 🇬🇧',      cat:'ukraine', lang:'en'},
+  {ch:'milchronicles',        n:'Mil Chronicles 🇬🇧',   cat:'ukraine', lang:'en'},
+  {ch:'Ukraine_war_news',     n:'UA War News 🇬🇧',      cat:'ukraine', lang:'en'},
+  // 🇬🇧 English — Global OSINT
+  {ch:'osintdefender',        n:'OSINTdefender 🇬🇧',    cat:'general', lang:'en'},
+  {ch:'IntelCrab',            n:'Intel Crab 🇬🇧',       cat:'general', lang:'en'},
+  {ch:'GeoConfirmed',         n:'GeoConfirmed 🇬🇧',     cat:'general', lang:'en'},
+  {ch:'conflictmonitor',      n:'Conflict Monitor 🇬🇧', cat:'general', lang:'en'},
+  {ch:'OSINT_channel',        n:'OSINT Channel 🇬🇧',    cat:'general', lang:'en'},
+  {ch:'IntelligenceTV',       n:'Intelligence TV 🇬🇧',  cat:'general', lang:'en'},
+  // 🇬🇧 English — Middle East
+  {ch:'MiddleEastSpectator',  n:'ME Spectator 🇬🇧',     cat:'mideast', lang:'en'},
+  {ch:'isreali_updates',      n:'Israel Updates 🇬🇧',   cat:'mideast', lang:'en'},
+  // 🇪🇸 Spanish — Geopolítica
+  {ch:'geopolitica_es',       n:'Geopolítica ES 🇪🇸',   cat:'general', lang:'es'},
+  {ch:'ConflictosGlobales',   n:'Conflictos Globales 🇪🇸',cat:'general',lang:'es'},
+  {ch:'inteligencia_global',  n:'Inteligencia Global 🇪🇸',cat:'general',lang:'es'},
+  // 🇪🇸 Spanish — Ucrania
+  {ch:'Ucrania_es',           n:'Ucrania ES 🇪🇸',       cat:'ukraine', lang:'es'},
+  {ch:'guerraeneuropa',       n:'Guerra en Europa 🇪🇸',  cat:'ukraine', lang:'es'},
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -996,45 +1004,73 @@ function toggleTheme(){
 let translateOn=false;
 const transCache={};
 
+// Detect if text is already in English or Spanish (no need to translate)
+function isEnOrEs(text){
+  // Simple heuristic: count common EN/ES words
+  const enWords=/\b(the|and|for|with|that|this|from|have|been|will|said|after|over|into|its|was|are|were|has|had|not|but|they|their|more|also|than|about|which|when|who|what)\b/gi;
+  const esWords=/\b(que|con|por|para|del|los|las|una|este|esta|como|pero|sus|más|también|sobre|cuando|donde|entre|desde|hasta|según|ante|bajo|fue|son|hay|ser|estar)\b/gi;
+  const enCount=(text.match(enWords)||[]).length;
+  const esCount=(text.match(esWords)||[]).length;
+  return (enCount+esCount) >= 2;
+}
+
 async function translateText(text){
   if(!text||!text.trim()) return text;
-  if(transCache[text]) return transCache[text];
+  if(isEnOrEs(text)) return text; // already EN or ES, skip
+  const key=text.slice(0,120);
+  if(transCache[key]) return transCache[key];
   try{
-    const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
-    const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
+    // MyMemory API — free, no key needed, CORS allowed
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,400))}&langpair=auto|en`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(6000)});
     const data=await r.json();
-    const translated=(data[0]||[]).map(s=>s[0]||'').join('').trim();
-    if(translated) transCache[text]=translated;
-    return translated||text;
+    const translated=data?.responseData?.translatedText?.trim();
+    // MyMemory returns the original if it can't translate or confidence is 0
+    if(translated && translated!==text && data?.responseStatus===200){
+      transCache[key]=translated;
+      return translated;
+    }
+    return text;
   }catch(e){ return text; }
 }
 
 async function translateItems(items){
-  // translate in batches of 5 parallel to avoid rate limits
-  const result=[...items];
-  for(let i=0;i<result.length;i+=5){
-    const batch=result.slice(i,i+5);
-    await Promise.all(batch.map(async item=>{
+  for(let i=0;i<items.length;i+=3){
+    await Promise.all(items.slice(i,i+3).map(async item=>{
       item._origTitle=item._origTitle||item.title;
       item._origDesc=item._origDesc||item.desc;
       if(translateOn){
         item.title=await translateText(item._origTitle);
-        if(item._origDesc) item.desc=await translateText(item._origDesc.slice(0,150));
+        if(item._origDesc) item.desc=await translateText(item._origDesc.slice(0,200));
       } else {
         item.title=item._origTitle;
         item.desc=item._origDesc;
       }
     }));
   }
-  return result;
 }
 
 function toggleTranslate(btn){
   translateOn=!translateOn;
   btn.classList.toggle('on',translateOn);
   btn.textContent=translateOn?'🌐 EN ✓':'🌐 EN';
-  translateItems(mediaCache.data).then(()=>renderMedia());
-  translateItems(osintCache.data).then(()=>renderOSINT());
+  if(translateOn){
+    // Show loading state in active panel
+    btn.textContent='🌐 ...';
+    btn.disabled=true;
+    Promise.all([
+      translateItems(mediaCache.data),
+      translateItems(osintCache.data)
+    ]).then(()=>{
+      renderMedia();
+      renderOSINT();
+      btn.textContent='🌐 EN ✓';
+      btn.disabled=false;
+    });
+  } else {
+    translateItems(mediaCache.data).then(()=>renderMedia());
+    translateItems(osintCache.data).then(()=>renderOSINT());
+  }
 }
 
 // ══════════════════════════════════════════════════════════
