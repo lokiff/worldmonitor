@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WORLD MONITOR — Global Intelligence</title>
+<title>ConflictTracker — Global Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -226,7 +226,7 @@ button{font-family:inherit;cursor:pointer;}
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="logo">WORLD<b>MONITOR</b></div>
+    <div class="logo">CONFLICT<b>TRACKER</b></div>
     <div class="live"><div class="live-dot"></div>LIVE</div>
     <div class="clock">UTC <b id="clock">--:--:--</b></div>
     <div class="sep"></div>
@@ -270,7 +270,10 @@ button{font-family:inherit;cursor:pointer;}
         <button class="tbtn on" onclick="setTime(this)">24H</button>
         <button class="tbtn" onclick="setTime(this)">48H</button>
         <button class="tbtn" onclick="setTime(this)">7D</button>
+        <div style="width:1px;height:16px;background:var(--b2);margin:0 2px;"></div>
+        <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:var(--green);" title="Load UN/GDACS live crisis events">⚡ LIVE</button>
       </div>
+
 
       <div class="map-zoombar">
         <button class="zbtn" onclick="MAP.zoomIn()">+</button>
@@ -660,28 +663,20 @@ const MEDIA_SOURCES = [
 // CANALES OSINT / TELEGRAM — scraping directo t.me/s/
 // ══════════════════════════════════════════════════════════
 const OSINT_SOURCES = [
-  // 🇬🇧 English — Ukraine / Russia
-  {ch:'UkraineNow',           n:'Ukraine Now 🇬🇧',      cat:'ukraine', lang:'en'},
-  {ch:'war_monitor',          n:'War Monitor 🇬🇧',      cat:'ukraine', lang:'en'},
-  {ch:'milchronicles',        n:'Mil Chronicles 🇬🇧',   cat:'ukraine', lang:'en'},
-  {ch:'Ukraine_war_news',     n:'UA War News 🇬🇧',      cat:'ukraine', lang:'en'},
-  // 🇬🇧 English — Global OSINT
-  {ch:'osintdefender',        n:'OSINTdefender 🇬🇧',    cat:'general', lang:'en'},
-  {ch:'IntelCrab',            n:'Intel Crab 🇬🇧',       cat:'general', lang:'en'},
-  {ch:'GeoConfirmed',         n:'GeoConfirmed 🇬🇧',     cat:'general', lang:'en'},
-  {ch:'conflictmonitor',      n:'Conflict Monitor 🇬🇧', cat:'general', lang:'en'},
-  {ch:'OSINT_channel',        n:'OSINT Channel 🇬🇧',    cat:'general', lang:'en'},
-  {ch:'IntelligenceTV',       n:'Intelligence TV 🇬🇧',  cat:'general', lang:'en'},
-  // 🇬🇧 English — Middle East
-  {ch:'MiddleEastSpectator',  n:'ME Spectator 🇬🇧',     cat:'mideast', lang:'en'},
-  {ch:'isreali_updates',      n:'Israel Updates 🇬🇧',   cat:'mideast', lang:'en'},
-  // 🇪🇸 Spanish — Geopolítica
-  {ch:'geopolitica_es',       n:'Geopolítica ES 🇪🇸',   cat:'general', lang:'es'},
-  {ch:'ConflictosGlobales',   n:'Conflictos Globales 🇪🇸',cat:'general',lang:'es'},
-  {ch:'inteligencia_global',  n:'Inteligencia Global 🇪🇸',cat:'general',lang:'es'},
-  // 🇪🇸 Spanish — Ucrania
-  {ch:'Ucrania_es',           n:'Ucrania ES 🇪🇸',       cat:'ukraine', lang:'es'},
-  {ch:'guerraeneuropa',       n:'Guerra en Europa 🇪🇸',  cat:'ukraine', lang:'es'},
+  // ── ENGLISH — verified public channels ──
+  {ch:'UkraineNow',          n:'Ukraine Now 🇬🇧',       cat:'ukraine', lang:'en'},
+  {ch:'war_monitor',         n:'War Monitor 🇬🇧',       cat:'ukraine', lang:'en'},
+  {ch:'osintdefender',       n:'OSINTdefender 🇬🇧',     cat:'general', lang:'en'},
+  {ch:'IntelCrab',           n:'Intel Crab 🇬🇧',        cat:'general', lang:'en'},
+  {ch:'GeoConfirmed',        n:'GeoConfirmed 🇬🇧',      cat:'general', lang:'en'},
+  {ch:'conflictmonitor',     n:'Conflict Monitor 🇬🇧',  cat:'general', lang:'en'},
+  {ch:'militaryland_net',    n:'MilitaryLand 🇬🇧',      cat:'ukraine', lang:'en'},
+  {ch:'frontnews_en',        n:'Front News EN 🇬🇧',     cat:'ukraine', lang:'en'},
+  {ch:'IsraelWarRoom',       n:'Israel War Room 🇬🇧',   cat:'mideast', lang:'en'},
+  {ch:'MiddleEastSpectator', n:'ME Spectator 🇬🇧',      cat:'mideast', lang:'en'},
+  // ── SPANISH — verified public channels ──
+  {ch:'AlertaNews24',        n:'Alerta News 🇪🇸',       cat:'general', lang:'es'},
+  {ch:'OperacionUcrania',    n:'Operación Ucrania 🇪🇸',  cat:'ukraine', lang:'es'},
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -727,6 +722,7 @@ function initMap(){
       .addTo(LG['conflicts']);
   });
   LG['conflicts'].addTo(MAP);
+  LG['live']=L.layerGroup();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -909,21 +905,27 @@ function renderMedia(){
 // ══════════════════════════════════════════════════════════
 async function loadOSINT(force=false){
   if(!force&&Date.now()-osintCache.ts<120000&&osintCache.data.length){renderOSINT();return;}
-  document.getElementById('feed-osint').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Conectando con canales Telegram...</div>`;
+  const statusEl=document.getElementById('feed-osint');
+  statusEl.innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Connecting to Telegram channels (0/${OSINT_SOURCES.length})...</div>`;
   const all=[];
+  const failed=[];
+  let loaded=0;
   await Promise.allSettled(OSINT_SOURCES.map(async src=>{
     try{
-      const tmeUrl=`https://t.me/s/${src.ch}`;
-      const html=await fetchRSS(tmeUrl);
-      if(!html) return;
-      parseTelegram(html, src.n, src.cat).forEach(i=>all.push(i));
-    }catch(e){}
+      const html=await fetchRSS(`https://t.me/s/${src.ch}`);
+      if(!html){ failed.push(src.n); return; }
+      const items=parseTelegram(html, src.n, src.cat);
+      if(!items.length){ failed.push(src.n); return; }
+      items.forEach(i=>all.push(i));
+      loaded++;
+      statusEl.innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Loaded ${loaded}/${OSINT_SOURCES.length} channels... (${all.length} posts)</div>`;
+    }catch(e){ failed.push(src.n); }
   }));
   all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
   osintCache={ts:Date.now(),data:all};
   document.getElementById('ft-osint').textContent=all.length;
   if(translateOn) await translateItems(osintCache.data);
-  renderOSINT();
+  renderOSINT(failed);
 }
 
 // Parser HTML de t.me/s/canal
@@ -955,11 +957,15 @@ function parseTelegram(html, src, cat){
   return items;
 }
 
-function renderOSINT(){
+function renderOSINT(failed=[]){
   let items=osintCache.data;
   if(activeCatOsint!=='all'){const re=REGION_KW[activeCatOsint];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
   if(!items.length){
-    document.getElementById('feed-osint').innerHTML='<div class="fstatus" style="color:var(--t3);flex-direction:column;gap:8px;">Sin datos de canales Telegram.<br><span style="font-size:9px">Algunos canales pueden estar bloqueados por el proxy CORS.</span></div>';
+    const failMsg=failed.length?`<br><span style="font-size:9px;color:var(--t3)">Failed: ${failed.join(', ')}</span>`:'';
+    document.getElementById('feed-osint').innerHTML=`<div class="fstatus" style="flex-direction:column;gap:8px;">
+      <div>No posts loaded from Telegram.</div>
+      <div style="font-size:9px;color:var(--t3);line-height:1.6;">The CORS proxy may be rate-limited.<br>Try refreshing in 1–2 minutes.${failMsg}</div>
+    </div>`;
     return;
   }
   renderItems(items,'feed-osint');
@@ -1071,6 +1077,157 @@ function toggleTranslate(btn){
     translateItems(mediaCache.data).then(()=>renderMedia());
     translateItems(osintCache.data).then(()=>renderOSINT());
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// LIVE EVENTS — GDACS (ONU) + ReliefWeb, sin registro
+// ══════════════════════════════════════════════════════════
+let liveActive=false;
+
+// GDACS alert type → estilo
+const GDACS_STYLE={
+  EQ: {col:'#e3b341', icon:'🌍', label:'Earthquake'},
+  TC: {col:'#58a6ff', icon:'🌀', label:'Cyclone'},
+  FL: {col:'#79c0ff', icon:'💧', label:'Flood'},
+  VO: {col:'#f0883e', icon:'🌋', label:'Volcano'},
+  DR: {col:'#8b949e', icon:'☀️', label:'Drought'},
+  WF: {col:'#f85149', icon:'🔥', label:'Wildfire'},
+};
+// Severidad → color del borde
+const GDACS_ALERT={Red:'#f85149', Orange:'#f0883e', Green:'#3fb950'};
+
+function toggleLiveEvents(btn){
+  liveActive=!liveActive;
+  btn.classList.toggle('on', liveActive);
+  if(liveActive){
+    btn.textContent='⚡ LOADING...';
+    btn.style.color='var(--green)';
+    loadLiveEvents().then(n=>{
+      btn.textContent=`⚡ LIVE ${n}`;
+    });
+  } else {
+    if(LG['live']) MAP.removeLayer(LG['live']);
+    btn.textContent='⚡ LIVE';
+    btn.style.color='var(--t2)';
+    document.getElementById('st-c').textContent=CONFLICTS.length;
+  }
+}
+
+async function loadLiveEvents(){
+  LG['live']=L.layerGroup();
+  let totalEvents=0;
+
+  // ── 1. GDACS RSS — alertas globales ONU (desastres + conflictos) ──
+  try{
+    const gdacsXml=await fetchRSS('https://www.gdacs.org/xml/rss.xml');
+    if(gdacsXml){
+      totalEvents+=parseGDACS(gdacsXml);
+    }
+  }catch(e){}
+
+  // ── 2. ReliefWeb API — crisis humanitarias activas ──
+  try{
+    const rwUrl='https://api.reliefweb.int/v1/disasters?appname=conflicttracker&limit=50&filter[field]=status&filter[value]=ongoing&fields[include][]=name&fields[include][]=glide&fields[include][]=date&fields[include][]=country&fields[include][]=type&fields[include][]=status';
+    const rwData=await fetchRSS(rwUrl);
+    if(rwData){
+      let json;
+      try{ json=JSON.parse(rwData); }catch(e){}
+      if(json?.data?.length){
+        totalEvents+=parseReliefWeb(json.data);
+      }
+    }
+  }catch(e){}
+
+  if(totalEvents>0){
+    LG['live'].addTo(MAP);
+    document.getElementById('st-c').textContent=`${CONFLICTS.length}+${totalEvents}`;
+  }
+
+  return totalEvents;
+}
+
+function parseGDACS(xml){
+  let count=0;
+  const itemRe=/<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while((m=itemRe.exec(xml))!==null){
+    const b=m[1];
+    const get=tag=>{const r=b.match(new RegExp(`<(?:gdacs:)?${tag}[^>]*>([^<]*)<`,'i'));return r?r[1].trim():'';};
+    const title=get('title')||b.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i)?.[1]||'';
+    const lat=parseFloat(get('latitude')||get('lat'));
+    const lng=parseFloat(get('longitude')||get('lon'));
+    if(isNaN(lat)||isNaN(lng)||!title) continue;
+
+    const eventType=get('eventtype')||'';
+    const alertLevel=get('alertlevel')||'';
+    const severity=get('severity')||'';
+    const country=get('country')||'';
+    const pubDate=get('pubDate')||'';
+    const link=b.match(/<link>([^<]+)<\/link>/i)?.[1]||'';
+
+    const sty=GDACS_STYLE[eventType]||{col:'#8b949e',icon:'⚠',label:eventType||'Alert'};
+    const borderCol=GDACS_ALERT[alertLevel]||'#8b949e';
+    const sz=alertLevel==='Red'?13:alertLevel==='Orange'?10:8;
+
+    const icon=L.divIcon({
+      className:'',
+      html:`<div style="width:${sz}px;height:${sz}px;border-radius:2px;background:${sty.col};opacity:0.85;border:1.5px solid ${borderCol};cursor:pointer;transform:rotate(45deg);"></div>`,
+      iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]
+    });
+    const popup=`
+      <div class="pt">${sty.icon} ${title}</div>
+      <div class="ps">GDACS · ${country} · ${alertLevel||'INFO'}</div>
+      <div class="pb">${sty.label}${severity?' · '+severity:''}<br>${pubDate?'<br>'+pubDate:''}</div>
+      ${link?`<div style="margin-top:6px;"><a href="${link}" target="_blank" style="color:var(--blue);font-size:9px;font-family:'IBM Plex Mono',monospace;">→ Ver en GDACS</a></div>`:''}
+    `;
+    L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:260}).addTo(LG['live']);
+    count++;
+  }
+  return count;
+}
+
+function parseReliefWeb(data){
+  // ReliefWeb no tiene coordenadas directas — usamos lookup por país
+  const COUNTRY_COORDS={
+    'Ukraine':[49,32],'Sudan':[15,30],'Gaza':[31.5,34.4],'Myanmar':[20,96],
+    'Syria':[35,38],'Yemen':[15,48],'Somalia':[6,46],'Mali':[17,-4],
+    'Ethiopia':[9,40],'DRC':[0,25],'Haiti':[19,-72],'Afghanistan':[33,66],
+    'Libya':[27,17],'Niger':[17,8],'Nigeria':[10,8],'Mozambique':[-18,35],
+    'Pakistan':[30,70],'Bangladesh':[23,90],'South Sudan':[7,30],
+    'Central African Republic':[7,21],'Chad':[15,19],'Burkina Faso':[12,-2],
+  };
+  let count=0;
+  data.forEach(item=>{
+    const f=item.fields||{};
+    const name=f.name||'';
+    const countries=(f.country||[]).map(c=>c.name);
+    const types=(f.type||[]).map(t=>t.name).join(', ');
+    const date=f.date?.created?.split('T')[0]||'';
+
+    let coords=null;
+    for(const cn of countries){
+      if(COUNTRY_COORDS[cn]){coords=COUNTRY_COORDS[cn];break;}
+    }
+    if(!coords) return;
+
+    // pequeño offset aleatorio para no apilar en mismo punto
+    const lat=coords[0]+(Math.random()-0.5)*2;
+    const lng=coords[1]+(Math.random()-0.5)*2;
+
+    const icon=L.divIcon({
+      className:'',
+      html:`<div style="width:8px;height:8px;border-radius:50%;background:#bc8cff;opacity:0.8;border:1.5px solid #9f6be0;cursor:pointer;"></div>`,
+      iconSize:[8,8],iconAnchor:[4,4]
+    });
+    const popup=`
+      <div class="pt">🆘 ${name}</div>
+      <div class="ps">RELIEFWEB · ${countries.join(', ')} · ONGOING</div>
+      <div class="pb">${types||'Crisis'}${date?' · '+date:''}</div>
+    `;
+    L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:260}).addTo(LG['live']);
+    count++;
+  });
+  return count;
 }
 
 // ══════════════════════════════════════════════════════════
