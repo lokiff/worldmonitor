@@ -156,6 +156,13 @@ button{font-family:inherit;cursor:pointer;}
 .tab-timer{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
 .tab-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
 .tab-panel.hidden{display:none;}
+.vc{background:var(--s2);border:1px solid var(--b1);border-radius:4px;overflow:hidden;position:relative;}
+.vc-header{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--s3);}
+.vc-title{flex:1;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vc-del{background:transparent;border:none;color:var(--t3);font-size:12px;cursor:pointer;padding:0 2px;line-height:1;}
+.vc-del:hover{color:var(--red);}
+.vc iframe{width:100%;height:180px;border:none;display:block;}
+.vc-meta{padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
 
 /* GDELT */
 .gdelt-info{flex-shrink:0;padding:7px 12px;background:rgba(88,166,255,.04);border-bottom:1px solid rgba(88,166,255,.1);display:flex;flex-direction:column;gap:2px;}
@@ -304,6 +311,7 @@ button{font-family:inherit;cursor:pointer;}
       <div class="tabs">
         <button class="tab on" onclick="switchTab('media',this)">📰 MEDIOS</button>
         <button class="tab"    onclick="switchTab('osint',this)">📲 OSINT/TELEGRAM</button>
+        <button class="tab"    onclick="switchTab('video',this)">📺 VIDEO</button>
         <div class="tab-refresh">
           <span id="refresh-countdown" class="tab-timer">↻ 2:00</span>
           <button class="frefresh" onclick="refreshAll(true)">REFRESH</button>
@@ -336,6 +344,26 @@ button{font-family:inherit;cursor:pointer;}
         </div>
         <div class="farea" id="feed-osint">
           <div class="fstatus"><div class="spin-sm"></div>Cargando canales OSINT...</div>
+        </div>
+      </div>
+
+      <!-- VIDEO panel -->
+      <div class="tab-panel hidden" id="panel-video">
+        <div style="padding:10px 10px 6px;display:flex;gap:6px;align-items:center;">
+          <input id="yt-input" type="text" placeholder="Pega un link de YouTube..." 
+            style="flex:1;padding:6px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;
+            color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:10px;outline:none;"
+            onkeydown="if(event.key==='Enter')addVideo()">
+          <button onclick="addVideo()" 
+            style="padding:6px 12px;background:var(--red);border:none;border-radius:3px;
+            color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            + ADD
+          </button>
+        </div>
+        <div id="video-list" style="flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);text-align:center;padding:20px 0;">
+            Añade canales de YouTube sobre conflictos,<br>análisis geopolítico o OSINT.
+          </div>
         </div>
       </div>
 
@@ -765,6 +793,133 @@ function switchTab(tab,btn){
   btn.classList.add('on');
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden'));
   document.getElementById('panel-'+tab).classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════════════════
+// VIDEO PANEL — YouTube embeds con persistencia
+// ══════════════════════════════════════════════════════════
+let videoSources = JSON.parse(localStorage.getItem('ct_videos') || '[]');
+
+// Videos sugeridos por defecto (canales OSINT/geopolítica en YouTube)
+const DEFAULT_VIDEOS = [
+  { id: 'UCbnPZeHKikhHes1s3bV_FxQ', type: 'channel', title: 'War Monitor',        url: 'https://www.youtube.com/@WarMonitor' },
+  { id: 'UCF7CRQaA7IWl7CTu0pGJrUw', type: 'channel', title: 'CRUX',               url: 'https://www.youtube.com/@CruxIndia' },
+  { id: 'UCNye-wNBqNL5ZzHSJj3l8Bg', type: 'channel', title: 'Hindustan Times',    url: 'https://www.youtube.com/@hindustantimes' },
+];
+
+function parseYouTubeInput(raw) {
+  const s = raw.trim();
+  // Formato: URL video   → https://youtube.com/watch?v=ID
+  // Formato: URL short   → https://youtu.be/ID
+  // Formato: URL live    → https://youtube.com/live/ID
+  // Formato: URL channel → https://youtube.com/@handle o /channel/ID
+  // Formato: ID directo  → 11 chars alfanuméricos
+
+  let videoId = null, channelHandle = null, channelId = null;
+
+  // Video ID en watch?v=
+  let m = s.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+  if (m) videoId = m[1];
+
+  // youtu.be/ID
+  if (!videoId) { m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/); if (m) videoId = m[1]; }
+
+  // /live/ID
+  if (!videoId) { m = s.match(/\/live\/([A-Za-z0-9_-]{11})/); if (m) videoId = m[1]; }
+
+  // /shorts/ID
+  if (!videoId) { m = s.match(/\/shorts\/([A-Za-z0-9_-]{11})/); if (m) videoId = m[1]; }
+
+  // Raw video ID (exactamente 11 chars)
+  if (!videoId && /^[A-Za-z0-9_-]{11}$/.test(s)) videoId = s;
+
+  // Channel @handle
+  if (!videoId) { m = s.match(/youtube\.com\/@([A-Za-z0-9_.-]+)/); if (m) channelHandle = m[1]; }
+  if (!videoId && !channelHandle && s.startsWith('@')) channelHandle = s.slice(1);
+
+  // Channel /channel/ID
+  if (!videoId && !channelHandle) { m = s.match(/\/channel\/([A-Za-z0-9_-]{24})/); if (m) channelId = m[1]; }
+
+  if (videoId)       return { type: 'video',   id: videoId,       title: 'Video', embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0` };
+  if (channelHandle) return { type: 'channel', id: channelHandle, title: '@'+channelHandle, embedUrl: `https://www.youtube.com/embed?listType=user_uploads&list=${channelHandle}` };
+  if (channelId)     return { type: 'channel', id: channelId,     title: channelId, embedUrl: `https://www.youtube.com/embed?listType=user_uploads&list=${channelId}` };
+  return null;
+}
+
+function addVideo() {
+  const input = document.getElementById('yt-input');
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  const parsed = parseYouTubeInput(raw);
+  if (!parsed) {
+    input.style.borderColor = 'var(--red)';
+    setTimeout(() => input.style.borderColor = 'var(--b2)', 1500);
+    return;
+  }
+
+  // Evitar duplicados
+  if (videoSources.find(v => v.id === parsed.id)) {
+    input.value = '';
+    return;
+  }
+
+  videoSources.unshift(parsed);
+  saveAndRenderVideos();
+  input.value = '';
+  input.style.borderColor = 'var(--green)';
+  setTimeout(() => input.style.borderColor = 'var(--b2)', 1500);
+}
+
+function removeVideo(id) {
+  videoSources = videoSources.filter(v => v.id !== id);
+  saveAndRenderVideos();
+}
+
+function saveAndRenderVideos() {
+  try { localStorage.setItem('ct_videos', JSON.stringify(videoSources)); } catch(e) {}
+  renderVideos();
+}
+
+function renderVideos() {
+  const list = document.getElementById('video-list');
+  if (!list) return;
+
+  if (!videoSources.length) {
+    list.innerHTML = `
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);text-align:center;padding:20px 0;">
+        Añade canales de YouTube sobre conflictos,<br>análisis geopolítico o OSINT.
+      </div>
+      <div style="padding:0 4px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);margin-bottom:6px;letter-spacing:1px;">SUGERIDOS</div>
+        ${DEFAULT_VIDEOS.map(v => `
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b1);">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);flex:1;">📺 ${v.title}</span>
+            <button onclick="document.getElementById('yt-input').value='${v.url}';addVideo();"
+              style="padding:3px 8px;background:transparent;border:1px solid var(--b2);border-radius:2px;
+              color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:8px;cursor:pointer;">+ ADD</button>
+          </div>`).join('')}
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = videoSources.map(v => `
+    <div class="vc">
+      <div class="vc-header">
+        <span style="font-size:10px;">📺</span>
+        <span class="vc-title">${v.title}</span>
+        <button class="vc-del" onclick="removeVideo('${v.id}')" title="Eliminar">✕</button>
+      </div>
+      <iframe src="${v.embedUrl}" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        allowfullscreen loading="lazy"></iframe>
+      <div class="vc-meta">${v.type === 'channel' ? '📡 Canal · últimos vídeos' : '🎬 Vídeo'} · YouTube</div>
+    </div>`).join('');
+}
+
+// Cargar videos guardados al iniciar
+function initVideos() {
+  renderVideos();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1534,6 +1689,7 @@ function init(){
   startCountdown();
   loadMedia();
   loadOSINT();
+  initVideos();
   setTimeout(() => refreshLiveData(true), 1500);
 }
 init();
