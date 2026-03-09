@@ -27,6 +27,11 @@ body.day .map-timebar,body.day .map-zoombar .zbtn,body.day .map-regionbar{backgr
 body.day .spin-sm{border-color:var(--b2);border-top-color:var(--blue);}
 .theme-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .2s;border-radius:2px;line-height:1;}
 .theme-btn:hover{border-color:var(--b3);color:var(--t1);}
+.lyr-toggle{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);cursor:pointer;padding:2px 4px;border-radius:2px;transition:color .15s;letter-spacing:.3px;user-select:none;}
+.lyr-toggle.on{color:var(--t1);}
+.lyr-toggle:hover{color:var(--t2);}
+.lyr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;opacity:.4;transition:opacity .15s;}
+.lyr-toggle.on .lyr-dot{opacity:1;}
 .translate-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .2s;border-radius:2px;letter-spacing:1px;}
 .translate-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.07);}
 .translate-btn:hover{border-color:var(--b3);color:var(--t1);}
@@ -240,7 +245,7 @@ button{font-family:inherit;cursor:pointer;}
     <div class="ml">
       <button class="translate-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐 EN</button>
       <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night mode">🌙</button>
-      <button class="btn" id="ref-btn" onclick="refreshAll(true)">↻ REFRESH</button>
+      <button class="btn" id="ref-btn" onclick="refreshAll(true);refreshLiveData(true)">↻ REFRESH</button>
     </div>
   </div>
 
@@ -272,6 +277,16 @@ button{font-family:inherit;cursor:pointer;}
         <button class="tbtn" onclick="setTime(this)">7D</button>
         <div style="width:1px;height:16px;background:var(--b2);margin:0 2px;"></div>
         <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:var(--green);" title="Load UN/GDACS live crisis events">⚡ LIVE</button>
+      </div>
+
+      <!-- LAYER PANEL -->
+      <div id="layer-panel" style="position:absolute;top:10px;right:54px;z-index:400;background:rgba(8,12,16,.92);border:1px solid var(--b1);border-radius:3px;backdrop-filter:blur(4px);padding:6px 8px;display:flex;flex-direction:column;gap:4px;min-width:150px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:1.5px;margin-bottom:2px;">CAPAS</div>
+        <label id="lyr-conflicts" class="lyr-toggle on" onclick="toggleLayer('conflicts',this)"><span class="lyr-dot" style="background:#f85149"></span>Conflictos</label>
+        <label id="lyr-nuclear"   class="lyr-toggle"    onclick="toggleLayer('nuclear',this)"><span class="lyr-dot" style="background:#e3b341"></span>☢ Nuclear</label>
+        <label id="lyr-quakes"    class="lyr-toggle"    onclick="toggleLayer('quakes',this)"><span class="lyr-dot" style="background:#f0883e"></span>🌍 Terremotos</label>
+        <label id="lyr-fires"     class="lyr-toggle"    onclick="toggleLayer('fires',this)"><span class="lyr-dot" style="background:#ff6b35"></span>🔥 Incendios</label>
+        <label id="lyr-military"  class="lyr-toggle"    onclick="toggleLayer('military',this)"><span class="lyr-dot" style="background:#58a6ff"></span>✈ Militares</label>
       </div>
 
 
@@ -504,6 +519,10 @@ const STABILITY = [
 // ══════════════════════════════════════════════════════════
 const LAYERS = [
   {id:'conflicts',  label:'Conflictos',        color:'#f85149', on:true},
+  {id:'nuclear',    label:'Nuclear',            color:'#e3b341', on:false},
+  {id:'quakes',     label:'Terremotos',         color:'#f0883e', on:false},
+  {id:'fires',      label:'Incendios',          color:'#ff6b35', on:false},
+  {id:'military',   label:'Vuelos militares',   color:'#58a6ff', on:false},
 ];
 
 // ── BASES MILITARES (EEUU + aliados + rivales) ──────────
@@ -722,7 +741,13 @@ function initMap(){
       .addTo(LG['conflicts']);
   });
   LG['conflicts'].addTo(MAP);
-  LG['live']=L.layerGroup();
+  LG['live']     = L.layerGroup();
+  LG['ucdp']     = L.layerGroup();
+  LG['gdacs']    = L.layerGroup();
+  LG['nuclear']  = L.layerGroup();
+  LG['quakes']   = L.layerGroup();
+  LG['fires']    = L.layerGroup();
+  LG['military'] = L.layerGroup();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -768,7 +793,7 @@ function startCountdown(){
   const el=document.getElementById('refresh-countdown');
   setInterval(()=>{
     countdownSecs--;
-    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);}
+    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);aiUpdateConflicts(true);}
     const m=Math.floor(countdownSecs/60),s=String(countdownSecs%60).padStart(2,'0');
     if(el) el.textContent=`↻ ${m}:${s}`;
   },1000);
@@ -1231,6 +1256,491 @@ function parseReliefWeb(data){
 }
 
 // ══════════════════════════════════════════════════════════
+// UCDP — Uppsala Conflict Data Program (sin registro, CORS libre)
+// Fuente académica de referencia mundial sobre conflictos armados
+// ══════════════════════════════════════════════════════════
+async function loadUCDP() {
+  try {
+    // UCDP GED — Georeferenced Event Dataset, eventos recientes
+    const year = new Date().getFullYear();
+    const url = `https://ucdpapi.pcr.uu.se/api/gedevents/${year}?pagesize=100&page=1`;
+    const proxied = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxied, {signal: AbortSignal.timeout(10000)});
+    const raw = await r.json();
+    const data = JSON.parse(raw.contents);
+    if (!data?.Result?.length) return 0;
+
+    if (LG['ucdp']) MAP.removeLayer(LG['ucdp']);
+    LG['ucdp'] = L.layerGroup().addTo(MAP);
+
+    const typeLabel = {1:'State-based',2:'Non-state',3:'One-sided'};
+    const typeCol   = {1:'#f85149', 2:'#f0883e', 3:'#e3b341'};
+
+    data.Result.forEach(ev => {
+      const lat = parseFloat(ev.latitude), lng = parseFloat(ev.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const deaths = parseInt(ev.best) || 0;
+      const sz = Math.min(6 + Math.floor(Math.sqrt(deaths)), 16);
+      const col = typeCol[ev.type_of_violence] || '#8b949e';
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};opacity:0.75;border:1px solid rgba(255,255,255,0.25);cursor:pointer;"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      const popup = `
+        <div class="pt">⚔ ${ev.side_a || ''} vs ${ev.side_b || ''}</div>
+        <div class="ps">UCDP · ${ev.country || ''} · ${ev.date_start?.split('T')[0] || ''}</div>
+        <div class="pb">${typeLabel[ev.type_of_violence] || 'Conflict'}${deaths ? ' · <b style="color:var(--red)">'+deaths+' est. deaths</b>' : ''}<br>${(ev.source_headline||'').slice(0,180)}</div>
+      `;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:280}).addTo(LG['ucdp']);
+    });
+    return data.Result.length;
+  } catch(e) {
+    console.warn('UCDP error:', e);
+    return 0;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// LAYER TOGGLE — activa/desactiva capas del mapa
+// ══════════════════════════════════════════════════════════
+function toggleLayer(id, label) {
+  const isOn = label.classList.toggle('on');
+  if (isOn) {
+    if (!LG[id]) LG[id] = L.layerGroup();
+    LG[id].addTo(MAP);
+    // Cargar datos si la capa está vacía
+    if (LG[id].getLayers().length === 0) {
+      if (id === 'nuclear')  loadNuclear();
+      if (id === 'quakes')   loadQuakes();
+      if (id === 'fires')    loadFires();
+      if (id === 'military') loadMilitary();
+    }
+  } else {
+    if (LG[id]) MAP.removeLayer(LG[id]);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ☢ NUCLEAR — instalaciones nucleares mundiales
+// Fuente: base estática verificada + IAEA PRIS
+// ══════════════════════════════════════════════════════════
+const NUCLEAR_SITES = [
+  // — ARSENALES NUCLEARES —
+  {n:'Base de Misiles ICBM Minuteman III (Montana)', lat:47.0,  lng:-110.0, t:'arsenal', w:'EEUU',   d:'341 silos ICBM Minuteman III activos. Base de la 341ª Ala de Misiles.'},
+  {n:'Base de Misiles ICBM (Dakota del Norte)',      lat:47.9,  lng:-100.5, t:'arsenal', w:'EEUU',   d:'150 silos ICBM Minuteman III. 91ª Ala de Misiles, Minot AFB.'},
+  {n:'Base de Misiles ICBM (Wyoming)',               lat:41.5,  lng:-105.0, t:'arsenal', w:'EEUU',   d:'150 silos ICBM Minuteman III. 90ª Ala de Misiles, FE Warren AFB.'},
+  {n:'Kings Bay SSBN Base',                          lat:30.79, lng:-81.56, t:'arsenal', w:'EEUU',   d:'Base de submarinos estratégicos Ohio-class con misiles Trident II D5.'},
+  {n:'Bangor SSBN Base',                             lat:47.73, lng:-122.7, t:'arsenal', w:'EEUU',   d:'Mayor concentración de ojivas nucleares EEUU. 8 subs Ohio-class.'},
+  {n:'Barksdale AFB — Bombers',                      lat:32.50, lng:-93.66, t:'arsenal', w:'EEUU',   d:'B-52H Stratofortress. Misiones de alerta nuclear permanente.'},
+  {n:'Whiteman AFB — B-2 Stealth',                   lat:38.72, lng:-93.55, t:'arsenal', w:'EEUU',   d:'20 bombarderos B-2 Spirit. Únicos bombarderos nucleares stealth operativos.'},
+  {n:'Incirlik AB — B61 Bombs',                      lat:37.00, lng:35.43,  t:'arsenal', w:'EEUU',   d:'~50 bombas de gravedad B61 almacenadas. Bajo custodia EEUU en suelo turco.'},
+  {n:'Kleine Brogel AB — B61',                       lat:51.17, lng:5.47,   t:'arsenal', w:'NATO/BE', d:'~20 bombas B61. Revuelo político recurrente en Bélgica.'},
+  {n:'Büchel AB — B61',                              lat:50.17, lng:7.07,   t:'arsenal', w:'NATO/DE', d:'~20 bombas B61. Única base nuclear en Alemania.'},
+  {n:'Aviano AB — B61',                              lat:46.03, lng:12.60,  t:'arsenal', w:'NATO/IT', d:'~50 bombas B61 en bóvedas WS3. F-16 italianos certificados para portarlas.'},
+  {n:'Volkel AB — B61',                              lat:51.65, lng:5.71,   t:'arsenal', w:'NATO/NL', d:'~20 bombas B61. F-35A neerlandeses certificados para misión nuclear.'},
+  // — RUSIA —
+  {n:'Kozelsk ICBM Field',  lat:54.05, lng:35.75, t:'arsenal', w:'Rusia',   d:'Silos RS-28 Sarmat ("Satan II") e SS-19. Fuerza de misiles estratégicos.'},
+  {n:'Tatischevo ICBM',     lat:51.75, lng:45.97, t:'arsenal', w:'Rusia',   d:'Mayor concentración de ICBM rusos. RS-18 Stileto y RS-20 Voevoda.'},
+  {n:'Dombarovsky ICBM',    lat:50.77, lng:59.56, t:'arsenal', w:'Rusia',   d:'RS-28 Sarmat en despliegue activo desde 2023. 6 silos confirmados.'},
+  {n:'Gadzhiyevo SSBN',     lat:69.24, lng:33.31, t:'arsenal', w:'Rusia',   d:'Base submarinos Delta IV y Borei-class. Misiles R-29 y Bulava.'},
+  {n:'Olenya AFB — Bombers',lat:68.15, lng:33.46, t:'arsenal', w:'Rusia',   d:'Tu-95MS Bear y Tu-160 Blackjack. Patrullas nucleares frecuentes.'},
+  {n:'Engels AFB — Tu-160', lat:51.45, lng:46.17, t:'arsenal', w:'Rusia',   d:'Tu-160M Blackjack. Atacado por drones ucranianos 2023. Reparado.'},
+  // — CHINA —
+  {n:'Campo de Silos DF-41 (Yumen)', lat:40.4, lng:97.0,  t:'arsenal', w:'China',  d:'+100 silos nuevos DF-41 construidos 2021-2023. Expansión masiva del arsenal.'},
+  {n:'Campo de Silos DF-41 (Hami)',  lat:43.0, lng:92.5,  t:'arsenal', w:'China',  d:'+110 silos nuevos. Parte del plan de triplicar arsenal (300→1000 ojivas para 2030).'},
+  {n:'Base SSBN Yulin (Hainan)',     lat:18.2, lng:109.7, t:'arsenal', w:'China',  d:'Túneles subterráneos. Submarinos Jin-class (JL-2/3). Primera disuasión naval.'},
+  {n:'Base ICBM DF-5 (Luoning)',     lat:34.5, lng:111.6, t:'arsenal', w:'China',  d:'Silos DF-5B de combustible líquido. Alta potencia (~5 MT). En reducción gradual.'},
+  // — OTRAS POTENCIAS —
+  {n:'Dimona — Israel',              lat:31.00, lng:35.15, t:'arsenal', w:'Israel', d:'Reactor Negev. Arsenal estimado: 90 ojivas. Israel no confirma ni niega programa.'},
+  {n:'Kahuta — Pakistan',            lat:33.60, lng:73.38, t:'arsenal', w:'Pakistan',d:'Instalación enriquecimiento. Arsenal estimado: 160-170 ojivas. Misiles Shaheen.'},
+  {n:'Khushab Reactores',            lat:32.05, lng:72.20, t:'arsenal', w:'Pakistan',d:'4 reactores de plutonio. Expansión continua del arsenal de ojivas.'},
+  {n:'Trombay BARC — India',         lat:19.02, lng:72.92, t:'arsenal', w:'India',  d:'Centro investigación Bhabha. Arsenal estimado: 160-170 ojivas. Agni-V operativo.'},
+  {n:'Yongbyon — Corea del Norte',   lat:39.78, lng:125.75,t:'arsenal', w:'DPRK',   d:'Complejo nuclear activo. Reactores de plutonio + enriquecimiento uranio. 40-50 ojivas.'},
+  // — CENTRALES NUCLEARES EN ZONA DE CONFLICTO —
+  {n:'Zaporizhzhia NPP — CONFLICTO', lat:47.50, lng:34.62, t:'plant_war', w:'Ucrania',  d:'Mayor central nuclear de Europa (6×VVER-1000). Bajo control ruso desde mar 2022. Riesgo crítico de accidente.'},
+  {n:'Chernobyl (zona exclusión)',   lat:51.39, lng:30.10, t:'plant_war', w:'Ucrania',  d:'Ocupada por Rusia feb-mar 2022. Daños a sistema refrigeración. Actualmente en zona de combate.'},
+  {n:'Bushehr NPP — Irán',           lat:28.83, lng:50.89, t:'plant_war', w:'Irán',     d:'Objetivo potencial en la guerra actual. Russia construyó la planta. Online desde 2013.'},
+  // — PRINCIPALES CENTRALES (zonas de tensión) —
+  {n:'Kudankulam NPP — India',  lat:8.17,  lng:77.71,  t:'plant', w:'India',   d:'2 reactores VVER-1000 rusos. 2 unidades más en construcción.'},
+  {n:'Barakah NPP — UAE',       lat:23.97, lng:52.21,  t:'plant', w:'EAU',     d:'Primera central nuclear árabe. 4 reactores APR-1400. En zona de tensión regional.'},
+];
+
+function loadNuclear() {
+  if (!LG['nuclear']) LG['nuclear'] = L.layerGroup();
+  const colMap = {
+    arsenal:   '#e3b341',
+    plant_war: '#f85149',
+    plant:     '#3fb950',
+  };
+  const iconMap = {arsenal:'☢', plant_war:'⚠', plant:'⚛'};
+
+  NUCLEAR_SITES.forEach(s => {
+    const col  = colMap[s.t]  || '#8b949e';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="font-size:${s.t==='plant_war'?13:11}px;cursor:pointer;filter:drop-shadow(0 0 3px ${col});" title="${s.n}">${iconMap[s.t]||'☢'}</div>`,
+      iconSize: [16,16], iconAnchor:[8,8]
+    });
+    const popup = `
+      <div class="pt">${iconMap[s.t]} ${s.n}</div>
+      <div class="ps">NUCLEAR · ${s.w} · ${s.t==='plant_war'?'⚠ ZONA DE CONFLICTO':s.t==='arsenal'?'ARSENAL':'CENTRAL'}</div>
+      <div class="pb">${s.d}</div>`;
+    L.marker([s.lat, s.lng], {icon}).bindPopup(popup, {maxWidth:300}).addTo(LG['nuclear']);
+  });
+  showToast(`☢ ${NUCLEAR_SITES.length} instalaciones nucleares cargadas`, 4000);
+}
+
+// ══════════════════════════════════════════════════════════
+// 🌍 TERREMOTOS — USGS Earthquake API (tiempo real)
+// Sin registro, CORS libre, datos actualizados cada minuto
+// ══════════════════════════════════════════════════════════
+async function loadQuakes() {
+  try {
+    showToast('🌍 Cargando terremotos USGS...', 0);
+    // Últimas 24h, magnitud ≥ 3.5
+    const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
+    const r = await fetch(url, {signal: AbortSignal.timeout(10000)});
+    const data = await r.json();
+    if (!LG['quakes']) LG['quakes'] = L.layerGroup();
+
+    const features = data.features || [];
+    features.forEach(f => {
+      const [lng, lat, depth] = f.geometry.coordinates;
+      const mag   = f.properties.mag;
+      const place = f.properties.place || '';
+      const time  = new Date(f.properties.time).toLocaleString('es-ES');
+      const url2  = f.properties.url || '';
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      // Tamaño y color según magnitud
+      const sz  = Math.min(4 + Math.round(mag * 2.5), 22);
+      const col = mag >= 6.5 ? '#f85149' : mag >= 5.0 ? '#f0883e' : mag >= 4.0 ? '#e3b341' : '#8b949e';
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};opacity:0.6;border:1px solid ${col};cursor:pointer;"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      const popup = `
+        <div class="pt">🌍 M${mag.toFixed(1)} — ${place}</div>
+        <div class="ps">USGS · Prof. ${depth.toFixed(0)} km · ${time}</div>
+        <div class="pb">${mag>=6?'<b style="color:var(--red)">⚠ SISMO MAYOR</b><br>':''}${url2?`<a href="${url2}" target="_blank" style="color:var(--blue);font-size:9px;">→ Ver en USGS</a>`:''}
+        </div>`;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:280}).addTo(LG['quakes']);
+    });
+
+    showToast(`🌍 ${features.length} terremotos (últimas 24h, M≥2.5)`, 4000);
+  } catch(e) {
+    console.warn('USGS:', e.message);
+    showToast('✗ Error cargando USGS', 3000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// 🔥 INCENDIOS — NASA FIRMS (Fire Information for Resource Mgmt)
+// Detección satelital MODIS/VIIRS, actualizado cada 3 horas
+// ══════════════════════════════════════════════════════════
+async function loadFires() {
+  try {
+    showToast('🔥 Cargando incendios NASA FIRMS...', 0);
+    // CSV público de FIRMS — últimas 24h, todo el mundo (VIIRS SNPP)
+    const url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv';
+    const proxied = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxied, {signal: AbortSignal.timeout(15000)});
+    const raw = await r.json();
+    const lines = (raw.contents || '').split('\n').filter(Boolean);
+
+    if (!LG['fires']) LG['fires'] = L.layerGroup();
+    let count = 0;
+    // Cabecera: latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight
+    lines.slice(1).forEach(line => {
+      const cols = line.split(',');
+      const lat  = parseFloat(cols[0]);
+      const lng  = parseFloat(cols[1]);
+      const frp  = parseFloat(cols[12]) || 0; // Fire Radiative Power (MW)
+      const conf = cols[9] || 'n';
+      const date = cols[5] || '';
+      if (isNaN(lat) || isNaN(lng)) return;
+      if (conf === 'l') return; // saltar baja confianza
+
+      const sz  = Math.min(4 + Math.floor(Math.sqrt(frp / 5)), 14);
+      const col = frp > 500 ? '#f85149' : frp > 100 ? '#f0883e' : '#ff6b35';
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:1px;background:${col};opacity:0.7;cursor:pointer;transform:rotate(45deg);"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      const popup = `
+        <div class="pt">🔥 Incendio activo</div>
+        <div class="ps">NASA FIRMS · VIIRS · ${date}</div>
+        <div class="pb">FRP: ${frp.toFixed(0)} MW · Confianza: ${conf==='h'?'Alta':conf==='n'?'Media':'Baja'}</div>`;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:240}).addTo(LG['fires']);
+      count++;
+      if (count > 3000) return; // límite para rendimiento
+    });
+
+    showToast(`🔥 ${count} focos de incendio activos (24h)`, 4000);
+  } catch(e) {
+    console.warn('FIRMS:', e.message);
+    showToast('✗ Error cargando NASA FIRMS', 3000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ✈ VUELOS MILITARES — ADS-B Exchange
+// Único tracker con vuelos militares sin filtrar
+// ══════════════════════════════════════════════════════════
+let militaryInterval = null;
+
+async function loadMilitary() {
+  try {
+    showToast('✈ Cargando vuelos militares ADS-B...', 0);
+    if (!LG['military']) LG['military'] = L.layerGroup();
+
+    await fetchMilitaryFlights();
+
+    // Actualizar cada 30s mientras la capa esté activa
+    if (militaryInterval) clearInterval(militaryInterval);
+    militaryInterval = setInterval(() => {
+      if (LG['military'] && MAP.hasLayer(LG['military'])) {
+        fetchMilitaryFlights();
+      } else {
+        clearInterval(militaryInterval);
+      }
+    }, 30000);
+
+  } catch(e) {
+    console.warn('ADS-B:', e.message);
+    showToast('✗ Error cargando ADS-B Exchange', 3000);
+  }
+}
+
+async function fetchMilitaryFlights() {
+  // ADS-B Exchange API v2 — vuelos militares globales
+  // mil=1 filtra solo aeronaves militares registradas
+  const url = 'https://api.adsb.lol/v2/mil';
+  const proxied = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  const r = await fetch(proxied, {signal: AbortSignal.timeout(12000)});
+  const raw = await r.json();
+  const data = JSON.parse(raw.contents || '{}');
+  const aircraft = data.ac || [];
+
+  if (!LG['military']) return;
+  LG['military'].clearLayers();
+
+  const typeCol = {
+    F: '#f85149',  // Fighter
+    B: '#e3b341',  // Bomber
+    T: '#58a6ff',  // Transport/Tanker
+    H: '#3fb950',  // Helicopter
+    R: '#bc8cff',  // Recon/ISR
+  };
+
+  aircraft.forEach(ac => {
+    const lat = parseFloat(ac.lat), lng = parseFloat(ac.lon);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const callsign = ac.flight?.trim() || ac.r || '?';
+    const type     = ac.t || '';
+    const alt      = ac.alt_baro ? Math.round(ac.alt_baro * 0.3048) + ' m' : 'N/A';
+    const spd      = ac.gs ? Math.round(ac.gs * 1.852) + ' km/h' : 'N/A';
+    const hdg      = ac.track || 0;
+    const country  = ac.ownOp || ac.r?.slice(0,2) || '';
+
+    // Color por tipo de aeronave (primera letra del tipo ICAO)
+    const firstLetter = type.charAt(0).toUpperCase();
+    const col = typeCol[firstLetter] || '#8b949e';
+
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="font-size:14px;cursor:pointer;transform:rotate(${hdg}deg);filter:drop-shadow(0 0 2px ${col});" title="${callsign}">✈</div>`,
+      iconSize:[16,16], iconAnchor:[8,8]
+    });
+
+    const popup = `
+      <div class="pt">✈ ${callsign}</div>
+      <div class="ps">MILITAR · ${type||'N/A'} · ${country}</div>
+      <div class="pb">Alt: ${alt} · Vel: ${spd}<br>Rumbo: ${hdg}°</div>`;
+    L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:240}).addTo(LG['military']);
+  });
+
+  const ts = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  showToast(`✈ ${aircraft.length} vuelos militares · ${ts}`, 3000);
+}
+
+// ══════════════════════════════════════════════════════════
+// LIVE DATA — actualización automática cada hora
+// Fuentes: UCDP + GDACS + ReliefWeb (todas públicas, sin registro)
+// ══════════════════════════════════════════════════════════
+let liveDataLastUpdated = 0;
+const LIVE_UPDATE_INTERVAL = 60 * 60 * 1000; // 1 hora
+
+function showToast(msg, duration = 4000) {
+  let el = document.getElementById('live-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'live-toast';
+    el.style.cssText = `position:fixed;bottom:44px;left:50%;transform:translateX(-50%);z-index:2000;
+      background:var(--s2);border:1px solid var(--b2);border-radius:4px;
+      padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:10px;
+      color:var(--t1);box-shadow:0 4px 24px rgba(0,0,0,.6);
+      pointer-events:none;transition:opacity .4s;white-space:nowrap;`;
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  if (duration > 0) el._t = setTimeout(() => el.style.opacity = '0', duration);
+}
+
+async function refreshLiveData(force = false) {
+  const now = Date.now();
+  if (!force && (now - liveDataLastUpdated) < LIVE_UPDATE_INTERVAL) return;
+
+  showToast('⚡ Cargando datos en tiempo real...', 0);
+
+  // Limpiar capas anteriores
+  if (LG['ucdp'])  { MAP.removeLayer(LG['ucdp']);  LG['ucdp']  = L.layerGroup().addTo(MAP); }
+  if (LG['gdacs']) { MAP.removeLayer(LG['gdacs']); LG['gdacs'] = L.layerGroup().addTo(MAP); }
+
+  let totalEvents = 0;
+  const results = await Promise.allSettled([loadUCDP(), loadGDACS(), loadReliefWeb()]);
+  results.forEach(r => { if (r.status === 'fulfilled') totalEvents += r.value || 0; });
+
+  liveDataLastUpdated = Date.now();
+  const ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+
+  if (totalEvents > 0) {
+    document.getElementById('st-c').textContent = CONFLICTS.length + '+' + totalEvents;
+    showToast(`✓ ${totalEvents} eventos en tiempo real · ${ts}`, 5000);
+  } else {
+    showToast('ℹ Sin nuevos eventos disponibles ahora', 4000);
+  }
+}
+
+// ── UCDP GED — eventos georeferenciados Uppsala University ──
+async function loadUCDP() {
+  try {
+    const year = new Date().getFullYear();
+    const url  = `https://ucdpapi.pcr.uu.se/api/gedevents/${year}?pagesize=200&page=1`;
+    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(12000)});
+    const raw  = await res.json();
+    const data = JSON.parse(raw.contents);
+    if (!data?.Result?.length) return 0;
+
+    const typeCol   = {1:'#f85149', 2:'#f0883e', 3:'#e3b341'};
+    const typeLabel = {1:'State-based', 2:'Non-state', 3:'One-sided violence'};
+
+    data.Result.forEach(ev => {
+      const lat = parseFloat(ev.latitude), lng = parseFloat(ev.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const deaths = parseInt(ev.best) || 0;
+      const sz  = Math.min(5 + Math.floor(Math.sqrt(deaths)), 14);
+      const col = typeCol[ev.type_of_violence] || '#8b949e';
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};opacity:0.7;border:1px solid rgba(255,255,255,.2);cursor:pointer;"></div>`,
+        iconSize: [sz,sz], iconAnchor: [sz/2, sz/2]
+      });
+      const popup = `
+        <div class="pt">⚔ ${(ev.side_a||'')} vs ${(ev.side_b||'')}</div>
+        <div class="ps">UCDP · ${ev.country||''} · ${(ev.date_start||'').slice(0,10)}</div>
+        <div class="pb">${typeLabel[ev.type_of_violence]||''}${deaths?' · <b style="color:var(--red)">'+deaths+' est. muertes</b>':''}<br><br>${(ev.source_headline||'').slice(0,200)}</div>`;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:280}).addTo(LG['ucdp']);
+    });
+    return data.Result.length;
+  } catch(e) { console.warn('UCDP:', e.message); return 0; }
+}
+
+// ── GDACS — alertas ONU de crisis globales ──
+async function loadGDACS() {
+  try {
+    const url = 'https://www.gdacs.org/xml/rss.xml';
+    const xml = await fetchRSS(url);
+    if (!xml) return 0;
+
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+    let count = 0;
+    const typeCol = {EQ:'#e3b341', TC:'#58a6ff', FL:'#79c0ff', VO:'#f0883e', DR:'#8b949e', WF:'#f85149'};
+    const alertBorder = {Red:'#f85149', Orange:'#f0883e', Green:'#3fb950'};
+
+    items.forEach(m => {
+      const b = m[1];
+      const get = tag => b.match(new RegExp(`<(?:gdacs:)?${tag}[^>]*>([^<]*)<`,'i'))?.[1]?.trim() || '';
+      const title = b.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i)?.[1] || '';
+      const lat = parseFloat(get('latitude')||get('lat'));
+      const lng = parseFloat(get('longitude')||get('lon'));
+      if (isNaN(lat)||isNaN(lng)||!title) return;
+
+      const eType = get('eventtype'), alert = get('alertlevel'), country = get('country');
+      const col = typeCol[eType] || '#8b949e';
+      const border = alertBorder[alert] || '#444c56';
+      const sz = alert==='Red'?13:alert==='Orange'?10:8;
+
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;background:${col};border:2px solid ${border};border-radius:2px;transform:rotate(45deg);cursor:pointer;opacity:.85;"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      const popup = `
+        <div class="pt">⚠ ${title}</div>
+        <div class="ps">GDACS · ${country} · ${alert||'INFO'}</div>
+        <div class="pb">${eType||'Alert'} · ${get('severity')||''}</div>`;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:260}).addTo(LG['gdacs']);
+      count++;
+    });
+    return count;
+  } catch(e) { console.warn('GDACS:', e.message); return 0; }
+}
+
+// ── ReliefWeb — crisis humanitarias activas OCHA/ONU ──
+async function loadReliefWeb() {
+  try {
+    const url = 'https://api.reliefweb.int/v1/disasters?appname=conflicttracker&limit=50&filter[field]=status&filter[value]=ongoing&fields[include][]=name&fields[include][]=date&fields[include][]=country&fields[include][]=type';
+    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(10000)});
+    const raw  = await res.json();
+    const json = JSON.parse(raw.contents);
+    if (!json?.data?.length) return 0;
+
+    const COORDS = {
+      'Ukraine':[49,32],'Sudan':[15,30],'Palestine':[31.5,34.4],'Myanmar':[20,96],
+      'Syria':[35,38],'Yemen':[15,48],'Somalia':[6,46],'Mali':[17,-4],
+      'Ethiopia':[9,40],'Democratic Republic of the Congo':[0,25],'Haiti':[19,-72],
+      'Afghanistan':[33,66],'Libya':[27,17],'Niger':[17,8],'Nigeria':[10,8],
+      'Mozambique':[-18,35],'Pakistan':[30,70],'South Sudan':[7,30],
+      'Central African Republic':[7,21],'Chad':[15,19],'Burkina Faso':[12,-2],
+      'Lebanon':[33.9,35.5],'Iraq':[33,44],'Philippines':[13,122],
+    };
+
+    let count = 0;
+    json.data.forEach(item => {
+      const f = item.fields || {};
+      const countries = (f.country||[]).map(c=>c.name);
+      const types = (f.type||[]).map(t=>t.name).join(', ');
+      const date = (f.date?.created||'').slice(0,10);
+      let coords = null;
+      for (const cn of countries) { if (COORDS[cn]) { coords=COORDS[cn]; break; } }
+      if (!coords) return;
+
+      const lat = coords[0] + (Math.random()-.5)*1.5;
+      const lng = coords[1] + (Math.random()-.5)*1.5;
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:9px;height:9px;border-radius:50%;background:#bc8cff;opacity:0.75;border:1.5px solid #9f6be0;cursor:pointer;"></div>`,
+        iconSize:[9,9], iconAnchor:[4,4]
+      });
+      const popup = `
+        <div class="pt">🆘 ${f.name||'Crisis'}</div>
+        <div class="ps">RELIEFWEB · ${countries.join(', ')} · ONGOING</div>
+        <div class="pb">${types||'Humanitarian crisis'}${date?' · '+date:''}</div>`;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:260}).addTo(LG['gdacs']);
+      count++;
+    });
+    return count;
+  } catch(e) { console.warn('ReliefWeb:', e.message); return 0; }
+}
+
+// ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 function init(){
@@ -1240,6 +1750,8 @@ function init(){
   startCountdown();
   loadMedia();
   loadOSINT();
+  // Carga datos en tiempo real al abrir
+  setTimeout(() => refreshLiveData(true), 1500);
 }
 init();
 </script>
