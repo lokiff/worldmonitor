@@ -984,7 +984,6 @@ const MEDIA_SOURCES = [
 // ══════════════════════════════════════════════════════════
 const OSINT_SOURCES = [
   // ── Ucrania / Europa del Este ──
-  {ch:'UkraineNow',            n:'Ukraine Now',          cat:'ukraine', lang:'en'},
   {ch:'war_monitor',           n:'War Monitor',          cat:'ukraine', lang:'en'},
   {ch:'militaryland_net',      n:'MilitaryLand',         cat:'ukraine', lang:'en'},
   {ch:'DeepStateUA',           n:'DeepState',            cat:'ukraine', lang:'en'},
@@ -1024,7 +1023,7 @@ const OSINT_SOURCES = [
 let MAP, LG={};
 let mediaCache={ts:0,data:[]}, osintCache={ts:0,data:[]};
 let activeCatMedia='all', activeCatOsint='all';
-let activeTab='media', countdownSecs=120;
+let activeTab='media', countdownSecs=90;
 
 // ══════════════════════════════════════════════════════════
 // CLOCK
@@ -1192,7 +1191,7 @@ async function loadCountryIntel(country, tab) {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({country: country, type: tab, prompt: prompts[tab]}),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(6000)
     });
     if (!r.ok) throw new Error('Worker ' + r.status);
     const data = await r.json();
@@ -1242,7 +1241,7 @@ async function searchEntity() {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({country: query, type: 'entity', prompt: prompt}),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(6000)
     });
     if (!r.ok) throw new Error('Worker ' + r.status);
     const data = await r.json();
@@ -1491,7 +1490,7 @@ function startCountdown(){
   },1000);
 }
 async function loadMedia(force=false){
-  if(!force&&Date.now()-mediaCache.ts<120000&&mediaCache.data.length){renderMedia();return;}
+  if(!force&&Date.now()-mediaCache.ts<60000&&mediaCache.data.length){renderMedia();return;}
   const el=document.getElementById('feed-media');
   if(el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>';
   const all=[];
@@ -1513,28 +1512,45 @@ function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
 // ══════════════════════════════════════════════════════════
 // CORS PROXY FALLBACK
 // ══════════════════════════════════════════════════════════
+// ── FETCH RSS: todos los proxies en paralelo, primero que llegue gana ──
 const CORS_PROXIES=[
   url=>`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
   url=>`https://corsproxy.io/?${encodeURIComponent(url)}`,
   url=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  url=>`https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
 ];
+// Cache de proxies que funcionaron para priorizar
+const proxyWins={};
+
+async function tryProxy(fn, url, ctrl){
+  const r=await fetch(fn(url),{signal:ctrl.signal});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const text=await r.text();
+  try{const j=JSON.parse(text);if(j.contents&&j.contents.length>100)return j.contents;}
+  catch(e){if(text.length>100)return text;}
+  throw new Error('empty');
+}
+
 async function fetchRSS(url){
-  for(const fn of CORS_PROXIES){
-    try{
-      const r=await fetch(fn(url),{signal:AbortSignal.timeout(14000)});
-      if(!r.ok) continue;
-      const text=await r.text();
-      try{const j=JSON.parse(text);if(j.contents&&j.contents.length>100)return j.contents;}
-      catch(e){if(text.length>100)return text;}
-    }catch(e){}
-  }
-  // Last resort: direct fetch (works for CORS-enabled sources)
+  // Try direct fetch first for CORS-enabled sources (instant)
   try{
-    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
-    if(r.ok){const t=await r.text();if(t.length>100)return t;}
+    const r=await fetch(url,{signal:AbortSignal.timeout(3000)});
+    if(r.ok){const t=await r.text();if(t.length>100&&t.includes('<'))return t;}
   }catch(e){}
-  return null;
+
+  // Race all proxies simultaneously — 5s max total
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),5000);
+  try{
+    const result=await Promise.any(
+      CORS_PROXIES.map(fn=>tryProxy(fn,url,ctrl))
+    );
+    clearTimeout(timer);
+    ctrl.abort(); // cancel remaining
+    return result;
+  }catch(e){
+    clearTimeout(timer);
+    return null;
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1632,7 +1648,7 @@ function renderMedia(){
 // LOAD OSINT — scraping directo t.me/s/canal
 // ══════════════════════════════════════════════════════════
 async function loadOSINT(force=false){
-  if(!force&&Date.now()-osintCache.ts<120000&&osintCache.data.length){renderOSINT();return;}
+  if(!force&&Date.now()-osintCache.ts<60000&&osintCache.data.length){renderOSINT();return;}
   const statusEl=document.getElementById('feed-osint');
   statusEl.innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Connecting to Telegram channels (0/${OSINT_SOURCES.length})...</div>`;
   const all=[];
