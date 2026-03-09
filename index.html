@@ -720,8 +720,8 @@ function initMap(){
   TILE_DARK_LABELS=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
   TILE_DAY_BASE   =L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
   TILE_DAY_LABELS =L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19});
-  TILE_DARK_BASE.addTo(MAP);
-  TILE_DARK_LABELS.addTo(MAP);
+  TILE_DAY_BASE.addTo(MAP);
+  TILE_DAY_LABELS.addTo(MAP);
   LAYERS.forEach(l=>{LG[l.id]=L.layerGroup();});
   CONFLICTS.forEach(c=>{
     const sz={critical:24,high:18,med:13,low:10,latent:8}[c.intensity]||12;
@@ -1376,18 +1376,18 @@ function updateTicker(items){
 // ══════════════════════════════════════════════════════════
 // THEME — day / night
 // ══════════════════════════════════════════════════════════
-let isDark=true;
+let isDark=false;
 function toggleTheme(){
   isDark=!isDark;
   const btn=document.getElementById('theme-btn');
   if(isDark){
-    document.body.classList.remove('day');
-    btn.textContent='🌙';
+    document.body.classList.add('dark');
+    if(btn) btn.textContent='☀';
     MAP.removeLayer(TILE_DAY_BASE); MAP.removeLayer(TILE_DAY_LABELS);
     TILE_DARK_BASE.addTo(MAP); TILE_DARK_LABELS.addTo(MAP);
   } else {
-    document.body.classList.add('day');
-    btn.textContent='☀️';
+    document.body.classList.remove('dark');
+    if(btn) btn.textContent='☾';
     MAP.removeLayer(TILE_DARK_BASE); MAP.removeLayer(TILE_DARK_LABELS);
     TILE_DAY_BASE.addTo(MAP); TILE_DAY_LABELS.addTo(MAP);
   }
