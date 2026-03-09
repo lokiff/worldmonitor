@@ -215,10 +215,35 @@ button{font-family:inherit;cursor:pointer;}
   cursor:pointer;
 }
 .fitem:hover{background:var(--bg2);}
-@keyframes fadein{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
-.fitem{animation:fadein .18s ease both;}
-@keyframes newflash{0%{background:rgba(30,158,90,.15);border-left:2px solid #2ecc71}80%{background:rgba(30,158,90,.05)}100%{background:transparent;border-left:none}}
-.fitem-new{animation:fadein .18s ease both,newflash 2.5s ease forwards!important;}
+@keyframes fadein{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:translateX(0)}}
+.fitem{animation:fadein .2s ease both;}
+@keyframes newflash{
+  0%  {background:rgba(30,158,90,.18);border-left:2px solid var(--green);padding-left:14px;}
+  60% {background:rgba(30,158,90,.06);border-left:2px solid rgba(30,158,90,.3);padding-left:14px;}
+  100%{background:transparent;border-left:none;padding-left:12px;}
+}
+.fitem-new{animation:fadein .25s ease both, newflash 3s ease forwards!important;}
+.new-badge{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:5px 10px;
+  background:rgba(30,158,90,.12);
+  border-bottom:1px solid rgba(30,158,90,.25);
+  color:#2ecc71;
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:.8px;
+  cursor:pointer;
+  animation:badgein .3s ease both;
+}
+.new-badge:hover{background:rgba(30,158,90,.2);}
+.badge-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:#2ecc71;
+  box-shadow:0 0 6px #2ecc71;
+  animation:blink 1s infinite;
+}
+@keyframes badgein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
 .ftop{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap;}
 .ftag{
@@ -311,33 +336,9 @@ button{font-family:inherit;cursor:pointer;}
 .stream-card:hover{background:var(--bg2);}
 
 /* ── TICKER BOTTOM — mercados ── */
-.ticker-bottom{
-  height:26px;flex-shrink:0;
-  background:var(--bg1);
-  border-top:1px solid var(--border2);
-  display:flex;align-items:center;overflow:hidden;
-  font-size:10px;color:var(--text2);
-}
-.ticker-label-b{
-  padding:0 12px;
-  background:var(--bg2);
-  color:var(--amber);
-  font-size:8px;font-weight:600;
-  letter-spacing:2px;height:100%;
-  display:flex;align-items:center;flex-shrink:0;
-  border-right:1px solid var(--border2);
-  white-space:nowrap;
-  font-family:'JetBrains Mono',monospace;
-  text-transform:uppercase;
-}
-.ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
-.ticker-text{
-  display:inline-block;padding-left:60%;
-  animation:ticker 80s linear infinite;
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;letter-spacing:.3px;color:var(--text1);
-}
-@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+
+
 
 /* ── SLIDE PANELS ── */
 .panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;}
@@ -433,7 +434,6 @@ body.light{
 body.light .app::before{opacity:.15;background-image:
   linear-gradient(#dde0ea 1px,transparent 1px),
   linear-gradient(90deg,#dde0ea 1px,transparent 1px);}
-body.light .ticker-text{color:var(--text2);}
 body.light .fitem:hover{background:var(--bg3);}
 body.light .farea{background:var(--bg1);}
 
@@ -548,10 +548,7 @@ body.light .farea{background:var(--bg1);}
   </div><!-- /main -->
 
   <!-- TICKER BOTTOM: mercados -->
-  <div class="ticker-bottom">
-    <div class="ticker-label-b">MERCADOS</div>
-    <div class="ticker-scroll"><span class="ticker-text" id="ticker-markets-text">Cargando mercados...</span></div>
-  </div>
+
 
 </div><!-- /app -->
 
@@ -587,10 +584,7 @@ body.light .farea{background:var(--bg1);}
     <div class="panel-section">
       <div class="panel-section-label">Opciones</div>
 
-      <div class="pref-row">
-        <span class="pref-label">Ticker de mercados</span>
-        <button class="toggle-sw" id="tog-markets" data-on="1" onclick="togglePref('markets',this)" style="background:#2a70d4;"><div class="knob" style="left:19px;"></div></button>
-      </div>
+
     </div>
     <div class="panel-section">
       <div class="panel-section-label">Ancho de columnas</div>
@@ -1489,7 +1483,7 @@ function initVideos() {
 // ══════════════════════════════════════════════════════════
 // ── LIVE UPDATE ENGINE ────────────────────────────────────
 // Merge incoming items with existing ones by link key — no wipes
-const LIVE_INTERVAL = 60; // seconds between auto-refresh
+const LIVE_INTERVAL = 60;
 
 function startCountdown(){
   const el=document.getElementById('refresh-countdown');
@@ -1506,7 +1500,6 @@ function startCountdown(){
   },1000);
 }
 
-// Merge new items into existing array, return {merged, newCount}
 function mergeItems(existing, incoming){
   const seen=new Set(existing.map(function(i){return i.link||i.title;}));
   const fresh=incoming.filter(function(i){
@@ -1514,33 +1507,61 @@ function mergeItems(existing, incoming){
     return key && !seen.has(key);
   });
   fresh.forEach(function(i){i._new=true;});
-  // Prepend new, keep existing, cap at 200
-  const merged=[...fresh,...existing].slice(0,200);
-  return {merged, newCount:fresh.length};
+  return {merged:[...fresh,...existing].slice(0,300), newCount:fresh.length};
 }
 
-// Toast for new items
-function showNewBadge(areaId, count){
-  if(!count) return;
+// Insert new items at top of feed via DOM (no wipe, preserves scroll)
+function prependItems(items, areaId){
   const area=document.getElementById(areaId);
-  if(!area) return;
-  const old=area.querySelector('.new-badge');
-  if(old) old.remove();
+  if(!area||!items.length) return;
+
+  // Remove old badge if any
+  const oldBadge=area.querySelector('.new-badge');
+  if(oldBadge) oldBadge.remove();
+
+  // Build and insert badge
   const badge=document.createElement('div');
   badge.className='new-badge';
-  badge.textContent='+'+count+' nuevas';
-  badge.style.cssText='position:sticky;top:0;left:0;right:0;z-index:10;text-align:center;'+
-    'padding:4px;background:rgba(30,158,90,.15);border-bottom:1px solid rgba(30,158,90,.3);'+
-    'color:#2ecc71;font-size:10px;font-family:JetBrains Mono,monospace;letter-spacing:.5px;cursor:pointer;';
+  badge.innerHTML='<span class="badge-dot"></span>+'+items.length+' '+(areaId.includes('osint')?'posts':'noticias')+' nuevas';
   badge.onclick=function(){badge.remove();};
-  setTimeout(function(){if(badge.parentNode)badge.remove();},5000);
-  area.insertBefore(badge,area.firstChild);
+  area.insertBefore(badge, area.firstChild);
+  setTimeout(function(){if(badge.parentNode)badge.remove();}, 6000);
+
+  // Insert new items one by one at top (after badge)
+  const frag=document.createDocumentFragment();
+  items.forEach(function(item,ix){
+    const div=document.createElement('div');
+    div.innerHTML=buildItemHTML(item, ix);
+    const inner=div.firstChild;
+    inner.classList.add('fitem-new');
+    inner.style.animationDelay=(ix*0.06)+'s';
+    frag.appendChild(inner);
+  });
+  area.insertBefore(frag, badge.nextSibling);
 }
+
+// Build a single item's HTML (extracted from renderItems)
+function buildItemHTML(item, ix){
+  const t=CLASSIFY(item.title),td=TAG[t]||TAG['i'];
+  const isTg=item.type==='tg';
+  const tagCls=isTg?'tag-tg':td[0];
+  const tagLbl=isTg?'OSINT':td[1];
+  const href=(!isTg&&item.link)?(item.link||'').replace(/"/g,'&quot;'):'';
+  const openA=href?'data-href="'+href+'" onclick="window.open(this.dataset.href,&quot;_blank&quot;)" style="cursor:pointer;"':'style="cursor:default;"';
+  const lock=isTg?'<span style="color:var(--text2);font-size:9px;"> 🔒</span>':'';
+  const saveB=href?'<button class="save-btn" title="Guardar" onclick="event.stopPropagation();doSave(this)" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-src="'+item.src+'" data-link="'+href+'" data-pub="'+item.pubDate+'">🔖</button>':'';
+  const desc=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
+  return '<div class="fitem" '+openA+'>'+
+    '<div class="ftop"><span class="ftag '+tagCls+'">'+tagLbl+'</span><span class="fsrc">'+item.src+'</span>'+lock+'<span class="ftime">'+timeAgo(item.pubDate)+'</span>'+saveB+'</div>'+
+    '<div class="ftitle">'+item.title+'</div>'+desc+
+  '</div>';
+}
+
 async function loadMedia(force=false){
   const isFirst=!mediaCache.data.length;
   if(isFirst){
     const el=document.getElementById('feed-media');
-    if(el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>';
+    if(el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando...</div>';
   }
   const incoming=[];
   const sources=[...MEDIA_SOURCES,...customSources.filter(function(cs){return !MEDIA_SOURCES.find(function(m){return m.url===cs.url;});})];
@@ -1554,15 +1575,10 @@ async function loadMedia(force=false){
   } else {
     const {merged,newCount}=mergeItems(mediaCache.data,incoming);
     mediaCache={ts:Date.now(),data:merged};
-    if(newCount>0){
-      renderMedia();
-      showNewBadge('feed-media',newCount);
-    }
+    if(newCount>0) prependItems(merged.slice(0,newCount),'feed-media');
   }
   const ftm=document.getElementById('ft-media');
   if(ftm) ftm.textContent=mediaCache.data.length;
-  updateTicker(mediaCache.data);
-  if(translateOn) await translateItems(mediaCache.data);
 }
 
 async function liveRefreshMedia(){
@@ -1574,17 +1590,32 @@ async function liveRefreshMedia(){
   if(!incoming.length) return;
   incoming.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
   const {merged,newCount}=mergeItems(mediaCache.data,incoming);
+  if(!newCount) return;
   mediaCache={ts:Date.now(),data:merged};
-  if(newCount>0){
-    renderMedia();
-    showNewBadge('feed-media',newCount);
-    const ftm=document.getElementById('ft-media');
-    if(ftm) ftm.textContent=mediaCache.data.length;
-    updateTicker(mediaCache.data);
-  }
+  prependItems(merged.slice(0,newCount),'feed-media');
+  const ftm=document.getElementById('ft-media');
+  if(ftm) ftm.textContent=mediaCache.data.length;
 }
 
-function liveRefreshOSINT(){loadOSINT(true);}
+async function liveRefreshOSINT(){
+  // Don't wipe — load fresh and merge
+  const all=[];
+  await Promise.allSettled(OSINT_SOURCES.map(async function(src){
+    try{
+      const html=await fetchRSS('https://t.me/s/'+src.ch);
+      if(!html) return;
+      parseTelegram(html,src.n,src.cat).forEach(function(i){all.push(i);});
+    }catch(e){}
+  }));
+  if(!all.length) return;
+  all.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
+  const {merged,newCount}=mergeItems(osintCache.data,all);
+  if(!newCount) return;
+  osintCache={ts:Date.now(),data:merged};
+  prependItems(merged.slice(0,newCount),'feed-osint');
+  const fto=document.getElementById('ft-osint');
+  if(fto) fto.textContent=osintCache.data.length;
+}
 function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
 
 // ══════════════════════════════════════════════════════════
@@ -1809,13 +1840,7 @@ function renderOSINT(failed=[]){
 // ══════════════════════════════════════════════════════════
 // TICKER
 // ══════════════════════════════════════════════════════════
-function updateTicker(items){
-  const t=document.getElementById('ticker-news-text');
-  if(t) t.textContent=items.slice(0,20).map(function(i){return '◉  '+i.title+'  —  '+i.src;}).join('      ');
-  const now=new Date();
-  const fu=document.getElementById('ft-updated');
-  if(fu) fu.textContent=String(now.getUTCHours()).padStart(2,'0')+':'+String(now.getUTCMinutes()).padStart(2,'0')+' UTC';
-}
+function updateTicker(items){ /* no-op */ }
 
 
 // ══════════════════════════════════════════════════════════
@@ -2574,7 +2599,7 @@ function togglePref(key, btn) {
   btn.querySelector('.knob').style.left = on ? '3px' : '19px';
   localStorage.setItem('ct_pref_'+key, on?'0':'1');
   
-  if(key==='markets'){ const t=document.querySelector('.ticker-bottom'); if(t) t.style.display=on?'none':'flex'; }
+  
 }
 
 // ── CUSTOM SOURCES ────────────────────────────────────────
@@ -2649,8 +2674,8 @@ function applySavedPrefs() {
     
   }
   if(localStorage.getItem('ct_pref_markets')==='0'){
-    const t=document.querySelector('.ticker-bottom');if(t)t.style.display='none';
-    const btn=document.getElementById('tog-markets');if(btn){btn.dataset.on='0';btn.style.background='#ddd';btn.querySelector('.knob').style.left='3px';}
+    
+    
   }
 }
 
@@ -2672,122 +2697,7 @@ setSidebarPanel('news', document.getElementById('sb-news'));
 
 // ── MERCADOS EN TIEMPO REAL ──────────────────────────────
 // Fuentes: Frankfurter (forex), Coinbase (crypto), stooq (índices/acciones)
-const MARKET_SYMBOLS = [
-  // Índices via stooq CSV
-  {sym:'^spx',   label:'S&P 500',    type:'stooq'},
-  {sym:'^ndq',   label:'NASDAQ',     type:'stooq'},
-  {sym:'^dji',   label:'DOW',        type:'stooq'},
-  // Materias primas via stooq
-  {sym:'brent.f',label:'Brent',      type:'stooq'},
-  {sym:'cl.f',   label:'WTI',        type:'stooq'},
-  {sym:'gc.f',   label:'ORO',        type:'stooq'},
-  // Defensa via stooq
-  {sym:'lmt.us', label:'LMT',        type:'stooq'},
-  {sym:'rtx.us', label:'RTX',        type:'stooq'},
-  {sym:'ba.us',  label:'Boeing',     type:'stooq'},
-  {sym:'noc.us', label:'Northrop',   type:'stooq'},
-  // Forex via Frankfurter
-  {sym:'USD',    label:'EUR/USD',    type:'forex', base:'EUR', quote:'USD'},
-  {sym:'GBP',    label:'GBP/USD',    type:'forex', base:'GBP', quote:'USD'},
-  // Crypto via Coinbase
-  {sym:'BTC-USD',label:'BTC',        type:'crypto'},
-  {sym:'ETH-USD',label:'ETH',        type:'crypto'},
-];
 
-let marketData = {};
-
-async function loadMarkets() {
-  await Promise.allSettled([
-    loadStooqPrices(),
-    loadForexPrices(),
-    loadCryptoPrices(),
-  ]);
-  renderMarketTicker();
-}
-
-// stooq.com — free, no key, CORS ok via proxy
-async function loadStooqPrices() {
-  const stooqSyms = MARKET_SYMBOLS.filter(function(s){ return s.type==='stooq'; });
-  await Promise.allSettled(stooqSyms.map(async function(item) {
-    try {
-      const url = 'https://stooq.com/q/l/?s=' + item.sym + '&f=sd2t2ohlcv&h&e=csv';
-      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-      const res = await fetch(proxy, {signal: AbortSignal.timeout(6000)});
-      const txt = await res.text();
-      const lines = txt.trim().split('\n');
-      if (lines.length < 2) return;
-      const cols = lines[1].split(',');
-      // cols: Symbol,Date,Time,Open,High,Low,Close,Volume
-      const close = parseFloat(cols[6]);
-      const open  = parseFloat(cols[3]);
-      if (!close || isNaN(close)) return;
-      const pct = open ? ((close - open) / open * 100) : 0;
-      marketData[item.sym] = {price: close, pct: pct, label: item.label};
-    } catch(e) {}
-  }));
-}
-
-// Frankfurter — free forex API, CORS allowed
-async function loadForexPrices() {
-  try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,GBP', {signal: AbortSignal.timeout(5000)});
-    const data = await res.json();
-    if (data.rates) {
-      marketData['USD'] = {price: data.rates.USD, pct: 0, label: 'EUR/USD'};
-      // GBP/USD = EUR/USD ÷ EUR/GBP
-      if (data.rates.GBP) {
-        const gbpusd = data.rates.USD / data.rates.GBP;
-        marketData['GBP'] = {price: gbpusd, pct: 0, label: 'GBP/USD'};
-      }
-    }
-  } catch(e) {}
-}
-
-// Coinbase — free, CORS allowed
-async function loadCryptoPrices() {
-  const cryptos = [{sym:'BTC-USD',label:'BTC'},{sym:'ETH-USD',label:'ETH'}];
-  await Promise.allSettled(cryptos.map(async function(item) {
-    try {
-      const res = await fetch('https://api.coinbase.com/v2/prices/' + item.sym + '/spot', {signal: AbortSignal.timeout(5000)});
-      const data = await res.json();
-      const price = parseFloat(data.data && data.data.amount);
-      if (!price) return;
-      // Get 24h change
-      const res2 = await fetch('https://api.coinbase.com/v2/assets/spot?base=' + item.sym.split('-')[0], {signal: AbortSignal.timeout(4000)});
-      let pct = 0;
-      try {
-        const d2 = await res2.json();
-        pct = d2.data && d2.data.percent_change_24h ? parseFloat(d2.data.percent_change_24h) : 0;
-      } catch(e2) {}
-      marketData[item.sym] = {price: price, pct: pct, label: item.label};
-    } catch(e) {}
-  }));
-}
-
-function renderMarketTicker() {
-  const el = document.getElementById('ticker-markets-text');
-  if (!el) return;
-  const parts = MARKET_SYMBOLS.map(function(s) {
-    const key = s.sym;
-    const d = marketData[key];
-    if (!d || !d.price) return null;
-    const p = d.price;
-    const price = p >= 10000 ? Math.round(p).toLocaleString('es-ES')
-                : p >= 100   ? p.toFixed(2)
-                : p >= 1     ? p.toFixed(3)
-                :              p.toFixed(4);
-    const pct = d.pct || 0;
-    const arrow = pct >= 0 ? '▲' : '▼';
-    const sign  = pct >= 0 ? '+' : '';
-    const color = ''; // plain text ticker
-    return s.label + ' ' + arrow + ' ' + price + ' (' + sign + pct.toFixed(2) + '%)';
-  }).filter(Boolean);
-  if (parts.length) el.textContent = parts.join('   ·   ');
-}
-
-// Load on init + every 90s
-setTimeout(loadMarkets, 800);
-setInterval(loadMarkets, 90000);
 
 
 // ── PWA SERVICE WORKER ────────────────────────────────────
