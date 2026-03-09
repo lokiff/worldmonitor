@@ -626,63 +626,95 @@ const RESOURCES = [
 // FUENTES MEDIOS — 23 RSS
 // ══════════════════════════════════════════════════════════
 const MEDIA_SOURCES = [
-  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                       n:'BBC World',        cat:'general'},
-  {url:'https://www.aljazeera.com/xml/rss/all.xml',                         n:'Al Jazeera',       cat:'general'},
-  {url:'https://feeds.reuters.com/reuters/worldNews',                        n:'Reuters',          cat:'general'},
-  {url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',            n:'NYT World',        cat:'general'},
-  {url:'https://www.theguardian.com/world/rss',                             n:'Guardian',         cat:'general'},
-  {url:'https://feeds.skynews.com/feeds/rss/world.xml',                    n:'Sky News',         cat:'general'},
-  {url:'https://www.france24.com/en/rss',                                   n:'France 24',        cat:'general'},
-  {url:'https://apnews.com/apf-intlnews.rss',                              n:'AP News',          cat:'general'},
-  {url:'https://www.dw.com/en/top-stories/rss',                            n:'DW',               cat:'general'},
-  {url:'https://www.understandingwar.org/feed',                             n:'ISW',              cat:'ukraine'},
-  {url:'https://www.kyivindependent.com/rss/',                             n:'Kyiv Independent', cat:'ukraine'},
-  {url:'https://meduza.io/rss/en/all',                                      n:'Meduza',           cat:'ukraine'},
-  {url:'https://www.timesofisrael.com/feed/',                              n:'Times of Israel',  cat:'mideast'},
-  {url:'https://www.middleeasteye.net/rss',                                n:'ME Eye',           cat:'mideast'},
-  {url:'https://www.bellingcat.com/feed/',                                  n:'Bellingcat',       cat:'general'},
-  {url:'https://foreignpolicy.com/feed/',                                   n:'Foreign Policy',   cat:'general'},
-  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', n:'Defense News',     cat:'general'},
-  {url:'https://breakingdefense.com/feed/',                                n:'Breaking Defense', cat:'general'},
-  {url:'https://www.theafricareport.com/feed/',                            n:'Africa Report',    cat:'africa'},
-  {url:'https://www.scmp.com/rss/91/feed',                                 n:'SCMP',             cat:'asia'},
-  {url:'https://www.rfa.org/english/news/rss2.html',                       n:'Radio Free Asia',  cat:'asia'},
-  {url:'https://www.crisisgroup.org/rss.xml',                              n:'ICG',              cat:'general'},
-  {url:'https://www.cfr.org/rss.xml',                                       n:'CFR',              cat:'general'},
-  {url:'https://www.economist.com/international/rss.xml',                   n:'Economist',        cat:'general'},
-  {url:'https://www.ft.com/world?format=rss',                               n:'Financial Times',  cat:'general'},
-  {url:'https://feeds.npr.org/1004/rss.json',                               n:'NPR World',        cat:'general'},
-  {url:'https://www.bbc.co.uk/news/world/middle_east/rss.xml',              n:'BBC M.East',       cat:'mideast'},
-  {url:'https://www.bbc.co.uk/news/world/africa/rss.xml',                   n:'BBC Africa',       cat:'africa'},
-  {url:'https://rss.dw.com/xml/rss-en-africa',                              n:'DW Africa',        cat:'africa'},
-  {url:'https://www.voanews.com/api/zkyqt$ype',                             n:'VOA News',         cat:'general'},
-  {url:'https://www.aljazeera.com/xml/rss/all.xml',                         n:'AJ Arabic',        cat:'mideast'},
-  {url:'https://www.lemonde.fr/international/rss_full.xml',                 n:'Le Monde',         cat:'general'},
-  {url:'https://elpais.com/rss/internacional.html',                         n:'El País',          cat:'general'},
-  {url:'https://www.jpost.com/Rss/RssFeedsHeadlines.aspx',                  n:'Jerusalem Post',   cat:'mideast'},
-  {url:'https://www.haaretz.com/cmlink/1.628752',                           n:'Haaretz',          cat:'mideast'},
-  {url:'https://www.spacewar.com/military_news.xml',                        n:'SpaceWar',         cat:'general'},
-  {url:'https://feeds.feedburner.com/blogspot/gJZg',                        n:'War on Rocks',     cat:'general'},
+  // ── Medios generalistas con sección de conflictos ──
+  {url:'https://feeds.reuters.com/reuters/worldNews',                              n:'Reuters',           cat:'general'},
+  {url:'https://apnews.com/apf-intlnews.rss',                                     n:'AP News',           cat:'general'},
+  {url:'https://www.aljazeera.com/xml/rss/all.xml',                               n:'Al Jazeera',        cat:'general'},
+  {url:'https://www.france24.com/en/rss',                                         n:'France 24',         cat:'general'},
+  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                             n:'BBC World',         cat:'general'},
+  {url:'https://www.dw.com/en/top-stories/rss',                                   n:'DW',                cat:'general'},
+  {url:'https://www.voanews.com/api/zkyqt$ype',                                   n:'VOA News',          cat:'general'},
+
+  // ── Think tanks y análisis estratégico ──
+  {url:'https://www.understandingwar.org/feed',                                    n:'ISW',               cat:'ukraine'},
+  {url:'https://www.crisisgroup.org/rss.xml',                                      n:'Crisis Group',      cat:'general'},
+  {url:'https://www.cfr.org/rss.xml',                                              n:'CFR',               cat:'general'},
+  {url:'https://foreignpolicy.com/feed/',                                          n:'Foreign Policy',    cat:'general'},
+  {url:'https://warontherocks.com/feed/',                                          n:'War on the Rocks',  cat:'general'},
+  {url:'https://www.iiss.org/rss',                                                 n:'IISS',              cat:'general'},
+  {url:'https://www.rand.org/pubs/rss/all.xml',                                    n:'RAND',              cat:'general'},
+
+  // ── Defensa y militar ──
+  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml',       n:'Defense News',      cat:'general'},
+  {url:'https://breakingdefense.com/feed/',                                        n:'Breaking Defense',  cat:'general'},
+  {url:'https://www.janes.com/feeds/news',                                         n:"Jane's",            cat:'general'},
+  {url:'https://www.military.com/rss-feeds/content?id=316',                       n:'Military.com',      cat:'general'},
+  {url:'https://taskandpurpose.com/feed/',                                         n:'Task & Purpose',    cat:'general'},
+
+  // ── OSINT e investigación ──
+  {url:'https://www.bellingcat.com/feed/',                                         n:'Bellingcat',        cat:'general'},
+  {url:'https://theintercept.com/feed/?rss',                                       n:'The Intercept',     cat:'general'},
+
+  // ── Ucrania / Europa del Este ──
+  {url:'https://www.kyivindependent.com/rss/',                                    n:'Kyiv Independent',  cat:'ukraine'},
+  {url:'https://meduza.io/rss/en/all',                                             n:'Meduza',            cat:'ukraine'},
+  {url:'https://euromaidanpress.com/feed/',                                        n:'Euromaidan Press',  cat:'ukraine'},
+
+  // ── Oriente Medio ──
+  {url:'https://www.timesofisrael.com/feed/',                                     n:'Times of Israel',   cat:'mideast'},
+  {url:'https://www.middleeasteye.net/rss',                                       n:'Middle East Eye',   cat:'mideast'},
+  {url:'https://www.jpost.com/Rss/RssFeedsHeadlines.aspx',                        n:'Jerusalem Post',    cat:'mideast'},
+  {url:'https://www.al-monitor.com/rss',                                           n:'Al-Monitor',        cat:'mideast'},
+
+  // ── África ──
+  {url:'https://www.theafricareport.com/feed/',                                   n:'Africa Report',     cat:'africa'},
+  {url:'https://www.bbc.co.uk/news/world/africa/rss.xml',                         n:'BBC Africa',        cat:'africa'},
+  {url:'https://rss.dw.com/xml/rss-en-africa',                                    n:'DW Africa',         cat:'africa'},
+  {url:'https://acleddata.com/feed/',                                              n:'ACLED',             cat:'africa'},
+
+  // ── Asia-Pacífico ──
+  {url:'https://www.scmp.com/rss/91/feed',                                        n:'SCMP',              cat:'asia'},
+  {url:'https://www.rfa.org/english/news/rss2.html',                              n:'Radio Free Asia',   cat:'asia'},
+  {url:'https://thediplomat.com/feed/',                                            n:'The Diplomat',      cat:'asia'},
+  {url:'https://www.38north.org/feed/',                                            n:'38 North (DPRK)',   cat:'asia'},
+
+  // ── Humanitario / ONU ──
+  {url:'https://reliefweb.int/updates/rss.xml',                                   n:'ReliefWeb',         cat:'general'},
+  {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
 ];
 
 // ══════════════════════════════════════════════════════════
 // CANALES OSINT / TELEGRAM — scraping directo t.me/s/
 // ══════════════════════════════════════════════════════════
 const OSINT_SOURCES = [
-  // ── ENGLISH — verified public channels ──
-  {ch:'UkraineNow',          n:'Ukraine Now 🇬🇧',       cat:'ukraine', lang:'en'},
-  {ch:'war_monitor',         n:'War Monitor 🇬🇧',       cat:'ukraine', lang:'en'},
-  {ch:'osintdefender',       n:'OSINTdefender 🇬🇧',     cat:'general', lang:'en'},
-  {ch:'IntelCrab',           n:'Intel Crab 🇬🇧',        cat:'general', lang:'en'},
-  {ch:'GeoConfirmed',        n:'GeoConfirmed 🇬🇧',      cat:'general', lang:'en'},
-  {ch:'conflictmonitor',     n:'Conflict Monitor 🇬🇧',  cat:'general', lang:'en'},
-  {ch:'militaryland_net',    n:'MilitaryLand 🇬🇧',      cat:'ukraine', lang:'en'},
-  {ch:'frontnews_en',        n:'Front News EN 🇬🇧',     cat:'ukraine', lang:'en'},
-  {ch:'IsraelWarRoom',       n:'Israel War Room 🇬🇧',   cat:'mideast', lang:'en'},
-  {ch:'MiddleEastSpectator', n:'ME Spectator 🇬🇧',      cat:'mideast', lang:'en'},
-  // ── SPANISH — verified public channels ──
-  {ch:'AlertaNews24',        n:'Alerta News 🇪🇸',       cat:'general', lang:'es'},
-  {ch:'OperacionUcrania',    n:'Operación Ucrania 🇪🇸',  cat:'ukraine', lang:'es'},
+  // ── Ucrania / Europa del Este ──
+  {ch:'UkraineNow',            n:'Ukraine Now',          cat:'ukraine', lang:'en'},
+  {ch:'war_monitor',           n:'War Monitor',          cat:'ukraine', lang:'en'},
+  {ch:'militaryland_net',      n:'MilitaryLand',         cat:'ukraine', lang:'en'},
+  {ch:'DeepStateUA',           n:'DeepState',            cat:'ukraine', lang:'en'},
+  {ch:'OperacionUcrania',      n:'Operación Ucrania',    cat:'ukraine', lang:'es'},
+
+  // ── OSINT y verificación ──
+  {ch:'GeoConfirmed',          n:'GeoConfirmed',         cat:'general', lang:'en'},
+  {ch:'osintdefender',         n:'OSINTdefender',        cat:'general', lang:'en'},
+  {ch:'IntelCrab',             n:'Intel Crab',           cat:'general', lang:'en'},
+  {ch:'conflictmonitor',       n:'Conflict Monitor',     cat:'general', lang:'en'},
+
+  // ── Oriente Medio ──
+  {ch:'IsraelWarRoom',         n:'Israel War Room',      cat:'mideast', lang:'en'},
+  {ch:'MiddleEastSpectator',   n:'ME Spectator',         cat:'mideast', lang:'en'},
+  {ch:'arabnews',              n:'Arab News',            cat:'mideast', lang:'en'},
+
+  // ── África / Global Sur ──
+  {ch:'AfricaIntelligence',    n:'Africa Intelligence',  cat:'africa',  lang:'en'},
+  {ch:'conflictsafrica',       n:'Conflicts Africa',     cat:'africa',  lang:'en'},
+
+  // ── Asia / DPRK ──
+  {ch:'nknewsorg',             n:'NK News',              cat:'asia',    lang:'en'},
+
+  // ── Español ──
+  {ch:'AlertaNews24',          n:'Alerta News',          cat:'general', lang:'es'},
+  {ch:'infodefensa',           n:'Infodefensa',          cat:'general', lang:'es'},
 ];
 
 // ══════════════════════════════════════════════════════════
