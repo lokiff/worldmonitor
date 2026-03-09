@@ -1509,7 +1509,8 @@ function startCountdown(){
       const isHidden = document.hidden;
       secs = isHidden ? POLL.hidden : POLL.base;
       if(!isHidden){
-          liveRefreshOSINT();
+        liveRefreshMedia();
+        liveRefreshOSINT();
         liveRefreshIntel();
         loadOREF();
       }
@@ -1594,9 +1595,64 @@ function toggleRead(btn, href) {
 // Pool: max N fetches simultaneous — prevents browser connection saturation
 async function liveRefreshIntel(){ loadIntel(true); }
 // liveRefreshOSINT defined in OSINT block above
-function refreshAll(force=true){loadOSINT(force);loadIntel(force);}
+function refreshAll(force=true){loadMedia(force);loadOSINT(force);loadIntel(force);}
 
 // ══════════════════════════════════════════════════════════
+// ── POOL: max N concurrent fetches ───────────────────────
+async function fetchPool(tasks, limit=6) {
+  let i=0;
+  async function run(){ while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} }
+  await Promise.all(Array.from({length:Math.min(limit,tasks.length)},run));
+}
+
+async function loadMedia(force=false){
+  const isFirst=!mediaCache.data.length;
+  const el=document.getElementById('feed-media');
+  if(isFirst && el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando noticias...</div>';
+  const sources=[...MEDIA_SOURCES,...customSources.filter(cs=>!MEDIA_SOURCES.find(m=>m.url===cs.url))];
+  const incoming=[];
+  let done=0;
+  await fetchPool(sources.map(src=>async()=>{
+    try{
+      const xml=await fetchRSS(src.url);
+      if(!xml) return;
+      parseRSS(xml,src.n,src.cat,'rss').forEach(i=>incoming.push(i));
+      done++;
+      if(isFirst && done%5===0 && incoming.length>0){
+        const snap=[...incoming].sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+        renderItems(snap,'feed-media');
+      }
+    }catch(e){}
+  }),6);
+  incoming.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  if(isFirst){
+    mediaCache={ts:Date.now(),data:incoming};
+    renderMedia();
+  } else {
+    const {merged,newCount}=mergeItems(mediaCache.data,incoming);
+    mediaCache={ts:Date.now(),data:merged};
+    if(newCount>0) prependItems(merged.slice(0,newCount),'feed-media');
+  }
+  const ftm=document.getElementById('ft-media');
+  if(ftm) ftm.textContent=mediaCache.data.length;
+}
+
+async function liveRefreshMedia(){
+  const sources=[...MEDIA_SOURCES,...customSources.filter(cs=>!MEDIA_SOURCES.find(m=>m.url===cs.url))];
+  const incoming=[];
+  await fetchPool(sources.map(src=>async()=>{
+    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(i=>incoming.push(i));}catch(e){}
+  }),6);
+  if(!incoming.length) return;
+  incoming.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  const {merged,newCount}=mergeItems(mediaCache.data,incoming);
+  if(!newCount) return;
+  mediaCache={ts:Date.now(),data:merged};
+  prependItems(merged.slice(0,newCount),'feed-media');
+  const ftm=document.getElementById('ft-media');
+  if(ftm) ftm.textContent=mediaCache.data.length;
+}
+
 // CORS PROXY FALLBACK
 // ══════════════════════════════════════════════════════════
 // ── FETCH RSS: todos los proxies en paralelo, primero que llegue gana ──
@@ -2539,6 +2595,7 @@ function init(){
   initVideos();
   setTimeout(function(){loadOREF();},1500);
   setInterval(loadOREF, 15000); // OREF every 15s
+  setTimeout(function(){loadMedia();},200);
   setTimeout(function(){loadOSINT();},500);
   setTimeout(function(){loadIntel();},800);
   initChat();
