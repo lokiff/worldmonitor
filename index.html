@@ -273,12 +273,10 @@ button{font-family:inherit;cursor:pointer;}
         <div style="width:1px;height:16px;background:var(--b2);margin:0 2px;"></div>
         <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:var(--green);" title="Load UN/GDACS live crisis events">⚡ LIVE</button>
       </div>
-        <label id="lyr-conflicts" class="lyr-toggle on" onclick="toggleLayer('conflicts',this)"><span class="lyr-dot" style="background:#f85149"></span>Conflictos</label>
-        <label id="lyr-nuclear"   class="lyr-toggle"    onclick="toggleLayer('nuclear',this)"><span class="lyr-dot" style="background:#e3b341"></span>☢ Nuclear</label>
-        <label id="lyr-quakes"    class="lyr-toggle"    onclick="toggleLayer('quakes',this)"><span class="lyr-dot" style="background:#f0883e"></span>🌍 Terremotos</label>
-        <label id="lyr-fires"     class="lyr-toggle"    onclick="toggleLayer('fires',this)"><span class="lyr-dot" style="background:#ff6b35"></span>🔥 Incendios</label>
-        <label id="lyr-military"  class="lyr-toggle"    onclick="toggleLayer('military',this)"><span class="lyr-dot" style="background:#58a6ff"></span>✈ Militares</label>
-      </div>
+
+
+
+
 
 
       <div class="map-zoombar">
@@ -732,8 +730,6 @@ function initMap(){
   LG['ucdp']      = L.layerGroup();
   LG['gdacs']     = L.layerGroup();
   LG['liveuamap'] = L.layerGroup();
-  LG['quakes']   = L.layerGroup();
-  LG['fires']    = L.layerGroup();
 }
 
 // ══════════════════════════════════════════════════════════
