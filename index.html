@@ -1150,9 +1150,9 @@ function startCountdown(){
   const el=document.getElementById('refresh-countdown');
   setInterval(()=>{
     countdownSecs--;
-    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);aiUpdateConflicts(true);}
+    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);}
     const m=Math.floor(countdownSecs/60),s=String(countdownSecs%60).padStart(2,'0');
-    if(el) el.textContent=`↻ ${m}:${s}`;
+    if(el) el.textContent=m+':'+s;
   },1000);
 }
 function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
@@ -1364,13 +1364,13 @@ function renderOSINT(failed=[]){
 // TICKER
 // ══════════════════════════════════════════════════════════
 function updateTicker(items){
-  const top=items.slice(0,15).map(i=>`◉ ${i.title} [${i.src}]`).join('   ');
-  document.getElementById('ticker').textContent=top||'SIN DATOS';
-  const alerts=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';}).length;
-  document.getElementById('st-n').textContent=items.length;
-  document.getElementById('st-a').textContent=alerts;
+  const el=document.getElementById('ticker');
+  if(el){const top=items.slice(0,15).map(i=>'◉ '+i.title+' ['+i.src+']').join('   ');el.textContent=top||'SIN DATOS';}
+  const sn=document.getElementById('st-n');if(sn)sn.textContent=items.length;
+  const sa=document.getElementById('st-a');if(sa){const a=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';}).length;sa.textContent=a;}
   const now=new Date();
-  document.getElementById('ft-updated').textContent=`${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
+  const fu=document.getElementById('ft-updated');
+  if(fu)fu.textContent=String(now.getUTCHours()).padStart(2,'0')+':'+String(now.getUTCMinutes()).padStart(2,'0')+' UTC';
 }
 
 // ══════════════════════════════════════════════════════════
