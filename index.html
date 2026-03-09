@@ -793,81 +793,56 @@ async function reverseGeocode(lat, lng) {
   } catch(e) {}
 }
 
-function openCountryIntel(country, code, lat, lng) {
-  // Resaltar zona en el mapa
-  if (window._countryCircle) MAP.removeLayer(window._countryCircle);
-  window._countryCircle = L.circle([lat, lng], {
-    radius: 150000, color: '#f85149', fillColor: '#f85149',
-    fillOpacity: 0.08, weight: 1.5, dashArray: '6 4'
-  }).addTo(MAP);
-
-  // Mostrar modal
+function buildModal() {
   let modal = document.getElementById('country-modal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'country-modal';
-    modal.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      z-index:3000;width:min(700px,92vw);max-height:80vh;
-      background:var(--s1);border:1px solid var(--b2);border-radius:6px;
-      display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8);`;
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3000;width:min(700px,92vw);max-height:80vh;background:var(--s1);border:1px solid var(--b2);border-radius:6px;display:none;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8);';
     document.body.appendChild(modal);
   }
-
-  modal.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--b1);flex-shrink:0;">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--t1);flex:1;">
-        🌍 ${country} ${code ? `<span style="color:var(--t3);font-size:10px;">(${code})</span>` : ''}
-      </div>
-      <button onclick="closeCountryModal()" style="background:transparent;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0 4px;">✕</button>
-    </div>
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--b1);flex-shrink:0;">
-      <button class="cmodal-tab on" id="ctab-current" onclick="switchCTab('current')"
-        style="flex:1;padding:8px;background:transparent;border:none;border-bottom:2px solid var(--red);
-        font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);cursor:pointer;letter-spacing:1px;">
-        🔴 CONFLICTOS ACTUALES
-      </button>
-      <button class="cmodal-tab" id="ctab-history" onclick="switchCTab('history')"
-        style="flex:1;padding:8px;background:transparent;border:none;border-bottom:2px solid transparent;
-        font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);cursor:pointer;letter-spacing:1px;">
-        📜 HISTORIAL
-      </button>
-      <button class="cmodal-tab" id="ctab-dossier" onclick="switchCTab('dossier')"
-        style="flex:1;padding:8px;background:transparent;border:none;border-bottom:2px solid transparent;
-        font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);cursor:pointer;letter-spacing:1px;">
-        📋 DOSSIER IA
-      </button>
-    </div>
-    <div id="cmodal-body" style="flex:1;overflow-y:auto;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t2);line-height:1.7;">
-      <div style="display:flex;align-items:center;gap:8px;color:var(--t3);">
-        <div class="spin-sm"></div> Analizando ${country}...
-      </div>
-    </div>
-    <div style="padding:10px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;">
-      <input id="dossier-query" placeholder="Buscar entidad: Hamas, Wagner, Hezbollah..." 
-        style="flex:1;padding:6px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;
-        color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:10px;outline:none;"
-        onkeydown="if(event.key==='Enter')searchEntity()">
-      <button onclick="searchEntity()" 
-        style="padding:6px 14px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;
-        color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;">
-        🔍 BUSCAR
-      </button>
-    </div>`;
-
-  // Overlay
   let overlay = document.getElementById('cmodal-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'cmodal-overlay';
-    overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2999;`;
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2999;display:none;';
     overlay.onclick = closeCountryModal;
     document.body.appendChild(overlay);
   }
-  overlay.style.display = 'block';
+  return modal;
+}
+
+function openCountryIntel(country, code, lat, lng) {
+  if (window._countryCircle) MAP.removeLayer(window._countryCircle);
+  window._countryCircle = L.circle([lat, lng], {
+    radius: 150000, color: '#ff6b6b', fillColor: '#ff6b6b',
+    fillOpacity: 0.08, weight: 1.5, dashArray: '6 4'
+  }).addTo(MAP);
+
+  const modal = buildModal();
+  const codeSpan = code ? ' <span style="color:var(--t3);font-size:10px;">(' + code + ')</span>' : '';
+  modal.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--b1);flex-shrink:0;">' +
+      '<div style="font-family:IBM Plex Mono,monospace;font-size:13px;font-weight:700;color:var(--t1);flex:1;">&#127757; ' + country + codeSpan + '</div>' +
+      '<button onclick="closeCountryModal()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;line-height:1;">&#x2715;</button>' +
+    '</div>' +
+    '<div style="display:flex;border-bottom:1px solid var(--b1);flex-shrink:0;">' +
+      '<button class="cmodal-tab" id="ctab-current" onclick="switchCTab('current')" style="flex:1;padding:9px 6px;background:transparent;border:none;border-bottom:2px solid var(--red);font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--red);cursor:pointer;letter-spacing:1px;">&#128308; ACTUALES</button>' +
+      '<button class="cmodal-tab" id="ctab-history" onclick="switchCTab('history')" style="flex:1;padding:9px 6px;background:transparent;border:none;border-bottom:2px solid transparent;font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);cursor:pointer;letter-spacing:1px;">&#128218; HISTORIAL</button>' +
+      '<button class="cmodal-tab" id="ctab-dossier" onclick="switchCTab('dossier')" style="flex:1;padding:9px 6px;background:transparent;border:none;border-bottom:2px solid transparent;font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);cursor:pointer;letter-spacing:1px;">&#128203; DOSSIER IA</button>' +
+    '</div>' +
+    '<div id="cmodal-body" style="flex:1;overflow-y:auto;padding:16px 18px;font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--t2);line-height:1.75;">' +
+      '<div style="display:flex;align-items:center;gap:8px;color:var(--t3);"><div class="spin-sm"></div> Analizando ' + country + '...</div>' +
+    '</div>' +
+    '<div style="padding:10px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;">' +
+      '<input id="dossier-query" placeholder="Buscar entidad: Hamas, Wagner, Hezbol&#225;..." onkeydown="if(event.key==='Enter')searchEntity()" style="flex:1;padding:7px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t1);font-family:IBM Plex Mono,monospace;font-size:10px;outline:none;">' +
+      '<button onclick="searchEntity()" style="padding:7px 14px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t2);font-family:IBM Plex Mono,monospace;font-size:10px;cursor:pointer;">&#128269; BUSCAR</button>' +
+    '</div>';
+
+  document.getElementById('cmodal-overlay').style.display = 'block';
   modal.style.display = 'flex';
   modal.dataset.country = country;
   modal.dataset.tab = 'current';
-
   loadCountryIntel(country, 'current');
 }
 
@@ -880,13 +855,14 @@ function closeCountryModal() {
 }
 
 function switchCTab(tab) {
+  const colors = {current: 'var(--red)', history: 'var(--blue)', dossier: 'var(--purple)'};
   document.querySelectorAll('.cmodal-tab').forEach(b => {
-    const isOn = b.id === 'ctab-'+tab;
-    b.style.color = isOn ? (tab === 'history' ? 'var(--blue)' : tab === 'dossier' ? 'var(--purple)' : 'var(--red)') : 'var(--t3)';
-    b.style.borderBottomColor = isOn ? (tab === 'history' ? 'var(--blue)' : tab === 'dossier' ? 'var(--purple)' : 'var(--red)') : 'transparent';
+    const active = b.id === 'ctab-' + tab;
+    b.style.color = active ? colors[tab] : 'var(--t3)';
+    b.style.borderBottomColor = active ? colors[tab] : 'transparent';
   });
   const modal = document.getElementById('country-modal');
-  const country = modal?.dataset?.country;
+  const country = modal && modal.dataset.country;
   if (!country) return;
   modal.dataset.tab = tab;
   loadCountryIntel(country, tab);
@@ -895,112 +871,82 @@ function switchCTab(tab) {
 async function loadCountryIntel(country, tab) {
   const body = document.getElementById('cmodal-body');
   if (!body) return;
-
-  // Cache
-  const cacheKey = `intel_${country}_${tab}`;
+  const cacheKey = 'intel_' + country + '_' + tab;
   const cached = sessionStorage.getItem(cacheKey);
   if (cached) { body.innerHTML = cached; return; }
 
-  body.innerHTML = `<div style="display:flex;align-items:center;gap:8px;color:var(--t3);"><div class="spin-sm"></div> ${tab === 'current' ? 'Analizando conflictos actuales' : tab === 'history' ? 'Buscando historial' : 'Generando dossier'} para ${country}...</div>`;
+  const labels = {current: 'Analizando conflictos actuales', history: 'Buscando historial', dossier: 'Generando dossier'};
+  body.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--t3);"><div class="spin-sm"></div> ' + (labels[tab]||'Cargando') + ' para ' + country + '...</div>';
 
   const prompts = {
-    current: `Eres un analista OSINT. Para el país "${country}", lista los conflictos ACTUALES (2020-2026): guerras activas, tensiones militares, disputas territoriales, insurgencias, terrorismo. Para cada uno: nombre, partes enfrentadas, estado actual, nivel de riesgo (CRÍTICO/ALTO/MEDIO/BAJO), y 2-3 líneas de contexto. Formato HTML con divs, sin markdown. Usa colores: rojo=#f85149, naranja=#f0883e, azul=#58a6ff. Si no hay conflictos activos, dilo claramente.`,
-    history: `Eres un analista histórico. Para "${country}", lista los principales conflictos HISTÓRICOS (desde 1900): nombre, fechas, partes, resultado, importancia histórica. Máximo 8 conflictos más relevantes. Formato HTML limpio con divs. Sin markdown. Colores históricos: azul=#58a6ff.`,
-    dossier: `Eres un analista de inteligencia estratégica. Genera un DOSSIER EJECUTIVO sobre "${country}" con: 1) Situación geopolítica actual, 2) Actores armados presentes, 3) Alianzas y enemigos, 4) Recursos estratégicos, 5) Amenazas principales, 6) Perspectiva 2026. Sé conciso pero preciso. Formato HTML con secciones. Sin markdown.`
+    current: 'Eres un analista OSINT. Para el pais "' + country + '", lista los conflictos ACTUALES (2020-2026): guerras activas, tensiones militares, disputas territoriales, insurgencias, terrorismo. Para cada uno: nombre, partes enfrentadas, estado actual, nivel de riesgo (CRITICO/ALTO/MEDIO/BAJO), y 2-3 lineas de contexto. Formato HTML con divs, sin markdown. Usa colores: rojo=#ff6b6b, naranja=#ffa552, azul=#79b8ff. Si no hay conflictos activos, dilo claramente.',
+    history: 'Eres un analista historico. Para "' + country + '", lista los principales conflictos HISTORICOS (desde 1900): nombre, fechas, partes, resultado, importancia historica. Maximo 8 conflictos mas relevantes. Formato HTML limpio con divs. Sin markdown.',
+    dossier: 'Eres un analista de inteligencia estrategica. Genera un DOSSIER EJECUTIVO sobre "' + country + '" con: 1) Situacion geopolitica actual, 2) Actores armados presentes, 3) Alianzas y enemigos, 4) Recursos estrategicos, 5) Amenazas principales, 6) Perspectiva 2026. Formato HTML con secciones. Sin markdown.'
   };
 
   try {
-    const r = await fetch(`${WORKER_URL}/intel`, {
+    const r = await fetch(WORKER_URL + '/intel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country, type: tab, prompt: prompts[tab] }),
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({country: country, type: tab, prompt: prompts[tab]}),
       signal: AbortSignal.timeout(30000)
     });
-
-    if (!r.ok) throw new Error(`Worker ${r.status}`);
+    if (!r.ok) throw new Error('Worker ' + r.status);
     const data = await r.json();
     const html = data.content || '<p style="color:var(--t3)">Sin datos disponibles.</p>';
-
-    const styled = `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.75;color:var(--t2);">${html}</div>`;
+    const styled = '<div style="font-size:12px;line-height:1.8;color:var(--t2);">' + html + '</div>';
     body.innerHTML = styled;
     sessionStorage.setItem(cacheKey, styled);
   } catch(e) {
-    body.innerHTML = `<div style="color:var(--t3);font-size:10px;">⚠ Error cargando inteligencia: ${e.message}<br><br>Asegúrate de que el Worker de Cloudflare está desplegado.</div>`;
+    body.innerHTML = '<div style="color:var(--t3);font-size:11px;">&#9888; Error: ' + e.message + '<br><br>Despliega el Worker de Cloudflare para activar el analisis IA.</div>';
   }
 }
 
 function openEntitySearch() {
-  // Abrir modal sin país seleccionado, directo al buscador
-  let modal = document.getElementById('country-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'country-modal';
-    modal.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      z-index:3000;width:min(700px,92vw);max-height:80vh;
-      background:var(--s1);border:1px solid var(--b2);border-radius:6px;
-      display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8);`;
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--b1);flex-shrink:0;">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--purple);flex:1;">🔍 INTEL — Buscar entidad</div>
-      <button onclick="closeCountryModal()" style="background:transparent;border:none;color:var(--t3);font-size:16px;cursor:pointer;">✕</button>
-    </div>
-    <div id="cmodal-body" style="flex:1;overflow-y:auto;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);line-height:1.7;">
-      <p>Introduce el nombre de cualquier entidad geopolítica para obtener un análisis de inteligencia:</p>
-      <p style="color:var(--t3);font-size:9px;">Ejemplos: <i>Rusia, Hamas, Wagner Group, Hezbolá, Corea del Norte, Sudán, Frente Polisario...</i></p>
-    </div>
-    <div style="padding:10px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;">
-      <input id="dossier-query" placeholder="País, milicia, organización, líder..." 
-        style="flex:1;padding:6px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;
-        color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:10px;outline:none;"
-        onkeydown="if(event.key==='Enter')searchEntity()">
-      <button onclick="searchEntity()" 
-        style="padding:6px 14px;background:var(--purple);border:1px solid var(--purple);border-radius:3px;
-        color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;font-weight:600;">
-        ANALIZAR
-      </button>
-    </div>`;
+  const modal = buildModal();
+  modal.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--b1);flex-shrink:0;">' +
+      '<div style="font-family:IBM Plex Mono,monospace;font-size:13px;font-weight:700;color:var(--purple);flex:1;">&#128269; INTEL &#8212; Buscar entidad</div>' +
+      '<button onclick="closeCountryModal()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;line-height:1;">&#x2715;</button>' +
+    '</div>' +
+    '<div id="cmodal-body" style="flex:1;overflow-y:auto;padding:20px 18px;font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--t3);line-height:1.8;">' +
+      '<p style="color:var(--t2);margin-bottom:10px;">Introduce el nombre de cualquier entidad geopolitica:</p>' +
+      '<p style="font-size:10px;">Ejemplos: Rusia, Hamas, Wagner Group, Hezbola, Corea del Norte, Frente Polisario...</p>' +
+    '</div>' +
+    '<div style="padding:10px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;">' +
+      '<input id="dossier-query" placeholder="Pais, milicia, organizacion, lider..." onkeydown="if(event.key==='Enter')searchEntity()" style="flex:1;padding:7px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t1);font-family:IBM Plex Mono,monospace;font-size:10px;outline:none;">' +
+      '<button onclick="searchEntity()" style="padding:7px 14px;background:var(--purple);border:1px solid var(--purple);border-radius:3px;color:#fff;font-family:IBM Plex Mono,monospace;font-size:10px;cursor:pointer;font-weight:700;">ANALIZAR</button>' +
+    '</div>';
 
-  let overlay = document.getElementById('cmodal-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'cmodal-overlay';
-    overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2999;`;
-    overlay.onclick = closeCountryModal;
-    document.body.appendChild(overlay);
-  }
-  overlay.style.display = 'block';
+  document.getElementById('cmodal-overlay').style.display = 'block';
   modal.style.display = 'flex';
-  document.getElementById('dossier-query')?.focus();
+  setTimeout(() => document.getElementById('dossier-query') && document.getElementById('dossier-query').focus(), 50);
 }
-  const input = document.getElementById('dossier-query');
-  const query = input?.value?.trim();
-  if (!query) return;
 
+async function searchEntity() {
+  const input = document.getElementById('dossier-query');
+  const query = input && input.value.trim();
+  if (!query) return;
   const body = document.getElementById('cmodal-body');
   if (!body) return;
 
-  // Cambiar a tab dossier
-  switchCTab('dossier');
-  body.innerHTML = `<div style="display:flex;align-items:center;gap:8px;color:var(--t3);"><div class="spin-sm"></div> Analizando entidad: ${query}...</div>`;
+  body.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--t3);"><div class="spin-sm"></div> Analizando: ' + query + '...</div>';
 
-  const prompt = `Eres un analista OSINT. Genera un informe de inteligencia sobre la entidad "${query}": tipo (país/milicia/organización/persona), origen, estructura, zonas de operación, aliados, enemigos, actividad reciente 2024-2026, nivel de amenaza, y fuentes. Sé preciso y factual. Formato HTML limpio con secciones. Sin markdown.`;
+  const prompt = 'Eres un analista OSINT. Genera un informe de inteligencia sobre la entidad "' + query + '": tipo (pais/milicia/organizacion/persona), origen, estructura, zonas de operacion, aliados, enemigos, actividad reciente 2024-2026, nivel de amenaza. Se preciso y factual. Formato HTML limpio con secciones. Sin markdown.';
 
   try {
-    const r = await fetch(`${WORKER_URL}/intel`, {
+    const r = await fetch(WORKER_URL + '/intel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country: query, type: 'entity', prompt }),
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({country: query, type: 'entity', prompt: prompt}),
       signal: AbortSignal.timeout(30000)
     });
-
-    if (!r.ok) throw new Error(`Worker ${r.status}`);
+    if (!r.ok) throw new Error('Worker ' + r.status);
     const data = await r.json();
-    const html = data.content || '<p style="color:var(--t3)">Sin datos.</p>';
-    body.innerHTML = `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.75;color:var(--t2);">${html}</div>`;
+    const html = data.content || '<p>Sin datos.</p>';
+    body.innerHTML = '<div style="font-size:12px;line-height:1.8;color:var(--t2);">' + html + '</div>';
   } catch(e) {
-    body.innerHTML = `<div style="color:var(--t3);font-size:10px;">⚠ Error: ${e.message}</div>`;
+    body.innerHTML = '<div style="color:var(--t3);font-size:11px;">&#9888; Error: ' + e.message + '</div>';
   }
   if (input) input.value = '';
 }
@@ -1261,12 +1207,14 @@ function renderItems(items,areaId){
     const t=CLASSIFY(item.title),[cls,label]=TAG[t]||TAG['i'];
     const safeLink=(item.link||'').replace(/'/g,"\\'");
     const isTg=item.type==='tg';
-    const tagHtml=isTg?`<span class="ftag tag-tg">📲 TELEGRAM</span>`:`<span class="ftag ${cls}">${label}</span>`;
-    return `<div class="fitem" style="animation-delay:${Math.min(i,20)*0.025}s" ${safeLink?`onclick="window.open('${safeLink}','_blank')"`:''}>
-      <div class="ftop">${tagHtml}<span class="fsrc">${item.src}</span><span class="ftime">${timeAgo(item.pubDate)}</span></div>
-      <div class="ftitle">${item.title}</div>
-      ${item.desc&&item.desc!==item.title?`<div class="fdesc">${item.desc}…</div>`:''}
-    </div>`;
+    const tagHtml=isTg?'<span class="ftag tag-tg">📲 TELEGRAM</span>':'<span class="ftag '+cls+'">'+label+'</span>';
+    const clickAttr=safeLink?'onclick="window.open(\''+safeLink+'\',\'_blank\')" style="cursor:pointer;"':'';
+    const descHtml=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'…</div>':'';
+    return '<div class="fitem" style="animation-delay:'+Math.min(i,20)*0.025+'s" '+clickAttr+'>'+
+      '<div class="ftop">'+tagHtml+'<span class="fsrc">'+item.src+'</span><span class="ftime">'+timeAgo(item.pubDate)+'</span></div>'+
+      '<div class="ftitle">'+item.title+'</div>'+
+      descHtml+
+    '</div>';
   }).join('');
 }
 
