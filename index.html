@@ -528,6 +528,22 @@ body{--font-body:'Barlow Condensed',sans-serif;}
   color:#fff;font-size:11px;cursor:pointer;
 }
 .chat-sys{font-size:9px;color:var(--text2);text-align:center;font-family:'JetBrains Mono',monospace;padding:3px 0;}
+
+/* ── MAP LAYER BUTTONS ── */
+.map-layer-btn{
+  padding:3px 8px;background:transparent;border:1px solid var(--border2);
+  color:var(--text2);font-size:9px;font-family:'JetBrains Mono',monospace;
+  border-radius:2px;cursor:pointer;letter-spacing:.3px;transition:all .12s;
+}
+.map-layer-btn.on{background:rgba(58,110,234,.15);border-color:var(--blue);color:var(--blue2);}
+.map-layer-btn:hover{border-color:var(--text1);color:var(--text1);}
+
+/* ── PULSING MARKERS via CSS ── */
+@keyframes pulse-critical{0%,100%{box-shadow:0 0 0 0 rgba(224,48,48,.6),0 0 8px rgba(224,48,48,.4)}50%{box-shadow:0 0 0 8px rgba(224,48,48,0),0 0 12px rgba(224,48,48,.3)}}
+@keyframes pulse-high{0%,100%{box-shadow:0 0 0 0 rgba(232,160,32,.5)}50%{box-shadow:0 0 0 6px rgba(232,160,32,0)}}
+.marker-critical{animation:pulse-critical 1.8s ease infinite;}
+.marker-high{animation:pulse-high 2.5s ease infinite;}
+
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -559,17 +575,16 @@ body{--font-body:'Barlow Condensed',sans-serif;}
 
     <!-- LEFT SIDEBAR -->
     <div class="sidebar">
-      <button class="sidebar-btn on" id="sb-news" onclick="setSidebarPanel('news',this)" title="Noticias">📰</button>
+      
       <button class="sidebar-btn" id="sb-saved" onclick="setSidebarPanel('saved',this)" title="Guardadas">🔖
         <span id="saved-count" style="position:absolute;top:3px;right:3px;font-size:8px;background:#d03030;color:#fff;border-radius:8px;padding:0 3px;min-width:12px;text-align:center;display:none;"></span>
       </button>
       <div class="sidebar-sep"></div>
       <button class="sidebar-btn" id="sb-map" onclick="openMapPanel()" title="Mapa de conflictos">🗺</button>
-      <button class="sidebar-btn" id="sb-video" onclick="setSidebarPanel('video',this)" title="Video / Streams">📺</button>
+      
       <div class="sidebar-sep"></div>
       <button class="sidebar-btn" id="sb-chat" onclick="openSidePanel('chat')" title="Salas de discusión">💬</button>
       <button class="sidebar-btn" id="sb-settings" onclick="openSidePanel('settings')" title="Ajustes">⚙</button>
-      <button class="sidebar-btn" id="sb-sources" onclick="openSidePanel('sources')" title="Fuentes personalizadas">＋</button>
       <div style="margin-top:auto;"></div>
       <button class="sidebar-btn" onclick="openAbout()" title="Acerca de">ℹ</button>
     </div>
@@ -578,37 +593,6 @@ body{--font-body:'Barlow Condensed',sans-serif;}
     <div class="columns">
 
       <!-- COL 1: Noticias -->
-      <div class="col-panel" id="col-news">
-        <div class="col-header">
-          <span class="col-title">NOTICIAS</span>
-          <span class="col-count" id="ft-media"></span>
-          <div style="display:flex;gap:3px;margin-left:8px;">
-            <span id="refresh-countdown" style="font-size:10px;color:#bbb;"></span>
-          </div>
-        </div>
-        <div class="ffilters">
-          <button class="ffbtn on" onclick="filterCat('all',this,'media')">Todo</button>
-          <button class="ffbtn" onclick="filterCat('ukraine',this,'media')">Ucrania</button>
-          <button class="ffbtn" onclick="filterCat('mideast',this,'media')">M.Este</button>
-          <button class="ffbtn" onclick="filterCat('africa',this,'media')">África</button>
-          <button class="ffbtn" onclick="filterCat('asia',this,'media')">Asia</button>
-          <button class="ffbtn" onclick="filterCat('breaking',this,'media')">🔴 Flash</button>
-        </div>
-        <div class="farea" id="feed-media">
-          <div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>
-        </div>
-        <!-- Guardadas (hidden by default) -->
-        <div class="farea" id="feed-saved" style="display:none;"></div>
-        <!-- Video (hidden by default) -->
-        <div style="display:none;flex-direction:column;flex:1;" id="feed-video">
-          <div class="stream-input-wrap">
-            <input id="stream-input" type="text" placeholder="YouTube o Twitch — link o @canal" onkeydown="if(event.key==='Enter')addStream()">
-            <button onclick="addStream()" style="padding:5px 9px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;">+ Añadir</button>
-          </div>
-          <div id="stream-list" style="flex:1;overflow-y:auto;"></div>
-        </div>
-      </div>
-
       <!-- COL 2: OSINT/Telegram -->
       <div class="col-panel" id="col-osint">
         <div class="col-header">
@@ -705,14 +689,35 @@ body{--font-body:'Barlow Condensed',sans-serif;}
 
 <!-- MAP OVERLAY PANEL -->
 <div id="map-overlay" style="display:none;position:fixed;inset:46px 0 0 46px;z-index:150;background:var(--bg0);flex-direction:column;">
-  <div style="height:38px;flex-shrink:0;background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 14px;gap:10px;">
-    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text2);">MAPA DE CONFLICTOS</span>
-    <span id="map-conflict-count" style="font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;"></span>
-    <div style="margin-left:auto;display:flex;gap:5px;">
-      <button onclick="closeMapPanel()" style="padding:3px 10px;background:transparent;border:1px solid var(--border2);color:var(--text2);font-size:11px;font-family:'JetBrains Mono',monospace;border-radius:2px;cursor:pointer;letter-spacing:.5px;">✕ CERRAR</button>
+  <!-- Map topbar -->
+  <div style="height:40px;flex-shrink:0;background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 12px;gap:8px;z-index:10;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--amber);">▶ MAPA INTEL</span>
+    <span id="map-conflict-count" style="font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;"></span>
+    <div style="margin-left:auto;display:flex;gap:5px;align-items:center;">
+      <!-- Layer toggles -->
+      <button class="map-layer-btn on" data-layer="conflicts" onclick="toggleMapLayer('conflicts',this)" title="Conflictos">⚔ Conflictos</button>
+      <button class="map-layer-btn on" data-layer="military" onclick="toggleMapLayer('military',this)" title="Bases militares">🔺 Bases</button>
+      <button class="map-layer-btn on" data-layer="nuclear" onclick="toggleMapLayer('nuclear',this)" title="Nuclear">☢ Nuclear</button>
+      <button class="map-layer-btn on" data-layer="hotspots" onclick="toggleMapLayer('hotspots',this)" title="Alertas">🔴 Alertas</button>
+      <div style="width:1px;height:20px;background:var(--border2);margin:0 4px;"></div>
+      <button onclick="closeMapPanel()" style="padding:3px 10px;background:transparent;border:1px solid var(--border2);color:var(--text2);font-size:10px;font-family:'JetBrains Mono',monospace;border-radius:2px;cursor:pointer;">✕</button>
     </div>
   </div>
-  <div id="conflict-map" style="flex:1;"></div>
+  <!-- Map container -->
+  <div id="conflict-map" style="flex:1;position:relative;"></div>
+  <!-- Legend -->
+  <div id="map-legend" style="position:absolute;bottom:30px;left:60px;z-index:500;background:rgba(9,9,15,.85);border:1px solid var(--border2);padding:8px 12px;border-radius:2px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text2);backdrop-filter:blur(4px);">
+    <span style="font-size:8px;letter-spacing:1px;color:var(--amber);">LEYENDA</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e03030;box-shadow:0 0 6px #e03030;vertical-align:middle;margin-right:4px;"></span>Crítico</span>
+    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8a020;box-shadow:0 0 5px #e8a020;vertical-align:middle;margin-right:4px;"></span>Alto</span>
+    <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3a6eea;vertical-align:middle;margin-right:4px;"></span>Medio</span>
+    <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#2a8a52;vertical-align:middle;margin-right:4px;"></span>Bajo</span>
+    <span style="width:1px;height:12px;background:var(--border2);display:inline-block;"></span>
+    <span>🔺 Base</span>
+    <span>☢ Nuclear</span>
+    <span>✈ Aeronaves</span>
+    <span>⚡ Alerta</span>
+  </div>
 </div>
 
 <!-- PANEL OVERLAY -->
@@ -768,42 +773,6 @@ body{--font-body:'Barlow Condensed',sans-serif;}
       <p style="font-size:10px;color:#aaa;line-height:1.6;">Arrastra el borde entre columnas para redimensionarlas. El tamaño se guarda automáticamente.</p>
     </div>
     <button onclick="resetAllPrefs()" style="width:100%;padding:6px;background:transparent;border:1px solid #ddd;border-radius:3px;color:#999;font-size:11px;cursor:pointer;margin-top:4px;">↺ Restablecer todo</button>
-  </div>
-</div>
-
-<!-- SOURCES PANEL -->
-<div class="panel-modal" id="panel-sources">
-  <div class="panel-modal-header">
-    <span class="panel-modal-title">＋ Fuentes personalizadas</span>
-    <button onclick="closeSidePanel()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;">✕</button>
-  </div>
-  <div class="panel-modal-body">
-    <div class="panel-section">
-      <div class="panel-section-label">Añadir fuente RSS</div>
-      <div class="add-source-row">
-        <input type="text" id="custom-src-name" placeholder="Nombre" style="width:90px;">
-        <input type="text" id="custom-src-url" placeholder="URL del feed RSS" style="flex:1;">
-      </div>
-      <div style="display:flex;gap:5px;margin-bottom:10px;">
-        <select id="custom-src-cat" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:3px;font-size:11px;background:#f8f8f8;">
-          <option value="general">General</option>
-          <option value="ukraine">Ucrania</option>
-          <option value="mideast">M.Este</option>
-          <option value="africa">África</option>
-          <option value="asia">Asia</option>
-        </select>
-        <button onclick="addCustomSource()" style="padding:5px 10px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;">Añadir</button>
-      </div>
-      <div id="custom-sources-list"></div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-label">Añadir stream de video</div>
-      <div class="add-source-row">
-        <input type="text" id="stream-input-side" placeholder="YouTube o Twitch link / @canal" style="flex:1;">
-        <button onclick="addStreamFromSide()" style="padding:5px 10px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;">+</button>
-      </div>
-      <div id="stream-list-side" style="margin-top:4px;"></div>
-    </div>
   </div>
 </div>
 
@@ -1100,133 +1069,6 @@ const RESOURCES = [
 // ══════════════════════════════════════════════════════════
 // FUENTES MEDIOS — 23 RSS
 // ══════════════════════════════════════════════════════════
-const MEDIA_SOURCES = [
-  // ── Medios generalistas con sección de conflictos ──
-  {url:'https://feeds.reuters.com/reuters/worldNews',                              n:'Reuters',           cat:'general'},
-  {url:'https://apnews.com/apf-intlnews.rss',                                     n:'AP News',           cat:'general'},
-  {url:'https://www.aljazeera.com/xml/rss/all.xml',                               n:'Al Jazeera',        cat:'general'},
-  {url:'https://www.france24.com/en/rss',                                         n:'France 24',         cat:'general'},
-  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                             n:'BBC World',         cat:'general'},
-  {url:'https://www.dw.com/en/top-stories/rss',                                   n:'DW',                cat:'general'},
-  {url:'https://www.voanews.com/api/zkyqt$ype',                                   n:'VOA News',          cat:'general'},
-
-  // ── Think tanks y análisis estratégico ──
-  {url:'https://www.understandingwar.org/feed',                                    n:'ISW',               cat:'ukraine'},
-  {url:'https://www.crisisgroup.org/rss.xml',                                      n:'Crisis Group',      cat:'general'},
-  {url:'https://www.cfr.org/rss.xml',                                              n:'CFR',               cat:'general'},
-  {url:'https://foreignpolicy.com/feed/',                                          n:'Foreign Policy',    cat:'general'},
-  {url:'https://warontherocks.com/feed/',                                          n:'War on the Rocks',  cat:'general'},
-  {url:'https://www.iiss.org/rss',                                                 n:'IISS',              cat:'general'},
-  {url:'https://www.rand.org/pubs/rss/all.xml',                                    n:'RAND',              cat:'general'},
-
-  // ── Defensa y militar ──
-  {url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml',       n:'Defense News',      cat:'general'},
-  {url:'https://breakingdefense.com/feed/',                                        n:'Breaking Defense',  cat:'general'},
-  {url:'https://www.janes.com/feeds/news',                                         n:"Jane's",            cat:'general'},
-  {url:'https://www.military.com/rss-feeds/content?id=316',                       n:'Military.com',      cat:'general'},
-  {url:'https://taskandpurpose.com/feed/',                                         n:'Task & Purpose',    cat:'general'},
-
-  // ── OSINT e investigación ──
-  {url:'https://www.bellingcat.com/feed/',                                         n:'Bellingcat',        cat:'general'},
-  {url:'https://theintercept.com/feed/?rss',                                       n:'The Intercept',     cat:'general'},
-
-  // ── Ucrania / Europa del Este ──
-  {url:'https://www.kyivindependent.com/rss/',                                    n:'Kyiv Independent',  cat:'ukraine'},
-  {url:'https://meduza.io/rss/en/all',                                             n:'Meduza',            cat:'ukraine'},
-  {url:'https://euromaidanpress.com/feed/',                                        n:'Euromaidan Press',  cat:'ukraine'},
-
-  // ── Oriente Medio ──
-  {url:'https://www.timesofisrael.com/feed/',                                     n:'Times of Israel',   cat:'mideast'},
-  {url:'https://www.middleeasteye.net/rss',                                       n:'Middle East Eye',   cat:'mideast'},
-  {url:'https://www.jpost.com/Rss/RssFeedsHeadlines.aspx',                        n:'Jerusalem Post',    cat:'mideast'},
-  {url:'https://www.al-monitor.com/rss',                                           n:'Al-Monitor',        cat:'mideast'},
-
-  // ── África ──
-  {url:'https://www.theafricareport.com/feed/',                                   n:'Africa Report',     cat:'africa'},
-  {url:'https://www.bbc.co.uk/news/world/africa/rss.xml',                         n:'BBC Africa',        cat:'africa'},
-  {url:'https://rss.dw.com/xml/rss-en-africa',                                    n:'DW Africa',         cat:'africa'},
-  {url:'https://acleddata.com/feed/',                                              n:'ACLED',             cat:'africa'},
-
-  // ── Asia-Pacífico ──
-  {url:'https://www.scmp.com/rss/91/feed',                                        n:'SCMP',              cat:'asia'},
-  {url:'https://www.rfa.org/english/news/rss2.html',                              n:'Radio Free Asia',   cat:'asia'},
-  {url:'https://thediplomat.com/feed/',                                            n:'The Diplomat',      cat:'asia'},
-  {url:'https://www.38north.org/feed/',                                            n:'38 North (DPRK)',   cat:'asia'},
-
-  // ── Humanitario / ONU ──
-  {url:'https://reliefweb.int/updates/rss.xml',                                   n:'ReliefWeb',         cat:'general'},
-  {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
-
-  // ── Seguridad y ciberdefensa ──
-  {url:'https://feeds.feedburner.com/TheHackersNews',                                 n:'Hacker News',       cat:'general'},
-  {url:'https://krebsonsecurity.com/feed/',                                            n:'Krebs Security',    cat:'general'},
-
-  // ── Humanitario / Crisis ──
-  {url:'https://reliefweb.int/updates/rss.xml',                                       n:'ReliefWeb',         cat:'general'},
-  {url:'https://www.msf.org/rss',                                                     n:'MSF',               cat:'general'},
-
-  // ── Europa / OTAN ──
-  {url:'https://www.nato.int/rss.xml',                                                n:'NATO',              cat:'ukraine'},
-  {url:'https://www.politico.eu/feed/',                                               n:'Politico EU',       cat:'general'},
-
-  // ── Oriente Medio extra ──
-  {url:'https://www.al-monitor.com/rss',                                              n:'Al-Monitor',        cat:'mideast'},
-  {url:'https://english.alarabiya.net/rss',                                           n:'Al Arabiya',        cat:'mideast'},
-
-  // ── Asia extra ──
-  {url:'https://www.nknews.org/feed/',                                                n:'NK News',           cat:'asia'},
-  {url:'https://asia.nikkei.com/rss',                                                 n:'Nikkei Asia',       cat:'asia'},
-
-  // ── Latinoamérica ──
-  {url:'https://www.infobae.com/feeds/rss/',                                          n:'Infobae',           cat:'general'},
-  {url:'https://www.mercopress.com/rss',                                              n:'MercoPress',        cat:'general'},
-];
-
-// ══════════════════════════════════════════════════════════
-// CANALES OSINT / TELEGRAM — scraping directo t.me/s/
-// ══════════════════════════════════════════════════════════
-
-// ── FUENTES DE INTELIGENCIA / ANÁLISIS ESTRATÉGICO ──
-const INTEL_SOURCES = [
-  {url:'https://www.understandingwar.org/feed',                n:'ISW',             cat:'ukraine'},
-  {url:'https://www.crisisgroup.org/rss.xml',                  n:'Crisis Group',    cat:'general'},
-  {url:'https://warontherocks.com/feed/',                      n:'War on the Rocks',cat:'general'},
-  {url:'https://www.rand.org/pubs/rss/all.xml',                n:'RAND',            cat:'general'},
-  {url:'https://www.iiss.org/rss',                             n:'IISS',            cat:'general'},
-  {url:'https://www.cfr.org/rss.xml',                         n:'CFR',             cat:'general'},
-  {url:'https://foreignpolicy.com/feed/',                      n:'Foreign Policy',  cat:'general'},
-  {url:'https://www.38north.org/feed/',                        n:'38 North',        cat:'asia'},
-  {url:'https://thediplomat.com/feed/',                        n:'The Diplomat',    cat:'asia'},
-  {url:'https://www.bellingcat.com/feed/',                     n:'Bellingcat',      cat:'general'},
-  {url:'https://acleddata.com/feed/',                          n:'ACLED',           cat:'africa'},
-  {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
-
-  // ── Seguridad y ciberdefensa ──
-  {url:'https://feeds.feedburner.com/TheHackersNews',                                 n:'Hacker News',       cat:'general'},
-  {url:'https://krebsonsecurity.com/feed/',                                            n:'Krebs Security',    cat:'general'},
-
-  // ── Humanitario / Crisis ──
-  {url:'https://reliefweb.int/updates/rss.xml',                                       n:'ReliefWeb',         cat:'general'},
-  {url:'https://www.msf.org/rss',                                                     n:'MSF',               cat:'general'},
-
-  // ── Europa / OTAN ──
-  {url:'https://www.nato.int/rss.xml',                                                n:'NATO',              cat:'ukraine'},
-  {url:'https://www.politico.eu/feed/',                                               n:'Politico EU',       cat:'general'},
-
-  // ── Oriente Medio extra ──
-  {url:'https://www.al-monitor.com/rss',                                              n:'Al-Monitor',        cat:'mideast'},
-  {url:'https://english.alarabiya.net/rss',                                           n:'Al Arabiya',        cat:'mideast'},
-
-  // ── Asia extra ──
-  {url:'https://www.nknews.org/feed/',                                                n:'NK News',           cat:'asia'},
-  {url:'https://asia.nikkei.com/rss',                                                 n:'Nikkei Asia',       cat:'asia'},
-
-  // ── Latinoamérica ──
-  {url:'https://www.infobae.com/feeds/rss/',                                          n:'Infobae',           cat:'general'},
-  {url:'https://www.mercopress.com/rss',                                              n:'MercoPress',        cat:'general'},
-];
-let intelCache={ts:0,data:[]};
-let activeCatIntel='all';
 
 const OSINT_SOURCES = [
   // ── Ucrania / Europa del Este ──
@@ -1267,8 +1109,8 @@ const OSINT_SOURCES = [
 // STATE
 // ══════════════════════════════════════════════════════════
 let MAP, LG={};
-let mediaCache={ts:0,data:[]}, osintCache={ts:0,data:[]};
-let activeCatMedia='all', activeCatOsint='all';
+let osintCache={ts:0,data:[]};
+let activeCatOsint='all';
 let activeTab='media', countdownSecs=90;
 
 // ══════════════════════════════════════════════════════════
@@ -1545,70 +1387,6 @@ function switchTab(tab,btn){
 let streamSources = JSON.parse(localStorage.getItem('ct_streams') || '[]');
 let activeFloats = []; // floating windows
 
-function parseStreamInput(raw) {
-  const s = raw.trim();
-  const result = {type:'', platform:'', id:'', title:'', embedUrl:''};
-
-  // ── TWITCH ──
-  if (s.includes('twitch.tv') || s.toLowerCase().startsWith('twitch:')) {
-    const m = s.match(/twitch\.tv\/([A-Za-z0-9_]+)/);
-    const ch = m ? m[1] : s.replace(/^twitch:/i,'').trim();
-    result.platform = 'twitch'; result.type = 'live';
-    result.id = 'tw_' + ch; result.title = '🟣 ' + ch;
-    result.embedUrl = 'https://player.twitch.tv/?channel=' + ch + '&parent=' + location.hostname + '&autoplay=false';
-    return result;
-  }
-
-  // ── YOUTUBE VIDEO ──
-  let m = s.match(/[?&]v=([A-Za-z0-9_-]{11})/);
-  if (!m) m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
-  if (!m) m = s.match(/\/live\/([A-Za-z0-9_-]{11})/);
-  if (!m) m = s.match(/\/shorts\/([A-Za-z0-9_-]{11})/);
-  if (!m && /^[A-Za-z0-9_-]{11}$/.test(s)) m = [null, s];
-  if (m) {
-    result.platform = 'youtube'; result.type = 'video';
-    result.id = 'yt_' + m[1]; result.title = '▶ Video';
-    result.embedUrl = 'https://www.youtube-nocookie.com/embed/' + m[1] + '?rel=0&modestbranding=1';
-    return result;
-  }
-
-  // ── YOUTUBE CHANNEL ──
-  m = s.match(/youtube\.com\/@([A-Za-z0-9_.-]+)/);
-  if (!m && s.startsWith('@')) m = [null, s.slice(1)];
-  if (m) {
-    result.platform = 'youtube'; result.type = 'channel';
-    result.id = 'ytch_' + m[1]; result.title = '▶ @' + m[1];
-    result.embedUrl = 'https://www.youtube-nocookie.com/embed?listType=user_uploads&list=' + m[1] + '&rel=0';
-    return result;
-  }
-
-  m = s.match(/\/channel\/([A-Za-z0-9_-]{24})/);
-  if (m) {
-    result.platform = 'youtube'; result.type = 'channel';
-    result.id = 'ytch2_' + m[1]; result.title = '▶ Canal YT';
-    result.embedUrl = 'https://www.youtube-nocookie.com/embed?listType=user_uploads&list=' + m[1];
-    return result;
-  }
-
-  return null;
-}
-
-function addStream() {
-  const input = document.getElementById('stream-input');
-  const raw = input ? input.value.trim() : '';
-  if (!raw) return;
-  const parsed = parseStreamInput(raw);
-  if (!parsed) {
-    if (input) { input.style.borderColor = 'var(--red)'; setTimeout(function(){input.style.borderColor='var(--b2)';}, 1500); }
-    return;
-  }
-  if (streamSources.find(function(v){return v.id===parsed.id;})) { if(input) input.value=''; return; }
-  streamSources.unshift(parsed);
-  try { localStorage.setItem('ct_streams', JSON.stringify(streamSources)); } catch(e) {}
-  renderStreamList();
-  if (input) { input.value=''; input.style.borderColor='var(--green)'; setTimeout(function(){input.style.borderColor='var(--b2)';},1500); }
-}
-
 function removeStream(id) {
   streamSources = streamSources.filter(function(v){return v.id!==id;});
   try { localStorage.setItem('ct_streams', JSON.stringify(streamSources)); } catch(e) {}
@@ -1641,33 +1419,6 @@ function renderStreamList() {
         'style="padding:5px 8px;background:transparent;border:1px solid var(--b2);border-radius:4px;color:var(--t3);font-size:11px;cursor:pointer;">✕</button>' +
     '</div>';
   }).join('');
-}
-
-function openFloatingPlayer(id) {
-  const src = streamSources.find(function(v){return v.id===id;});
-  if (!src) return;
-  const fwId = 'fw_' + id;
-  if (document.getElementById(fwId)) { document.getElementById(fwId).style.display='flex'; return; }
-
-  const fw = document.createElement('div');
-  fw.id = fwId;
-  fw.style.cssText = 'position:fixed;z-index:4000;width:400px;height:260px;border-radius:8px;overflow:hidden;' +
-    'box-shadow:0 16px 48px rgba(0,0,0,.8);border:1px solid var(--b2);display:flex;flex-direction:column;' +
-    'bottom:60px;right:500px;resize:both;';
-
-  const icon = src.platform === 'twitch' ? '🟣' : '▶';
-  fw.innerHTML =
-    '<div id="fw-bar-' + id + '" style="height:32px;background:var(--s3);display:flex;align-items:center;padding:0 10px;gap:8px;cursor:grab;flex-shrink:0;user-select:none;">' +
-      '<span style="font-size:12px;">' + icon + '</span>' +
-      '<span style="font-family:monospace;font-size:10px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + src.title + '</span>' +
-      '<button data-fid="' + id + '" onclick="minimizeFloat(this.dataset.fid)" title="Minimizar" style="background:transparent;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0 4px;">&#8722;</button>' +
-      '<button data-fid="' + id + '" onclick="document.getElementById(&quot;fw_&quot;+this.dataset.fid).remove()" title="Cerrar" style="background:transparent;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0 4px;">&#x2715;</button>' +
-    '</div>' +
-    '<iframe src="' + src.embedUrl + '" style="flex:1;border:none;background:#000;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>';
-
-  document.body.appendChild(fw);
-  makeDraggable(fw, document.getElementById('fw-bar-' + id));
-  offsetNextFloat(fw);
 }
 
 function minimizeFloat(id) {
@@ -1718,10 +1469,6 @@ function makeDraggable(el, handle) {
   };
 }
 
-function initVideos() {
-  renderStreamList();
-}
-
 // ══════════════════════════════════════════════════════════// ══════════════════════════════════════════════════════════
 // AUTO-REFRESH — cada 2 minutos
 // ══════════════════════════════════════════════════════════
@@ -1762,8 +1509,7 @@ function startCountdown(){
       const isHidden = document.hidden;
       secs = isHidden ? POLL.hidden : POLL.base;
       if(!isHidden){
-        liveRefreshMedia();
-        liveRefreshOSINT();
+          liveRefreshOSINT();
         liveRefreshIntel();
         loadOREF();
       }
@@ -1824,7 +1570,7 @@ function buildItemHTML(item, ix){
   const openFn=href?'window.open(this.dataset.href,&quot;_blank&quot;);markRead(this.dataset.href);this.closest(&quot;.fitem&quot;).classList.add(&quot;read&quot;)':'';
   const openA=href?'data-href="'+href+'" onclick="'+openFn+'" style="cursor:pointer;"':'style="cursor:default;"';
   const lock=isTg?'<span style="color:var(--text2);font-size:9px;"> 🔒</span>':'';
-  const saveB=href?'<button class="save-btn" title="Guardar" onclick="event.stopPropagation();doSave(this)" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-src="'+item.src+'" data-link="'+href+'" data-pub="'+item.pubDate+'">🔖</button>':'';
+  const saveB='';
   const readB=href?'<button class="read-btn" title="Marcar leída" onclick="event.stopPropagation();toggleRead(this,&quot;'+href+'&quot;)">◉</button>':'';
   const desc=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
   return '<div class="fitem'+readCls+'" '+openA+'>'+
@@ -1846,68 +1592,9 @@ function toggleRead(btn, href) {
 }
 
 // Pool: max N fetches simultaneous — prevents browser connection saturation
-async function fetchPool(tasks, limit=6) {
-  let i=0; const results=[];
-  async function run(){ while(i<tasks.length){const j=i++;try{results[j]=await tasks[j]();}catch(e){results[j]=null;}} }
-  await Promise.all(Array.from({length:Math.min(limit,tasks.length)},run));
-  return results;
-}
-
-async function loadMedia(force=false){
-  const isFirst = !mediaCache.data.length;
-  const el = document.getElementById('feed-media');
-  if(isFirst && el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando noticias...</div>';
-
-  const sources=[...MEDIA_SOURCES,...customSources.filter(cs=>!MEDIA_SOURCES.find(m=>m.url===cs.url))];
-  const incoming=[];
-  let done=0;
-
-  await fetchPool(sources.map(src=>async()=>{
-    try{
-      const xml=await fetchRSS(src.url);
-      if(!xml) return;
-      parseRSS(xml,src.n,src.cat,'rss').forEach(i=>incoming.push(i));
-      done++;
-      // Show partial results early on first load
-      if(isFirst && done%6===0 && incoming.length>0){
-        const snap=[...incoming].sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-        renderItems(snap,'feed-media');
-      }
-    }catch(e){}
-  }), 6);
-
-  incoming.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  if(isFirst){
-    mediaCache={ts:Date.now(),data:incoming};
-    renderMedia();
-  } else {
-    const {merged,newCount}=mergeItems(mediaCache.data,incoming);
-    mediaCache={ts:Date.now(),data:merged};
-    if(newCount>0) prependItems(merged.slice(0,newCount),'feed-media');
-  }
-  const ftm=document.getElementById('ft-media');
-  if(ftm) ftm.textContent=mediaCache.data.length;
-}
-
-async function liveRefreshMedia(){
-  const sources=[...MEDIA_SOURCES,...customSources.filter(cs=>!MEDIA_SOURCES.find(m=>m.url===cs.url))];
-  const incoming=[];
-  await fetchPool(sources.map(src=>async()=>{
-    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(i=>incoming.push(i));}catch(e){}
-  }), 6);
-  if(!incoming.length) return;
-  incoming.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  const {merged,newCount}=mergeItems(mediaCache.data,incoming);
-  if(!newCount) return;
-  mediaCache={ts:Date.now(),data:merged};
-  prependItems(merged.slice(0,newCount),'feed-media');
-  const ftm=document.getElementById('ft-media');
-  if(ftm) ftm.textContent=mediaCache.data.length;
-}
-
 async function liveRefreshIntel(){ loadIntel(true); }
 // liveRefreshOSINT defined in OSINT block above
-function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
+function refreshAll(force=true){loadOSINT(force);loadIntel(force);}
 
 // ══════════════════════════════════════════════════════════
 // CORS PROXY FALLBACK
@@ -2063,7 +1750,7 @@ function renderItems(items,areaId){
     const href=(!isTg&&item.link)?(item.link||'').replace(/"/g,'&quot;'):'';
     const openA=href?'data-href="'+href+'" onclick="window.open(this.dataset.href,&quot;_blank&quot;)" style="cursor:pointer;"':'style="cursor:default;"';
     const lock=isTg?'<span style="color:#bbb;font-size:9px;"> 🔒</span>':'';
-    const saveB=href?'<button class="save-btn" title="Guardar" onclick="event.stopPropagation();doSave(this)" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-src="'+item.src+'" data-link="'+href+'" data-pub="'+item.pubDate+'">🔖</button>':'';
+    const saveB='';
     const desc=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
     const newCls=item._new?' fitem-new':'';
     return '<div class="fitem'+newCls+'" '+openA+'>'+
@@ -2079,13 +1766,6 @@ function filterCat(f,btn,panel){
   btn.closest('.ffilters').querySelectorAll('.ffbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   if(panel==='media') renderMedia(); else renderOSINT();
-}
-
-function renderMedia(){
-  let items=mediaCache.data;
-  if(activeCatMedia==='breaking') items=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';});
-  else if(activeCatMedia!=='all'){const re=REGION_KW[activeCatMedia];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
-  renderItems(items,'feed-media');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2212,9 +1892,6 @@ function renderOSINT(failed=[]){
 // ══════════════════════════════════════════════════════════
 // TICKER
 // ══════════════════════════════════════════════════════════
-function updateTicker(items){ /* no-op */ }
-
-
 // ══════════════════════════════════════════════════════════
 // THEME — day / night
 // ══════════════════════════════════════════════════════════
@@ -2855,47 +2532,11 @@ function openAbout() {
 
 // ── SAVED NEWS ─────────────────────────────────────
 let savedNews=JSON.parse(localStorage.getItem('ct_saved')||'[]');
-function doSave(btn){
-  const ds=btn.dataset;
-  saveNewsItem({title:ds.title,src:ds.src,link:ds.link,pubDate:ds.pub});
-}
-
-function saveNewsItem(ds){
-  const item={title:ds.title||ds.dataset&&ds.dataset.title,src:ds.src||ds.dataset&&ds.dataset.src,link:ds.link||ds.dataset&&ds.dataset.link,pubDate:ds.pub||ds.dataset&&ds.dataset.pub};
-  if(savedNews.find(function(n){return n.link===item.link;})){showToast('Ya guardada');return;}
-  savedNews.unshift(item);
-  if(savedNews.length>100)savedNews=savedNews.slice(0,100);
-  try{localStorage.setItem('ct_saved',JSON.stringify(savedNews));}catch(e){}
-  showToast('✓ Guardada');
-  const sc=document.getElementById('saved-count');if(sc)sc.textContent=savedNews.length;
-}
-
-function removeSaved(i){
-  savedNews.splice(i,1);
-  try{localStorage.setItem('ct_saved',JSON.stringify(savedNews));}catch(e){}
-  renderSaved();
-  const sc=document.getElementById('saved-count');if(sc)sc.textContent=savedNews.length||'';
-}
-
-function renderSaved(){
-  const el=document.getElementById('feed-saved');
-  if(!el)return;
-  if(!savedNews.length){el.innerHTML='<div class="fstatus">Sin noticias guardadas.<br>Pulsa 🔖 en cualquier noticia.</div>';return;}
-  el.innerHTML=savedNews.map(function(n,i){
-    return '<div class="fitem">'+
-      '<div class="ftop"><span class="fsrc">'+n.src+'</span><span class="ftime">'+timeAgo(n.pubDate)+'</span>'+
-      '<button onclick="removeSaved('+i+')" style="margin-left:auto;background:none;border:none;color:#aaa;cursor:pointer;font-size:11px;">✕</button></div>'+
-      '<div class="ftitle" data-href="'+n.link+'" onclick="window.open(this.dataset.href,&quot;_blank&quot;)" style="cursor:pointer;">'+n.title+'</div>'+
-    '</div>';
-  }).join('');
-}
 function init(){
   applyPrefs();
   startClock();
   startCountdown();
   initVideos();
-  renderSaved();
-  setTimeout(function(){loadMedia();},200);
   setTimeout(function(){loadOREF();},1500);
   setInterval(loadOREF, 15000); // OREF every 15s
   setTimeout(function(){loadOSINT();},500);
@@ -2907,32 +2548,6 @@ init();
 
 
 // ── NEW UI FUNCTIONS ─────────────────────────────────────
-
-function setSidebarPanel(name, btn) {
-  // Update sidebar button states
-  document.querySelectorAll('.sidebar-btn').forEach(function(b){ b.classList.remove('on'); });
-  if(btn) btn.classList.add('on');
-
-  // Show/hide feed areas
-  const media = document.getElementById('feed-media');
-  const saved = document.getElementById('feed-saved');
-  const video = document.getElementById('feed-video');
-  const filters = document.querySelector('#col-news .ffilters');
-  const colTitle = document.querySelector('#col-news .col-title');
-
-  if(media) media.style.display = name==='news' ? 'block' : 'none';
-  if(saved) saved.style.display = name==='saved' ? 'block' : 'none';
-  if(video) video.style.display = name==='video' ? 'flex' : 'none';
-  if(filters) filters.style.display = name==='news' ? 'flex' : 'none';
-  if(colTitle) colTitle.textContent = {news:'NOTICIAS',saved:'GUARDADAS',video:'VIDEO'}[name]||'NOTICIAS';
-
-  if(name==='saved') renderSaved();
-  if(name==='video') renderStreamList();
-
-  // Update saved count badge
-  const sc = document.getElementById('saved-count');
-  if(sc){ sc.textContent=savedNews.length||''; sc.style.display=savedNews.length?'block':'none'; }
-}
 
 function openSidePanel(name) {
   closeSidePanel();
@@ -2980,29 +2595,6 @@ function togglePref(key, btn) {
 // ── CUSTOM SOURCES ────────────────────────────────────────
 let customSources = JSON.parse(localStorage.getItem('ct_custom_sources')||'[]');
 
-function addCustomSource() {
-  const name = document.getElementById('custom-src-name').value.trim();
-  const url  = document.getElementById('custom-src-url').value.trim();
-  const cat  = document.getElementById('custom-src-cat').value;
-  if(!name||!url) return;
-  customSources.push({n:name, url:url, cat:cat});
-  try{ localStorage.setItem('ct_custom_sources', JSON.stringify(customSources)); }catch(e){}
-  document.getElementById('custom-src-name').value='';
-  document.getElementById('custom-src-url').value='';
-  renderCustomSourcesList();
-  // Force reload media to include new source
-  mediaCache={ts:0,data:[]};
-  loadMedia(true);
-}
-
-function removeCustomSource(i) {
-  customSources.splice(i,1);
-  try{ localStorage.setItem('ct_custom_sources', JSON.stringify(customSources)); }catch(e){}
-  renderCustomSourcesList();
-  mediaCache={ts:0,data:[]};
-  loadMedia(true);
-}
-
 function renderCustomSourcesList() {
   const el = document.getElementById('custom-sources-list');
   if(!el) return;
@@ -3010,15 +2602,6 @@ function renderCustomSourcesList() {
   el.innerHTML = customSources.map(function(s,i){
     return '<div class="added-source"><span style="font-size:10px;flex:1;">'+s.n+'</span><span style="font-size:9px;color:#aaa;">'+s.cat+'</span><button class="rm" onclick="removeCustomSource('+i+')">✕</button></div>';
   }).join('');
-}
-
-function addStreamFromSide() {
-  const input = document.getElementById('stream-input-side');
-  if(!input||!input.value.trim()) return;
-  document.getElementById('stream-input').value = input.value;
-  input.value='';
-  addStream();
-  renderStreamListSide();
 }
 
 function renderStreamListSide() {
@@ -3188,19 +2771,75 @@ filterCat = function(f, btn, panel) {
 };
 
 
-// ── CONFLICT MAP (Leaflet, optional panel) ───────────────────
+// ── MAP STATE ─────────────────────────────────────────────
 let conflictMap = null;
+const mapLayers = {}; // layer groups by name
+const mapLayerVisible = {conflicts:true, military:true, nuclear:true, hotspots:true};
+
+// Military bases (curated sample — key global installations)
+const MILITARY_BASES = [
+  {name:'Ramstein AB',       lat:49.44, lng:7.60,  cat:'NATO HQ',      country:'Alemania'},
+  {name:'RAF Akrotiri',      lat:34.59, lng:32.97, cat:'Base aérea UK', country:'Chipre'},
+  {name:'Diego Garcia',      lat:-7.31, lng:72.42, cat:'Base EEUU',     country:'IO'},
+  {name:'Al Udeid AB',       lat:25.12, lng:51.32, cat:'Base EEUU',     country:'Qatar'},
+  {name:'Camp Lemonnier',    lat:11.55, lng:43.16, cat:'Base EEUU',     country:'Yibuti'},
+  {name:'Yokota AB',         lat:35.74, lng:139.34,cat:'Base EEUU',     country:'Japón'},
+  {name:'Osan AB',           lat:37.09, lng:127.03,cat:'Base EEUU',     country:'Corea S.'},
+  {name:'Guantánamo',        lat:19.90, lng:-75.13,cat:'Base EEUU',     country:'Cuba'},
+  {name:'Sigonella NAS',     lat:37.40, lng:14.92, cat:'Base EEUU/NATO',country:'Italia'},
+  {name:'Incirlik AB',       lat:37.00, lng:35.43, cat:'Base OTAN',     country:'Turquía'},
+  {name:'Sevastopol',        lat:44.62, lng:33.52, cat:'Base naval RU', country:'Crimea'},
+  {name:'Hmeimim AB',        lat:35.40, lng:35.95, cat:'Base Rusia',    country:'Siria'},
+  {name:'Tartus Naval',      lat:34.89, lng:35.87, cat:'Base naval RU', country:'Siria'},
+  {name:'Pearl Harbor',      lat:21.36, lng:-157.97,cat:'Base naval',   country:'EEUU'},
+  {name:'CENTCOM Tampa',     lat:27.97, lng:-82.51,cat:'Mando EEUU',    country:'EEUU'},
+  {name:'Soto Cano AB',      lat:14.38, lng:-87.62,cat:'Base EEUU',     country:'Honduras'},
+  {name:'Djibouti-China',    lat:11.52, lng:43.08, cat:'Base China',    country:'Yibuti'},
+  {name:'Gwadar',            lat:25.12, lng:62.33, cat:'Puerto China',  country:'Pakistán'},
+  {name:'Ali Al Salem AB',   lat:29.35, lng:47.52, cat:'Base EEUU',     country:'Kuwait'},
+  {name:'Eskan Village',     lat:24.47, lng:46.73, cat:'Base EEUU',     country:'Arabia S.'},
+];
+
+// Nuclear facilities
+const NUCLEAR_SITES = [
+  {name:'Dimona',          lat:30.99, lng:35.15, cat:'Israel — reactor', status:'activo'},
+  {name:'Natanz',          lat:33.72, lng:51.73, cat:'Irán — enrich.',   status:'monitoreado'},
+  {name:'Fordow',          lat:34.88, lng:50.93, cat:'Irán — bunker',    status:'activo'},
+  {name:'Yongbyon',        lat:39.78, lng:125.75,cat:'DPRK — reactor',  status:'activo'},
+  {name:'Seversk',         lat:56.60, lng:84.88, cat:'Rusia — warhead',  status:'activo'},
+  {name:'Kapustin Yar',    lat:48.52, lng:45.78, cat:'Rusia — misiles',  status:'activo'},
+  {name:'Lop Nur',         lat:40.77, lng:89.62, cat:'China — test',     status:'histórico'},
+  {name:'Khushab',         lat:32.04, lng:72.19, cat:'Pakistán — plut.', status:'activo'},
+  {name:'Chashma',         lat:32.44, lng:71.44, cat:'Pakistán — enrich.',status:'activo'},
+  {name:'Tarapur',         lat:19.83, lng:72.71, cat:'India — reactor',  status:'activo'},
+  {name:'Buchel AB',       lat:50.17, lng:6.89,  cat:'OTAN — B61',       status:'activo'},
+  {name:'Kleine Brogel',   lat:51.17, lng:5.47,  cat:'OTAN — B61',       status:'activo'},
+  {name:'Kurchatov',       lat:50.72, lng:78.62, cat:'Kazajistán',       status:'desactivado'},
+];
+
+// High-alert hotspots (current events)
+const HOTSPOTS = [
+  {name:'Franja de Gaza',  lat:31.35, lng:34.31, type:'activo',  note:'Operaciones IDF en curso'},
+  {name:'Odesa',           lat:46.48, lng:30.72, type:'activo',  note:'Ataques de drones rusos'},
+  {name:'Járkov',          lat:49.99, lng:36.23, type:'activo',  note:'Línea del frente activa'},
+  {name:'Mar Rojo',        lat:15.00, lng:43.50, type:'elevado', note:'Ataques Hutíes a buques'},
+  {name:'Estrecho Taiwan', lat:24.00, lng:122.0, type:'elevado', note:'Tensión China-EEUU'},
+  {name:'Goma (DRC)',      lat:-1.67, lng:29.22, type:'activo',  note:'M23 controla ciudad'},
+  {name:'El Fasher',       lat:13.63, lng:25.35, type:'activo',  note:'RSF asedio en curso'},
+  {name:'Rafah',           lat:31.28, lng:34.24, type:'activo',  note:'Operaciones militares'},
+  {name:'Strait Hormuz',   lat:26.50, lng:56.50, type:'elevado', note:'Tensión naval'},
+  {name:'Bakhmut-Avdiivka',lat:48.05, lng:37.74, type:'activo',  note:'Combates Donetsk'},
+];
 
 function openMapPanel() {
   const panel = document.getElementById('map-overlay');
   if(!panel) return;
   panel.style.display = 'flex';
-  document.querySelectorAll('.sidebar-btn').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('on'));
   const btn = document.getElementById('sb-map');
   if(btn) btn.classList.add('on');
-  // Init map once
   if(!conflictMap) {
-    setTimeout(initConflictMap, 100);
+    setTimeout(initConflictMap, 80);
   } else {
     conflictMap.invalidateSize();
   }
@@ -3213,66 +2852,147 @@ function closeMapPanel() {
   document.getElementById('sb-news').classList.add('on');
 }
 
+function toggleMapLayer(name, btn) {
+  mapLayerVisible[name] = !mapLayerVisible[name];
+  btn.classList.toggle('on', mapLayerVisible[name]);
+  if(!conflictMap || !mapLayers[name]) return;
+  if(mapLayerVisible[name]) {
+    conflictMap.addLayer(mapLayers[name]);
+  } else {
+    conflictMap.removeLayer(mapLayers[name]);
+  }
+}
+
 function initConflictMap() {
   if(conflictMap) return;
+
+  // Popup style injected once
+  const ps = document.createElement('style');
+  ps.textContent = `
+    .leaflet-popup-content-wrapper{background:#0d0d16;border:1px solid #2a2a3a;border-radius:2px;box-shadow:0 4px 24px rgba(0,0,0,.7);color:#e0e0e0;padding:0;}
+    .leaflet-popup-content{margin:0;padding:0;}
+    .leaflet-popup-tip{background:#0d0d16;}
+    .leaflet-popup-close-button{color:#666!important;top:6px!important;right:8px!important;}
+    .map-popup{padding:10px 14px;font-family:'JetBrains Mono',monospace;min-width:180px;max-width:270px;}
+    .map-popup-title{font-size:11px;font-weight:600;margin-bottom:3px;}
+    .map-popup-sub{font-size:9px;color:#888;letter-spacing:.5px;margin-bottom:6px;}
+    .map-popup-desc{font-size:10px;color:#bbb;line-height:1.65;}
+    .leaflet-control-zoom{border:1px solid #2a2a3a!important;border-radius:2px!important;}
+    .leaflet-control-zoom a{background:#0d0d16!important;color:#bbb!important;border-bottom:1px solid #2a2a3a!important;}
+    .leaflet-control-zoom a:hover{background:#1a1a2a!important;color:#fff!important;}
+  `;
+  document.head.appendChild(ps);
+
   conflictMap = L.map('conflict-map', {
-    center: [20, 20], zoom: 2,
+    center: [22, 18], zoom: 2,
     zoomControl: true,
-    attributionControl: false,
+    attributionControl: true,
+    minZoom: 1.5, maxZoom: 10,
   });
 
-  // Dark tile layer
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18, subdomains: 'abcd',
+  // CartoDB dark — split tiles for sharper labels
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains:'abcd', maxZoom:19, attribution:'© CartoDB'
+  }).addTo(conflictMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+    subdomains:'abcd', maxZoom:19, pane:'shadowPane'
   }).addTo(conflictMap);
 
-  // Plot conflicts
-  const colors = {critical:'#e03030', high:'#e8a020', medium:'#3a6eea', low:'#2a8a52'};
-  let count = 0;
+  // ── LAYER: CONFLICTS ──────────────────────────────────
+  const conflictColors = {critical:'#e03030', high:'#e8a020', medium:'#3a6eea', low:'#2a8a52'};
+  const conflictSizes  = {critical:16, high:11, medium:8, low:6};
+  mapLayers.conflicts = L.layerGroup();
+  let conflictCount = 0;
 
-  CONFLICTS.forEach(function(conf) {
+  CONFLICTS.forEach(conf => {
     if(!conf.lat || !conf.lng) return;
-    count++;
-    const color = colors[conf.intensity] || '#888';
-    const radius = {critical:14, high:10, medium:7, low:5}[conf.intensity] || 6;
+    conflictCount++;
+    const col = conflictColors[conf.intensity] || '#888';
+    const r   = conflictSizes[conf.intensity]  || 6;
 
-    // Pulsing circle marker
-    const circle = L.circleMarker([conf.lat, conf.lng], {
-      radius: radius,
-      fillColor: color,
-      color: color,
-      weight: 1,
-      opacity: 0.9,
-      fillOpacity: 0.4,
-    }).addTo(conflictMap);
+    // Pulsing div icon
+    const pulseClass = conf.intensity === 'critical' ? 'marker-critical' : conf.intensity === 'high' ? 'marker-high' : '';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="${pulseClass}" style="width:${r*2}px;height:${r*2}px;border-radius:50%;background:${col};opacity:.85;border:1.5px solid ${col};box-sizing:border-box;"></div>`,
+      iconSize: [r*2, r*2],
+      iconAnchor: [r, r],
+    });
 
-    // Outer pulse ring
-    L.circleMarker([conf.lat, conf.lng], {
-      radius: radius + 4,
-      fillColor: 'transparent',
-      color: color,
-      weight: 1,
-      opacity: 0.3,
-    }).addTo(conflictMap);
-
-    // Popup
-    circle.bindPopup(
-      '<div style="font-family:JetBrains Mono,monospace;min-width:200px;">' +
-      '<div style="font-size:11px;font-weight:600;color:'+color+';margin-bottom:4px;">'+conf.name+'</div>' +
-      '<div style="font-size:9px;color:#888;margin-bottom:6px;">'+conf.region+' · '+conf.intensity.toUpperCase()+'</div>' +
-      '<div style="font-size:10px;color:#ccc;line-height:1.6;">'+conf.desc+'</div>' +
-      '</div>',
-      {maxWidth: 280, className: 'conflict-popup'}
-    );
+    const m = L.marker([conf.lat, conf.lng], {icon});
+    m.bindPopup(`<div class="map-popup">
+      <div class="map-popup-title" style="color:${col};">${conf.name}</div>
+      <div class="map-popup-sub">${conf.region.toUpperCase()} · ${conf.intensity.toUpperCase()}</div>
+      <div class="map-popup-desc">${conf.desc.replace(/<[^>]+>/g,' ').slice(0,200)}</div>
+    </div>`, {maxWidth:280, closeButton:true});
+    mapLayers.conflicts.addLayer(m);
   });
 
-  const cnt = document.getElementById('map-conflict-count');
-  if(cnt) cnt.textContent = count + ' conflictos activos';
+  // ── LAYER: MILITARY BASES ─────────────────────────────
+  const baseIcon = (color='#e8a020') => L.divIcon({
+    className:'',
+    html:`<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid ${color};"></div>`,
+    iconSize:[12,10], iconAnchor:[6,10],
+  });
 
-  // Custom popup style
-  const style = document.createElement('style');
-  style.textContent = '.leaflet-popup-content-wrapper{background:var(--bg1);border:1px solid var(--border2);border-radius:2px;box-shadow:0 4px 20px rgba(0,0,0,.5);color:var(--text0);}.leaflet-popup-tip{background:var(--bg1);}';
-  document.head.appendChild(style);
+  mapLayers.military = L.layerGroup();
+  MILITARY_BASES.forEach(b => {
+    const col = b.cat.includes('China') ? '#e03030' : b.cat.includes('Rusia') ? '#ff6644' : '#e8a020';
+    const m = L.marker([b.lat, b.lng], {icon: baseIcon(col)});
+    m.bindPopup(`<div class="map-popup">
+      <div class="map-popup-title" style="color:${col};">🔺 ${b.name}</div>
+      <div class="map-popup-sub">${b.cat.toUpperCase()}</div>
+      <div class="map-popup-desc">${b.country}</div>
+    </div>`, {maxWidth:220});
+    mapLayers.military.addLayer(m);
+  });
+
+  // ── LAYER: NUCLEAR ────────────────────────────────────
+  const nucIcon = L.divIcon({
+    className:'',
+    html:`<div style="width:12px;height:12px;border-radius:50%;background:#9b30ff;border:1.5px solid #bf7fff;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;">☢</div>`,
+    iconSize:[12,12], iconAnchor:[6,6],
+  });
+
+  mapLayers.nuclear = L.layerGroup();
+  NUCLEAR_SITES.forEach(n => {
+    const m = L.marker([n.lat, n.lng], {icon: nucIcon});
+    const col = n.status==='activo' ? '#bf7fff' : n.status==='monitoreado' ? '#e8a020' : '#666';
+    m.bindPopup(`<div class="map-popup">
+      <div class="map-popup-title" style="color:${col};">☢ ${n.name}</div>
+      <div class="map-popup-sub">${n.cat.toUpperCase()}</div>
+      <div class="map-popup-desc">Estado: ${n.status}</div>
+    </div>`, {maxWidth:220});
+    mapLayers.nuclear.addLayer(m);
+  });
+
+  // ── LAYER: HOTSPOTS / ALERTAS ─────────────────────────
+  const hotspotIcon = (type) => L.divIcon({
+    className:'',
+    html:`<div class="${type==='activo'?'marker-critical':''}" style="width:14px;height:14px;border-radius:50%;background:transparent;border:2px solid ${type==='activo'?'#e03030':'#e8a020'};display:flex;align-items:center;justify-content:center;">
+      <div style="width:5px;height:5px;border-radius:50%;background:${type==='activo'?'#e03030':'#e8a020'};"></div>
+    </div>`,
+    iconSize:[14,14], iconAnchor:[7,7],
+  });
+
+  mapLayers.hotspots = L.layerGroup();
+  HOTSPOTS.forEach(h => {
+    const col = h.type==='activo' ? '#e03030' : '#e8a020';
+    const m = L.marker([h.lat, h.lng], {icon: hotspotIcon(h.type)});
+    m.bindPopup(`<div class="map-popup">
+      <div class="map-popup-title" style="color:${col};">⚡ ${h.name}</div>
+      <div class="map-popup-sub">${h.type.toUpperCase()}</div>
+      <div class="map-popup-desc">${h.note}</div>
+    </div>`, {maxWidth:240});
+    mapLayers.hotspots.addLayer(m);
+  });
+
+  // Add all layers to map
+  Object.values(mapLayers).forEach(lg => lg.addTo(conflictMap));
+
+  // Counter
+  const cnt = document.getElementById('map-conflict-count');
+  if(cnt) cnt.textContent = `${conflictCount} conflictos · ${MILITARY_BASES.length} bases · ${NUCLEAR_SITES.length} nuclear · ${HOTSPOTS.length} alertas`;
 }
 
 // ── CHAT (localStorage BroadcastChannel) ─────────────────
