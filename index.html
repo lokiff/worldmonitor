@@ -240,7 +240,7 @@ button{font-family:inherit;cursor:pointer;}
     <div class="ml">
       <button class="translate-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐 EN</button>
       <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night mode">🌙</button>
-      <button class="btn" id="ref-btn" onclick="refreshAll(true)">↻ REFRESH</button>
+      <button class="btn" id="ref-btn" onclick="refreshAll(true);refreshLiveData(true)">↻ REFRESH</button>
     </div>
   </div>
 
@@ -272,6 +272,12 @@ button{font-family:inherit;cursor:pointer;}
         <button class="tbtn" onclick="setTime(this)">7D</button>
         <div style="width:1px;height:16px;background:var(--b2);margin:0 2px;"></div>
         <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:var(--green);" title="Load UN/GDACS live crisis events">⚡ LIVE</button>
+      </div>
+        <label id="lyr-conflicts" class="lyr-toggle on" onclick="toggleLayer('conflicts',this)"><span class="lyr-dot" style="background:#f85149"></span>Conflictos</label>
+        <label id="lyr-nuclear"   class="lyr-toggle"    onclick="toggleLayer('nuclear',this)"><span class="lyr-dot" style="background:#e3b341"></span>☢ Nuclear</label>
+        <label id="lyr-quakes"    class="lyr-toggle"    onclick="toggleLayer('quakes',this)"><span class="lyr-dot" style="background:#f0883e"></span>🌍 Terremotos</label>
+        <label id="lyr-fires"     class="lyr-toggle"    onclick="toggleLayer('fires',this)"><span class="lyr-dot" style="background:#ff6b35"></span>🔥 Incendios</label>
+        <label id="lyr-military"  class="lyr-toggle"    onclick="toggleLayer('military',this)"><span class="lyr-dot" style="background:#58a6ff"></span>✈ Militares</label>
       </div>
 
 
@@ -722,7 +728,12 @@ function initMap(){
       .addTo(LG['conflicts']);
   });
   LG['conflicts'].addTo(MAP);
-  LG['live']=L.layerGroup();
+  LG['live']      = L.layerGroup();
+  LG['ucdp']      = L.layerGroup();
+  LG['gdacs']     = L.layerGroup();
+  LG['liveuamap'] = L.layerGroup();
+  LG['quakes']   = L.layerGroup();
+  LG['fires']    = L.layerGroup();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -768,7 +779,7 @@ function startCountdown(){
   const el=document.getElementById('refresh-countdown');
   setInterval(()=>{
     countdownSecs--;
-    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);}
+    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);aiUpdateConflicts(true);}
     const m=Math.floor(countdownSecs/60),s=String(countdownSecs%60).padStart(2,'0');
     if(el) el.textContent=`↻ ${m}:${s}`;
   },1000);
@@ -1231,6 +1242,293 @@ function parseReliefWeb(data){
 }
 
 // ══════════════════════════════════════════════════════════
+// UCDP — Uppsala Conflict Data Program (sin registro, CORS libre)
+// Fuente académica de referencia mundial sobre conflictos armados
+// ══════════════════════════════════════════════════════════
+async function loadUCDP() {
+  try {
+    // UCDP GED — Georeferenced Event Dataset, eventos recientes
+    const year = new Date().getFullYear();
+    const url = `https://ucdpapi.pcr.uu.se/api/gedevents/${year}?pagesize=100&page=1`;
+    const proxied = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxied, {signal: AbortSignal.timeout(10000)});
+    const raw = await r.json();
+    const data = JSON.parse(raw.contents);
+    if (!data?.Result?.length) return 0;
+
+    if (LG['ucdp']) MAP.removeLayer(LG['ucdp']);
+    LG['ucdp'] = L.layerGroup().addTo(MAP);
+
+    const typeLabel = {1:'State-based',2:'Non-state',3:'One-sided'};
+    const typeCol   = {1:'#f85149', 2:'#f0883e', 3:'#e3b341'};
+
+    data.Result.forEach(ev => {
+      const lat = parseFloat(ev.latitude), lng = parseFloat(ev.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const deaths = parseInt(ev.best) || 0;
+      const sz = Math.min(6 + Math.floor(Math.sqrt(deaths)), 16);
+      const col = typeCol[ev.type_of_violence] || '#8b949e';
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};opacity:0.75;border:1px solid rgba(255,255,255,0.25);cursor:pointer;"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      const popup = `
+        <div class="pt">⚔ ${ev.side_a || ''} vs ${ev.side_b || ''}</div>
+        <div class="ps">UCDP · ${ev.country || ''} · ${ev.date_start?.split('T')[0] || ''}</div>
+        <div class="pb">${typeLabel[ev.type_of_violence] || 'Conflict'}${deaths ? ' · <b style="color:var(--red)">'+deaths+' est. deaths</b>' : ''}<br>${(ev.source_headline||'').slice(0,180)}</div>
+      `;
+      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:280}).addTo(LG['ucdp']);
+    });
+    return data.Result.length;
+  } catch(e) {
+    console.warn('UCDP error:', e);
+    return 0;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// LIVE DATA — Cloudflare Worker
+// Fuentes: LiveUAMap + Telegram + UCDP + GDACS + ReliefWeb
+// ══════════════════════════════════════════════════════════
+const WORKER_URL = 'https://conflicttracker.itugil-xabi.workers.dev';
+const LIVE_UPDATE_INTERVAL = 5 * 60 * 1000; // refresca cada 5 minutos
+let liveDataLastUpdated = 0;
+let liveEvents = []; // cache de eventos actuales
+
+function showToast(msg, duration = 4000) {
+  let el = document.getElementById('live-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'live-toast';
+    el.style.cssText = `position:fixed;bottom:44px;left:50%;transform:translateX(-50%);z-index:2000;
+      background:var(--s2);border:1px solid var(--b2);border-radius:4px;
+      padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:10px;
+      color:var(--t1);box-shadow:0 4px 24px rgba(0,0,0,.6);
+      pointer-events:none;transition:opacity .4s;white-space:nowrap;`;
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  if (duration > 0) el._t = setTimeout(() => el.style.opacity = '0', duration);
+}
+
+async function refreshLiveData(force = false) {
+  const now = Date.now();
+  if (!force && (now - liveDataLastUpdated) < LIVE_UPDATE_INTERVAL) return;
+
+  showToast('⚡ Actualizando mapa en tiempo real...', 0);
+
+  // Limpiar capas anteriores
+  ['ucdp','gdacs','liveuamap'].forEach(id => {
+    if (LG[id]) { MAP.removeLayer(LG[id]); LG[id] = L.layerGroup().addTo(MAP); }
+  });
+
+  let total = 0;
+  const results = await Promise.allSettled([
+    loadWorkerData(),   // LiveUAMap + Telegram via Worker
+    loadUCDP(),         // UCDP directo (CORS libre)
+    loadGDACS(),        // GDACS directo (CORS libre)
+    loadReliefWeb(),    // ReliefWeb directo (CORS libre)
+  ]);
+  results.forEach(r => { if (r.status === 'fulfilled') total += r.value || 0; });
+
+  liveDataLastUpdated = Date.now();
+  const ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('st-c').textContent = CONFLICTS.length + (total > 0 ? '+'+total : '');
+  showToast(total > 0 ? `✓ ${total} eventos en tiempo real · ${ts}` : `✓ Mapa actualizado · ${ts}`, 5000);
+}
+
+// ── WORKER: LiveUAMap + Telegram ──────────────────────────
+async function loadWorkerData() {
+  try {
+    const r = await fetch(`${WORKER_URL}/all`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error(`Worker ${r.status}`);
+    const data = await r.json();
+
+    if (!LG['liveuamap']) LG['liveuamap'] = L.layerGroup().addTo(MAP);
+
+    let count = 0;
+    const allEvents = [
+      ...(data.liveuamap || []),
+      ...(data.telegram  || []),
+    ];
+
+    allEvents.forEach(ev => {
+      if (!ev.lat || !ev.lng) return;
+      const isTelegram = ev.src?.startsWith('telegram');
+      const col  = isTelegram ? '#bc8cff' : '#58a6ff';
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:8px;height:8px;border-radius:50%;background:${col};opacity:0.85;border:1px solid rgba(255,255,255,.3);cursor:pointer;"></div>`,
+        iconSize: [8,8], iconAnchor: [4,4]
+      });
+      const srcLabel = isTelegram ? `📲 ${ev.channel?.toUpperCase()}` : '🗺 LIVEUAMAP';
+      const timeStr  = ev.pubDate ? new Date(ev.pubDate).toLocaleString('es-ES') : '';
+      const popup = `
+        <div class="pt">${ev.title?.slice(0,120) || 'Evento'}</div>
+        <div class="ps">${srcLabel}${timeStr ? ' · '+timeStr : ''}</div>
+        ${ev.desc && ev.desc !== ev.title ? `<div class="pb">${ev.desc.slice(0,300)}</div>` : ''}
+        ${ev.link ? `<div style="margin-top:5px;"><a href="${ev.link}" target="_blank" style="color:var(--blue);font-size:9px;font-family:'IBM Plex Mono',monospace;">→ Ver fuente</a></div>` : ''}
+      `;
+      L.marker([ev.lat, ev.lng], {icon})
+        .bindPopup(popup, {maxWidth: 300})
+        .addTo(LG['liveuamap']);
+      count++;
+    });
+
+    // Actualizar pestaña OSINT con posts de Telegram del Worker
+    if (data.telegram?.length) enrichOSINT(data.telegram);
+
+    return count;
+  } catch(e) {
+    console.warn('Worker:', e.message);
+    return 0;
+  }
+}
+
+// Enriquecer panel OSINT con posts frescos del Worker
+function enrichOSINT(posts) {
+  const container = document.getElementById('osint-list');
+  if (!container) return;
+  const fresh = posts.filter(p => p.desc?.length > 20).slice(0, 20);
+  if (!fresh.length) return;
+
+  const html = fresh.map(p => {
+    const ch = p.channel || 'osint';
+    const time = p.pubDate ? new Date(p.pubDate).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="ni" style="border-left:2px solid var(--purple);">
+      <div class="nt">${p.desc.slice(0,280)}</div>
+      <div class="nm">📲 @${ch}${time?' · '+time:''} ${p.link?`· <a href="${p.link}" target="_blank" style="color:var(--blue)">→</a>`:''}</div>
+    </div>`;
+  }).join('');
+
+  // Insertar al principio del panel OSINT
+  container.insertAdjacentHTML('afterbegin',
+    `<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--purple);letter-spacing:1px;padding:6px 10px 2px;">● TIEMPO REAL</div>${html}`
+  );
+}
+
+// ── UCDP GED ─────────────────────────────────────────────
+async function loadUCDP() {
+  try {
+    const year = new Date().getFullYear();
+    const url  = `https://ucdpapi.pcr.uu.se/api/gedevents/${year}?pagesize=200&page=1`;
+    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(12000)});
+    const raw  = await res.json();
+    const data = JSON.parse(raw.contents);
+    if (!data?.Result?.length) return 0;
+
+    if (!LG['ucdp']) LG['ucdp'] = L.layerGroup().addTo(MAP);
+    const typeCol   = {1:'#f85149', 2:'#f0883e', 3:'#e3b341'};
+    const typeLabel = {1:'State-based', 2:'Non-state', 3:'One-sided violence'};
+
+    data.Result.forEach(ev => {
+      const lat = parseFloat(ev.latitude), lng = parseFloat(ev.longitude);
+      if (isNaN(lat)||isNaN(lng)) return;
+      const deaths = parseInt(ev.best)||0;
+      const sz  = Math.min(5+Math.floor(Math.sqrt(deaths)),14);
+      const col = typeCol[ev.type_of_violence]||'#8b949e';
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};opacity:0.7;border:1px solid rgba(255,255,255,.2);cursor:pointer;"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      L.marker([lat,lng],{icon}).bindPopup(`
+        <div class="pt">⚔ ${ev.side_a||''} vs ${ev.side_b||''}</div>
+        <div class="ps">UCDP · ${ev.country||''} · ${(ev.date_start||'').slice(0,10)}</div>
+        <div class="pb">${typeLabel[ev.type_of_violence]||''}${deaths?' · <b style="color:var(--red)">'+deaths+' est. muertes</b>':''}</div>`,
+        {maxWidth:280}).addTo(LG['ucdp']);
+    });
+    return data.Result.length;
+  } catch(e) { console.warn('UCDP:', e.message); return 0; }
+}
+
+// ── GDACS ─────────────────────────────────────────────────
+async function loadGDACS() {
+  try {
+    const xml = await fetchRSS('https://www.gdacs.org/xml/rss.xml');
+    if (!xml) return 0;
+    if (!LG['gdacs']) LG['gdacs'] = L.layerGroup().addTo(MAP);
+
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+    const alertBorder = {Red:'#f85149', Orange:'#f0883e', Green:'#3fb950'};
+    const typeCol = {EQ:'#e3b341', TC:'#58a6ff', FL:'#79c0ff', VO:'#f0883e', WF:'#f85149'};
+    let count = 0;
+
+    items.forEach(m => {
+      const b = m[1];
+      const get = tag => b.match(new RegExp(`<(?:gdacs:)?${tag}[^>]*>([^<]*)<`,'i'))?.[1]?.trim()||'';
+      const title = b.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i)?.[1]||'';
+      const lat = parseFloat(get('latitude')||get('lat'));
+      const lng = parseFloat(get('longitude')||get('lon'));
+      if (isNaN(lat)||isNaN(lng)||!title) return;
+
+      const alert = get('alertlevel'), eType = get('eventtype'), country = get('country');
+      const col = typeCol[eType]||'#8b949e';
+      const border = alertBorder[alert]||'#444c56';
+      const sz = alert==='Red'?13:alert==='Orange'?10:8;
+
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;background:${col};border:2px solid ${border};border-radius:2px;transform:rotate(45deg);cursor:pointer;opacity:.85;"></div>`,
+        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
+      });
+      L.marker([lat,lng],{icon}).bindPopup(`
+        <div class="pt">⚠ ${title}</div>
+        <div class="ps">GDACS · ${country} · ${alert||'INFO'}</div>
+        <div class="pb">${eType||'Alert'} · ${get('severity')||''}</div>`,
+        {maxWidth:260}).addTo(LG['gdacs']);
+      count++;
+    });
+    return count;
+  } catch(e) { console.warn('GDACS:', e.message); return 0; }
+}
+
+// ── RELIEFWEB ─────────────────────────────────────────────
+async function loadReliefWeb() {
+  try {
+    const url = 'https://api.reliefweb.int/v1/disasters?appname=conflicttracker&limit=50&filter[field]=status&filter[value]=ongoing&fields[include][]=name&fields[include][]=date&fields[include][]=country&fields[include][]=type';
+    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(10000)});
+    const raw  = await res.json();
+    const json = JSON.parse(raw.contents);
+    if (!json?.data?.length) return 0;
+    if (!LG['gdacs']) LG['gdacs'] = L.layerGroup().addTo(MAP);
+
+    const COORDS = {
+      'Ukraine':[49,32],'Sudan':[15,30],'Palestine':[31.5,34.4],'Myanmar':[20,96],
+      'Syria':[35,38],'Yemen':[15,48],'Somalia':[6,46],'Mali':[17,-4],
+      'Ethiopia':[9,40],'Democratic Republic of the Congo':[0,25],'Haiti':[19,-72],
+      'Afghanistan':[33,66],'Libya':[27,17],'Niger':[17,8],'Nigeria':[10,8],
+      'Mozambique':[-18,35],'Pakistan':[30,70],'Lebanon':[33.9,35.5],'Iraq':[33,44],
+    };
+    let count = 0;
+    json.data.forEach(item => {
+      const f = item.fields||{};
+      const countries = (f.country||[]).map(c=>c.name);
+      const types = (f.type||[]).map(t=>t.name).join(', ');
+      let coords = null;
+      for (const cn of countries) { if (COORDS[cn]) { coords=COORDS[cn]; break; } }
+      if (!coords) return;
+      const lat = coords[0]+(Math.random()-.5)*1.5, lng = coords[1]+(Math.random()-.5)*1.5;
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="width:9px;height:9px;border-radius:50%;background:#bc8cff;opacity:0.75;border:1.5px solid #9f6be0;cursor:pointer;"></div>`,
+        iconSize:[9,9], iconAnchor:[4,4]
+      });
+      L.marker([lat,lng],{icon}).bindPopup(`
+        <div class="pt">🆘 ${f.name||'Crisis'}</div>
+        <div class="ps">RELIEFWEB · ${countries.join(', ')} · ONGOING</div>
+        <div class="pb">${types||'Crisis'}</div>`,
+        {maxWidth:260}).addTo(LG['gdacs']);
+      count++;
+    });
+    return count;
+  } catch(e) { console.warn('ReliefWeb:', e.message); return 0; }
+}
+
+// ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 function init(){
@@ -1240,6 +1538,7 @@ function init(){
   startCountdown();
   loadMedia();
   loadOSINT();
+  setTimeout(() => refreshLiveData(true), 1500);
 }
 init();
 </script>
