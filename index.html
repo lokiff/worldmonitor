@@ -2,147 +2,116 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ConflictTracker</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-/* ─── RESET ─────────────────────────────────────────── */
+/* ── RESET & BASE ── */
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;background:#f0f0f0;color:#222;}
+html,body{height:100%;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;background:#f4f5f7;color:#1a1d23;}
 button{font-family:inherit;cursor:pointer;}
 ::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
 ::-webkit-scrollbar-thumb:hover{background:#bbb;}
 
-/* ─── DARK MODE ─────────────────────────────────────── */
-body.dark{background:#111;color:#d8dce8;}
-body.dark .topbar{background:#181a20;border-color:#252830;}
-body.dark .sr{background:#181a20;border-color:#252830;}
-body.dark .tabs{background:#181a20;border-color:#252830;}
-body.dark .tab{color:#6670838;}
-body.dark .tab.on{color:#d8dce8;border-color:#4a7fff;}
+/* ── DARK ── */
+body.dark{background:#111318;color:#d8dce8;}
+body.dark .topbar{background:#181a22;border-color:#252830;}
+body.dark .ticker-top,.dark .ticker-bottom{background:#181a22;border-color:#252830;color:#667083;}
+body.dark .ticker-label{background:#252830;color:#667083;}
+body.dark .sidebar{background:#181a22;border-color:#252830;}
+body.dark .sidebar-btn{color:#667083;}
+body.dark .sidebar-btn:hover,.dark .sidebar-btn.on{background:#252830;color:#d8dce8;}
+body.dark .col-panel{background:#181a22;border-color:#252830;}
+body.dark .col-header{background:#1e2230;border-color:#252830;color:#9099b0;}
 body.dark .ffilters{border-color:#252830;}
 body.dark .ffbtn{color:#667083;border-color:#252830;}
-body.dark .ffbtn.on{color:#4a7fff;border-color:#4a7fff;}
-body.dark .fitem{border-color:#1e2128;}
+body.dark .ffbtn.on{color:#4a7fff;border-color:#4a7fff;background:rgba(74,127,255,.08);}
+body.dark .fitem{border-color:#1e2230;}
 body.dark .fitem:hover{background:#1e2230;}
 body.dark .ftitle{color:#d8dce8;}
-body.dark .fsrc,.dark .ftime{color:#667083;}
-body.dark .fdesc{color:#8890a0;}
-body.dark .ffooter{border-color:#252830;background:#181a20;}
-body.dark .ffooter-stat{color:#667083;}
+body.dark .fsrc{color:#4a7fff;}
+body.dark .ftime{color:#505870;}
+body.dark .fdesc{color:#7880a0;}
+body.dark .topbtn{border-color:#252830;color:#667083;}
+body.dark .topbtn:hover{color:#d8dce8;border-color:#505870;}
+body.dark .topbtn.on{color:#4a7fff;border-color:#4a7fff;}
+body.dark .tab{color:#667083;}
+body.dark .tab.on{color:#d8dce8;border-color:#4a7fff;}
+body.dark .osint-notice{background:#1e2230;border-color:#2a3048;color:#667083;}
 body.dark .stream-input-wrap{border-color:#252830;}
 body.dark #stream-input{background:#1e2230;border-color:#252830;color:#d8dce8;}
-body.dark .stream-card{background:#1e2230;border-color:#252830;}
-body.dark .map-timebar{background:#181a20!important;border-color:#252830!important;}
-body.dark .tbtn{color:#667083;}
-body.dark .tbtn.on,.dark .tbtn:hover{background:#252830;color:#d8dce8;}
-body.dark .zbtn{background:#181a20!important;border-color:#252830!important;color:#667083;}
-body.dark .zbtn:hover{color:#d8dce8;}
-body.dark .map-regionbar{background:#181a20!important;border-color:#252830!important;}
-body.dark .rbtn{color:#667083;}
-body.dark .rbtn.on,.dark .rbtn:hover{color:#4a7fff;background:#1e2230;}
-body.dark .leaflet-container{background:#0d0f14!important;}
-body.dark .leaflet-popup-content-wrapper{background:#1e2230!important;border-color:#252830!important;color:#d8dce8!important;}
-body.dark .leaflet-popup-tip{background:#1e2230!important;}
-body.dark .topbar-sep{background:#252830;}
+body.dark .stream-card{border-color:#1e2230;}
+body.dark .stream-card:hover{background:#1e2230;}
+body.dark .panel-modal{background:#181a22;border-color:#252830;}
+body.dark .panel-modal input,.dark .panel-modal select{background:#1e2230;border-color:#2a3048;color:#d8dce8;}
+body.dark .save-btn{color:#505870;}
+body.dark .save-btn:hover{color:#d8dce8;}
 
-/* ─── LAYOUT ─────────────────────────────────────────── */
+/* ── LAYOUT ── */
 .app{display:flex;flex-direction:column;height:100vh;}
-.main{flex:1;display:flex;min-height:0;}
 
-/* ─── TOPBAR ─────────────────────────────────────────── */
-.topbar{height:38px;flex-shrink:0;background:#fff;border-bottom:1px solid #e0e2e6;display:flex;align-items:center;padding:0 12px;gap:10px;z-index:600;}
-.logo{font-size:12px;font-weight:700;letter-spacing:1px;color:#222;white-space:nowrap;}
-.logo span{color:#d04040;}
-.live-dot{width:5px;height:5px;border-radius:50%;background:#d04040;animation:blink 1.5s ease-in-out infinite;flex-shrink:0;}
+/* ── TICKER TOP ── */
+.ticker-top{height:26px;flex-shrink:0;background:#fff;border-bottom:1px solid #e4e6ea;display:flex;align-items:center;overflow:hidden;font-size:11px;color:#666;}
+.ticker-label{padding:0 10px;background:#d03030;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;height:100%;display:flex;align-items:center;flex-shrink:0;white-space:nowrap;}
+.ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
+.ticker-text{display:inline-block;padding-left:100%;animation:ticker 120s linear infinite;}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* ── TOPBAR ── */
+.topbar{height:38px;flex-shrink:0;background:#fff;border-bottom:1px solid #e4e6ea;display:flex;align-items:center;padding:0 12px;gap:10px;z-index:100;}
+.logo{font-size:12px;font-weight:700;letter-spacing:.8px;color:#222;white-space:nowrap;}
+.logo span{color:#d03030;}
+.live-dot{width:5px;height:5px;border-radius:50%;background:#d03030;animation:blink 1.5s ease-in-out infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.topbar-sep{width:1px;height:14px;background:#e0e2e6;flex-shrink:0;}
-.clock{font-size:11px;color:#888;font-variant-numeric:tabular-nums;white-space:nowrap;}
-.ts-label{font-size:11px;color:#888;}
-.ts-label b{color:#444;font-weight:500;}
+.clock-wrap{font-size:11px;color:#999;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.clock-wrap b{color:#555;font-weight:500;}
+.tsep{width:1px;height:14px;background:#e4e6ea;flex-shrink:0;}
+.st-label{font-size:11px;color:#999;}
+.st-label b{color:#555;font-weight:500;}
 .ml{margin-left:auto;display:flex;gap:5px;align-items:center;}
 .topbtn{padding:3px 9px;background:transparent;border:1px solid #ddd;color:#666;font-size:11px;border-radius:3px;transition:all .12s;white-space:nowrap;}
 .topbtn:hover{border-color:#aaa;color:#333;}
-.topbtn.on{border-color:#2a70d4;color:#2a70d4;}
+.topbtn.on{border-color:#2a70d4;color:#2a70d4;background:rgba(42,112,212,.05);}
 
-/* ─── MAP ────────────────────────────────────────────── */
-.map-wrap{flex:1;position:relative;min-width:0;}
-#map{width:100%;height:100%;}
-.leaflet-container{background:#e8ecf0!important;}
-@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(208,64,64,.5)}50%{box-shadow:0 0 0 9px rgba(208,64,64,0)}}
-@keyframes ch{0%,100%{box-shadow:0 0 0 0 rgba(208,64,64,.4)}50%{box-shadow:0 0 0 7px rgba(208,64,64,0)}}
-@keyframes cm{0%,100%{box-shadow:0 0 0 0 rgba(210,130,40,.4)}50%{box-shadow:0 0 0 5px rgba(210,130,40,0)}}
-@keyframes cl{0%,100%{box-shadow:0 0 0 0 rgba(42,112,212,.3)}50%{box-shadow:0 0 0 4px rgba(42,112,212,0)}}
+/* ── MAIN 3-COL ── */
+.main{flex:1;display:flex;min-height:0;}
 
-/* time buttons — top left of map */
-.map-timebar{position:absolute;top:10px;left:10px;z-index:400;background:#fff;border:1px solid #ddd;border-radius:4px;display:flex;box-shadow:0 1px 4px rgba(0,0,0,.12);}
-.tbtn{padding:4px 9px;background:transparent;border:none;border-right:1px solid #e8e8e8;color:#888;font-size:10px;transition:all .1s;}
-.tbtn:last-child{border-right:none;}
-.tbtn.on,.tbtn:hover{background:#f0f2f5;color:#222;}
+/* ── LEFT SIDEBAR (ajustes) ── */
+.sidebar{width:44px;flex-shrink:0;background:#fff;border-right:1px solid #e4e6ea;display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px;z-index:10;}
+.sidebar-btn{width:34px;height:34px;border:none;background:transparent;border-radius:6px;font-size:16px;color:#aaa;display:flex;align-items:center;justify-content:center;transition:all .12s;position:relative;}
+.sidebar-btn:hover{background:#f0f2f5;color:#444;}
+.sidebar-btn.on{background:#e8edf8;color:#2a70d4;}
+.sidebar-sep{width:24px;height:1px;background:#eee;margin:4px 0;}
 
-/* zoom — right side */
-.map-zoombar{position:absolute;top:10px;right:10px;z-index:400;display:flex;flex-direction:column;gap:2px;}
-.zbtn{width:28px;height:28px;background:#fff;border:1px solid #ddd;color:#666;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .12s;box-shadow:0 1px 3px rgba(0,0,0,.1);}
-.zbtn:hover{color:#222;border-color:#aaa;}
+/* ── COLUMNS ── */
+.columns{flex:1;display:flex;min-width:0;gap:0;}
+.col-panel{flex:1;display:flex;flex-direction:column;min-width:0;background:#fff;border-right:1px solid #e4e6ea;}
+.col-panel:last-child{border-right:none;}
+.col-header{padding:0 10px;height:36px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #eee;background:#fafbfc;flex-shrink:0;}
+.col-title{font-size:11px;font-weight:600;color:#444;letter-spacing:.3px;}
+.col-count{font-size:10px;color:#aaa;margin-left:auto;}
 
-/* region bar — bottom of map */
-.map-regionbar{position:absolute;bottom:0;left:0;right:0;z-index:400;background:#fff;border-top:1px solid #e0e2e6;display:flex;align-items:center;height:30px;padding:0 10px;gap:2px;overflow-x:auto;scrollbar-width:none;}
-.map-regionbar::-webkit-scrollbar{display:none;}
-.rlabel{font-size:9px;color:#aaa;flex-shrink:0;margin-right:4px;white-space:nowrap;}
-.rbtn{padding:2px 8px;background:transparent;border:none;color:#888;font-size:11px;border-radius:2px;white-space:nowrap;flex-shrink:0;transition:all .1s;}
-.rbtn:hover{background:#f0f2f5;color:#444;}
-.rbtn.on{background:#e8edf8;color:#2a70d4;font-weight:500;}
-
-/* popup */
-.leaflet-popup-content-wrapper{background:#fff!important;color:#222!important;border:1px solid #e0e2e6!important;border-radius:6px!important;box-shadow:0 4px 16px rgba(0,0,0,.15)!important;}
-.leaflet-popup-content{margin:10px 14px!important;}
-.leaflet-popup-tip{background:#fff!important;}
-.leaflet-popup-close-button{color:#999!important;}
-.pt{font-weight:600;font-size:13px;margin-bottom:3px;}
-.ps{font-size:10px;color:#888;margin-bottom:4px;}
-.pb{font-size:11px;color:#555;line-height:1.6;}
-.pb b{color:#222;}
-.pu-tag{display:inline-block;font-size:9px;font-weight:600;padding:1px 6px;border-radius:3px;margin-top:5px;}
-
-/* ─── RIGHT PANEL ────────────────────────────────────── */
-.sr{width:var(--panel-w,340px);flex-shrink:0;background:#fff;border-left:1px solid #e0e2e6;display:flex;flex-direction:column;overflow:hidden;position:relative;}
-
-/* resize handle */
-#panel-resize-handle{position:absolute;left:0;top:0;bottom:0;width:4px;cursor:col-resize;z-index:100;background:transparent;transition:background .15s;}
-#panel-resize-handle:hover{background:rgba(42,112,212,.3);}
-
-/* ─── TABS ───────────────────────────────────────────── */
-.tabs{flex-shrink:0;display:flex;align-items:center;background:#fafafa;border-bottom:1px solid #e8eaed;padding:0;}
-.tab{padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;font-size:11px;cursor:pointer;transition:color .12s;margin-bottom:-1px;white-space:nowrap;}
-.tab:hover{color:#444;}
+/* tabs inside col */
+.col-tabs{display:flex;border-bottom:1px solid #eee;flex-shrink:0;background:#fafbfc;}
+.tab{padding:8px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:#999;font-size:11px;cursor:pointer;transition:color .12s;margin-bottom:-1px;}
+.tab:hover{color:#555;}
 .tab.on{color:#222;border-bottom-color:#2a70d4;font-weight:500;}
-.tab-refresh{margin-left:auto;display:flex;align-items:center;gap:5px;padding:0 8px;}
-.tab-timer{font-size:10px;color:#aaa;font-variant-numeric:tabular-nums;}
-.tab-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
-.tab-panel.hidden{display:none;}
 
-/* ─── FILTERS ────────────────────────────────────────── */
-.ffilters{flex-shrink:0;display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid #eee;flex-wrap:wrap;}
-.ffbtn{padding:3px 9px;background:transparent;border:1px solid #e0e2e6;border-radius:12px;color:#888;font-size:10px;transition:all .1s;}
-.ffbtn:hover{color:#444;}
-.ffbtn.on{border-color:#2a70d4;color:#2a70d4;background:rgba(42,112,212,.06);}
+/* filters */
+.ffilters{flex-shrink:0;display:flex;gap:3px;padding:5px 8px;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;}
+.ffbtn{padding:2px 8px;background:transparent;border:1px solid #e4e6ea;border-radius:10px;color:#999;font-size:10px;transition:all .1s;}
+.ffbtn:hover{color:#555;}
+.ffbtn.on{border-color:#2a70d4;color:#2a70d4;background:rgba(42,112,212,.05);}
 
-/* ─── FEED ───────────────────────────────────────────── */
+/* feed */
 .farea{flex:1;overflow-y:auto;}
-.fitem{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .08s;}
+.fitem{padding:9px 12px;border-bottom:1px solid #f2f2f2;transition:background .08s;}
 .fitem:hover{background:#f7f9fc;}
-@keyframes fadeup{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
-.fitem{animation:fadeup .25s ease both;}
-.ftop{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
-.fsrc{font-size:10px;color:#2a70d4;font-weight:500;}
-.ftime{margin-left:auto;font-size:10px;color:#aaa;white-space:nowrap;}
-.ftitle{font-size:12px;color:#222;line-height:1.45;margin-bottom:2px;}
-.fdesc{font-size:11px;color:#777;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.ftag{font-size:9px;font-weight:600;padding:1px 5px;border-radius:2px;letter-spacing:.2px;}
+@keyframes fadeup{from{opacity:0;transform:translateY(-2px)}to{opacity:1}}
+.fitem{animation:fadeup .2s ease both;}
+.ftop{display:flex;align-items:center;gap:4px;margin-bottom:3px;flex-wrap:wrap;}
+.ftag{font-size:9px;font-weight:600;padding:1px 5px;border-radius:2px;}
 .tag-b{background:#fde8e8;color:#c03030;}
 .tag-s{background:#fef0e0;color:#b06010;}
 .tag-d{background:#e8eef8;color:#2a60c0;}
@@ -150,28 +119,57 @@ body.dark .topbar-sep{background:#252830;}
 .tag-i{background:#e8f4f8;color:#2080a0;}
 .tag-e{background:#e8f4ee;color:#207040;}
 .tag-tg{background:#e0f0f8;color:#1878b0;}
-.fstatus{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 16px;color:#aaa;font-size:12px;flex-direction:column;text-align:center;}
+.fsrc{font-size:10px;color:#2a70d4;font-weight:500;}
+.ftime{margin-left:auto;font-size:10px;color:#aaa;white-space:nowrap;}
+.save-btn{margin-left:4px;background:none;border:none;font-size:11px;color:#ccc;cursor:pointer;padding:0;transition:color .12s;line-height:1;}
+.save-btn:hover{color:#f0a020;}
+.ftitle{font-size:12px;color:#1a1d23;line-height:1.45;margin-bottom:2px;font-weight:400;}
+.fdesc{font-size:11px;color:#777;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.fstatus{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 16px;color:#bbb;font-size:12px;flex-direction:column;text-align:center;line-height:1.8;}
 @keyframes spin{100%{transform:rotate(360deg)}}
 .spin-sm{width:14px;height:14px;border:1.5px solid #e0e2e6;border-top-color:#2a70d4;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 
-/* ─── FOOTER ─────────────────────────────────────────── */
-.ffooter{flex-shrink:0;border-top:1px solid #eee;padding:5px 10px;display:flex;align-items:center;gap:8px;background:#fafafa;}
-.ffooter-stat{font-size:10px;color:#aaa;}
-.ffooter-stat b{color:#666;font-weight:500;}
-.frefresh{padding:3px 8px;background:transparent;border:1px solid #ddd;color:#888;font-size:10px;border-radius:3px;transition:all .12s;}
-.frefresh:hover{border-color:#999;color:#444;}
-.foot-btn{background:transparent;border:1px solid #e0e2e6;color:#aaa;font-size:13px;width:24px;height:24px;border-radius:3px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;padding:0;}
-.foot-btn:hover{color:#666;border-color:#bbb;}
+/* OSINT disclaimer */
+.osint-notice{margin:8px;padding:8px 10px;background:#fffbe8;border:1px solid #f0d060;border-radius:4px;font-size:10px;color:#886010;line-height:1.55;flex-shrink:0;}
 
-/* ─── STREAM PANEL ───────────────────────────────────── */
-.stream-input-wrap{padding:8px;border-bottom:1px solid #eee;display:flex;gap:5px;}
-#stream-input{flex:1;padding:5px 9px;background:#f5f5f5;border:1px solid #e0e2e6;border-radius:3px;color:#222;font-size:11px;outline:none;}
+/* stream panel */
+.stream-input-wrap{padding:8px;border-bottom:1px solid #eee;display:flex;gap:5px;flex-shrink:0;}
+#stream-input{flex:1;padding:5px 8px;background:#f5f5f5;border:1px solid #e0e2e6;border-radius:3px;color:#222;font-size:11px;outline:none;}
 #stream-input:focus{border-color:#2a70d4;background:#fff;}
-.stream-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0f0f0;}
+.stream-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f2f2f2;transition:background .08s;}
 .stream-card:hover{background:#f7f9fc;}
 
-/* ─── MODAL ──────────────────────────────────────────── */
-#country-modal h3{font-size:11px;color:#c03030;margin:12px 0 5px;letter-spacing:.3px;text-transform:uppercase;}
+/* ── TICKER BOTTOM ── */
+.ticker-bottom{height:24px;flex-shrink:0;background:#fff;border-top:1px solid #e4e6ea;display:flex;align-items:center;overflow:hidden;font-size:10px;color:#888;}
+.ticker-label-b{padding:0 10px;background:#f0f2f5;color:#888;font-size:9px;font-weight:600;letter-spacing:1px;height:100%;display:flex;align-items:center;flex-shrink:0;border-right:1px solid #e4e6ea;white-space:nowrap;}
+
+/* ── SLIDE-IN PANELS (ajustes, etc.) ── */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;}
+.panel-modal{position:fixed;left:44px;top:0;bottom:0;width:280px;background:#fff;border-right:1px solid #e4e6ea;z-index:201;display:none;flex-direction:column;box-shadow:2px 0 12px rgba(0,0,0,.08);}
+.panel-modal.open{display:flex;}
+.panel-modal-header{padding:12px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;}
+.panel-modal-title{font-size:12px;font-weight:600;color:#333;flex:1;}
+.panel-modal-body{flex:1;overflow-y:auto;padding:14px;}
+.panel-section{margin-bottom:18px;}
+.panel-section-label{font-size:10px;font-weight:600;color:#aaa;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
+.panel-modal input[type=text],.panel-modal input[type=range],.panel-modal select{width:100%;padding:5px 8px;border:1px solid #ddd;border-radius:3px;font-size:11px;background:#f8f8f8;color:#333;outline:none;}
+.panel-modal input[type=text]:focus{border-color:#2a70d4;background:#fff;}
+.pref-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.pref-label{flex:1;font-size:12px;color:#555;}
+.toggle-sw{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle-sw .knob{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;}
+.color-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+.color-dot.on{border-color:#fff;box-shadow:0 0 0 2px #2a70d4;}
+.add-source-row{display:flex;gap:5px;margin-bottom:6px;}
+.added-source{display:flex;align-items:center;gap:6px;padding:4px 6px;background:#f5f5f5;border-radius:3px;font-size:11px;margin-bottom:4px;}
+.added-source .rm{background:none;border:none;color:#aaa;cursor:pointer;font-size:12px;margin-left:auto;}
+
+/* modal for country intel */
+#cmodal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:500;}
+#country-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:95vw;max-height:82vh;background:#fff;border:1px solid #e0e2e6;border-radius:6px;z-index:501;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.15);font-size:13px;}
+body.dark #country-modal{background:#181a22;border-color:#252830;}
+#country-modal h3{font-size:11px;color:#c03030;margin:12px 0 5px;text-transform:uppercase;}
 #country-modal h4{font-size:10px;color:#2a70d4;margin:10px 0 3px;}
 #country-modal p{margin:0 0 8px;color:#555;font-size:12px;line-height:1.65;}
 #country-modal ul{margin:0 0 8px;padding-left:16px;}
@@ -181,163 +179,216 @@ body.dark .topbar-sep{background:#252830;}
 #country-modal .risk-med{color:#a08020;font-weight:600;}
 #country-modal .risk-low{color:#2a70d4;}
 
-/* misc — kept from logic ─────────────────────────────── */
+/* misc kept */
 .sl{display:none;}
-.ci{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;}
-.ci:hover{background:#f7f9fc;}
-.ci.on{background:#eef3fc;}
-.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.cdot.critical{background:#d04040;animation:cp 2s ease-in-out infinite;}
-.cdot.high{background:#d04040;}
-.cdot.med{background:#d08030;}
-.cdot.low{background:#2a70d4;}
-.cdot.latent{background:#aaa;}
-.cname{font-size:12px;font-weight:500;}
-.creg{font-size:10px;color:#999;margin-top:1px;}
-.cbadge{font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;}
-.bc{background:#fde8e8;color:#c03030;}
-.bh{background:#fde8e8;color:#c03030;}
-.bm{background:#fef0e0;color:#b06010;}
-.bl{background:#e8eef8;color:#2a60c0;}
-.bn{background:#f0f0f0;color:#888;}
+.ci,.cname,.creg,.cbadge,.cdot,.bc,.bh,.bm,.bl,.bn{display:none;}
 </style>
 </head>
 <body>
 <div class="app">
 
+  <!-- TICKER TOP: noticias -->
+  <div class="ticker-top">
+    <div class="ticker-label">🔴 FLASH</div>
+    <div class="ticker-scroll"><span class="ticker-text" id="ticker-news-text">Cargando noticias...</span></div>
+  </div>
+
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="logo">CONFLICT<span>TRACKER</span></div>
     <div class="live-dot"></div>
-    <div class="topbar-sep"></div>
-    <div class="clock" id="clock-wrap">UTC <b id="clock">--:--:--</b> <span id="clock-local" style="margin-left:6px;color:#aaa;"></span></div>
-    <div class="topbar-sep"></div>
-    <span class="ts-label">Activos: <b id="st-c">24</b></span>
+    <div class="tsep"></div>
+    <div class="clock-wrap">UTC <b id="clock">--:--:--</b> <span id="clock-local" style="color:#bbb;margin-left:6px;"></span></div>
+    <div class="tsep"></div>
+    <span class="st-label">Conflictos activos: <b id="st-c">24</b></span>
     <div class="ml">
-      <button class="topbtn" id="trans-btn" onclick="toggleTranslate(this)">EN</button>
-      <button class="topbtn" id="theme-btn" onclick="toggleTheme()">☾</button>
-      <button class="topbtn" onclick="openEntitySearch()">Buscar</button>
-      <button class="topbtn" onclick="refreshAll(true);refreshLiveData(true)">↻</button>
+      <button class="topbtn" id="trans-btn" onclick="toggleTranslate(this)" title="Traducir al inglés">EN</button>
+      <button class="topbtn" id="theme-btn" onclick="toggleTheme()" title="Modo oscuro">☾</button>
+      <button class="topbtn" onclick="refreshAll(true)" title="Actualizar">↻ Actualizar</button>
+      <span id="ft-updated" style="font-size:10px;color:#bbb;"></span>
     </div>
   </div>
 
+  <!-- MAIN -->
   <div class="main">
-    <!-- LEFT SIDEBAR — oculto -->
-    <div class="sl">
-      <div id="conflict-list"></div>
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+      <button class="sidebar-btn on" id="sb-news" onclick="setSidebarPanel('news',this)" title="Noticias">📰</button>
+      <button class="sidebar-btn" id="sb-saved" onclick="setSidebarPanel('saved',this)" title="Guardadas">🔖
+        <span id="saved-count" style="position:absolute;top:3px;right:3px;font-size:8px;background:#d03030;color:#fff;border-radius:8px;padding:0 3px;min-width:12px;text-align:center;display:none;"></span>
+      </button>
+      <div class="sidebar-sep"></div>
+      <button class="sidebar-btn" id="sb-video" onclick="setSidebarPanel('video',this)" title="Video / Streams">📺</button>
+      <div class="sidebar-sep"></div>
+      <button class="sidebar-btn" id="sb-settings" onclick="openSidePanel('settings')" title="Ajustes">⚙</button>
+      <button class="sidebar-btn" id="sb-sources" onclick="openSidePanel('sources')" title="Fuentes personalizadas">＋</button>
+      <div style="margin-top:auto;"></div>
+      <button class="sidebar-btn" onclick="openAbout()" title="Acerca de">ℹ</button>
     </div>
 
-    <!-- MAP -->
-    <div class="map-wrap">
-      <div id="map"></div>
+    <!-- COLUMNS -->
+    <div class="columns">
 
-      <div class="map-timebar">
-        <button class="tbtn" onclick="setTime(this)">1H</button>
-        <button class="tbtn" onclick="setTime(this)">6H</button>
-        <button class="tbtn on" onclick="setTime(this)">24H</button>
-        <button class="tbtn" onclick="setTime(this)">48H</button>
-        <button class="tbtn" onclick="setTime(this)">7D</button>
-        <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:#2a8a52;" title="Live events">⚡</button>
-      </div>
-
-      <div class="map-zoombar">
-        <button class="zbtn" onclick="MAP.zoomIn()">+</button>
-        <button class="zbtn" onclick="MAP.zoomOut()">−</button>
-        <button class="zbtn" onclick="MAP.flyTo([20,15],2.5,{duration:1})" title="Vista global">⊕</button>
-      </div>
-
-      <div class="map-regionbar">
-        <span class="rlabel">IR A</span>
-        <button class="rbtn on"  onclick="setRegion(this,'global')">Global</button>
-        <button class="rbtn"     onclick="setRegion(this,'europe')">Europa</button>
-        <button class="rbtn"     onclick="setRegion(this,'mena')">Oriente Medio</button>
-        <button class="rbtn"     onclick="setRegion(this,'africa')">África</button>
-        <button class="rbtn"     onclick="setRegion(this,'asia')">Asia-Pac</button>
-        <button class="rbtn"     onclick="setRegion(this,'americas')">Américas</button>
-        <button class="rbtn"     onclick="setRegion(this,'caucasus')">Cáucaso</button>
-      </div>
-    </div>
-
-    <!-- RIGHT PANEL -->
-    <div class="sr" id="right-panel">
-      <div id="panel-resize-handle"
-        onmouseenter="this.style.background='rgba(42,112,212,.3)'"
-        onmouseleave="this.style.background='transparent'"
-        onmousedown="startPanelResize(event)"></div>
-
-      <div class="tabs">
-        <button class="tab on" onclick="switchTab('media',this)">Noticias</button>
-        <button class="tab"    onclick="switchTab('osint',this)">OSINT</button>
-        <button class="tab"    onclick="switchTab('video',this)">Video</button>
-        <div class="tab-refresh">
-          <span id="refresh-countdown" class="tab-timer">2:00</span>
-          <button class="frefresh" onclick="refreshAll(true)" style="margin-left:4px;">↻</button>
+      <!-- COL 1: Noticias -->
+      <div class="col-panel" id="col-news">
+        <div class="col-header">
+          <span class="col-title">NOTICIAS</span>
+          <span class="col-count" id="ft-media"></span>
+          <div style="display:flex;gap:3px;margin-left:8px;">
+            <span id="refresh-countdown" style="font-size:10px;color:#bbb;"></span>
+          </div>
         </div>
-      </div>
-
-      <!-- NOTICIAS -->
-      <div class="tab-panel" id="panel-media">
         <div class="ffilters">
           <button class="ffbtn on" onclick="filterCat('all',this,'media')">Todo</button>
-          <button class="ffbtn"    onclick="filterCat('ukraine',this,'media')">Ucrania</button>
-          <button class="ffbtn"    onclick="filterCat('mideast',this,'media')">M.Este</button>
-          <button class="ffbtn"    onclick="filterCat('africa',this,'media')">África</button>
-          <button class="ffbtn"    onclick="filterCat('asia',this,'media')">Asia</button>
-          <button class="ffbtn"    onclick="filterCat('breaking',this,'media')">🔴 Flash</button>
+          <button class="ffbtn" onclick="filterCat('ukraine',this,'media')">Ucrania</button>
+          <button class="ffbtn" onclick="filterCat('mideast',this,'media')">M.Este</button>
+          <button class="ffbtn" onclick="filterCat('africa',this,'media')">África</button>
+          <button class="ffbtn" onclick="filterCat('asia',this,'media')">Asia</button>
+          <button class="ffbtn" onclick="filterCat('breaking',this,'media')">🔴 Flash</button>
         </div>
         <div class="farea" id="feed-media">
-          <div class="fstatus"><div class="spin-sm"></div>Cargando...</div>
+          <div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>
+        </div>
+        <!-- Guardadas (hidden by default) -->
+        <div class="farea" id="feed-saved" style="display:none;"></div>
+        <!-- Video (hidden by default) -->
+        <div style="display:none;flex-direction:column;flex:1;" id="feed-video">
+          <div class="stream-input-wrap">
+            <input id="stream-input" type="text" placeholder="YouTube o Twitch — link o @canal" onkeydown="if(event.key==='Enter')addStream()">
+            <button onclick="addStream()" style="padding:5px 9px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;">+ Añadir</button>
+          </div>
+          <div id="stream-list" style="flex:1;overflow-y:auto;"></div>
         </div>
       </div>
 
-      <!-- OSINT -->
-      <div class="tab-panel hidden" id="panel-osint">
+      <!-- COL 2: OSINT/Telegram -->
+      <div class="col-panel" id="col-osint">
+        <div class="col-header">
+          <span class="col-title">OSINT / TELEGRAM</span>
+          <span class="col-count" id="ft-osint"></span>
+        </div>
+        <div id="osint-disclaimer" class="osint-notice" style="display:none;">
+          ⚠ Información no confirmada. Los posts de Telegram pueden contener errores, propaganda o desinformación. Verifica siempre con fuentes primarias.
+        </div>
         <div class="ffilters">
           <button class="ffbtn on" onclick="filterCat('all',this,'osint')">Todo</button>
-          <button class="ffbtn"    onclick="filterCat('ukraine',this,'osint')">Ucrania</button>
-          <button class="ffbtn"    onclick="filterCat('mideast',this,'osint')">M.Este</button>
-          <button class="ffbtn"    onclick="filterCat('africa',this,'osint')">África</button>
-          <button class="ffbtn"    onclick="filterCat('asia',this,'osint')">Asia</button>
+          <button class="ffbtn" onclick="filterCat('ukraine',this,'osint')">Ucrania</button>
+          <button class="ffbtn" onclick="filterCat('mideast',this,'osint')">M.Este</button>
+          <button class="ffbtn" onclick="filterCat('africa',this,'osint')">África</button>
+          <button class="ffbtn" onclick="filterCat('asia',this,'osint')">Asia</button>
         </div>
         <div class="farea" id="feed-osint">
-          <div class="fstatus"><div class="spin-sm"></div>Cargando...</div>
+          <div class="fstatus"><div class="spin-sm"></div>Cargando OSINT...</div>
         </div>
       </div>
 
-      <!-- VIDEO -->
-      <div class="tab-panel hidden" id="panel-video">
-        <div class="stream-input-wrap">
-          <input id="stream-input" type="text" placeholder="YouTube o Twitch — link o @canal"
-            onkeydown="if(event.key==='Enter')addStream()">
-          <button onclick="addStream()" style="padding:5px 10px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;white-space:nowrap;">+ Añadir</button>
-        </div>
-        <div id="stream-list" style="flex:1;overflow-y:auto;"></div>
-      </div>
+    </div><!-- /columns -->
 
-      <!-- FOOTER -->
-      <div class="ffooter">
-        <span class="ffooter-stat">Medios: <b id="ft-media">0</b></span>
-        <span class="ffooter-stat">OSINT: <b id="ft-osint">0</b></span>
-        <span class="ffooter-stat" id="ft-updated" style="margin-left:4px;"></span>
-        <div style="margin-left:auto;display:flex;gap:4px;">
-          <button class="foot-btn" onclick="openSettings()" title="Ajustes">⚙</button>
-          <button class="foot-btn" onclick="openAbout()" title="Acerca de">ℹ</button>
-        </div>
+  </div><!-- /main -->
+
+  <!-- TICKER BOTTOM: mercados -->
+  <div class="ticker-bottom">
+    <div class="ticker-label-b">MERCADOS</div>
+    <div class="ticker-scroll">
+      <span class="ticker-text" id="ticker-markets-text">
+        S&amp;P 500 ▲ 5.780  ·  NASDAQ ▲ 18.250  ·  DOW ▲ 42.100  ·  EUR/USD 1.085  ·  GBP/USD 1.265  ·  USD/JPY 149.2  ·  Brent ▲ 82.4$/bl  ·  WTI ▲ 78.1$/bl  ·  ORO ▲ 2.650$/oz  ·  BTC ▲ 67.400$  ·  ETH ▲ 3.200$  ·  DEF +2.1%  ·  LMT ▲ 480$  ·  RTX ▲ 105$  ·  BA ▼ 175$
+      </span>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- PANEL OVERLAY -->
+<div class="panel-overlay" id="panel-overlay" onclick="closeSidePanel()"></div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel-modal" id="panel-settings">
+  <div class="panel-modal-header">
+    <span class="panel-modal-title">⚙ Ajustes</span>
+    <button onclick="closeSidePanel()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;">✕</button>
+  </div>
+  <div class="panel-modal-body">
+    <div class="panel-section">
+      <div class="panel-section-label">Tamaño de texto</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:#aaa;">A</span>
+        <input type="range" id="pref-fontsize" min="11" max="18" value="13" oninput="applyFontSize(this.value)" style="flex:1;accent-color:#2a70d4;">
+        <span style="font-size:16px;color:#aaa;">A</span>
+        <span id="fontsize-val" style="font-size:10px;color:#2a70d4;width:28px;">13px</span>
       </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">Color de acento</div>
+      <div class="color-opts" id="color-opts">
+        <div class="color-dot on" style="background:#2a70d4;" onclick="setAccent('#2a70d4',this)" title="Azul"></div>
+        <div class="color-dot" style="background:#2a8a52;" onclick="setAccent('#2a8a52',this)" title="Verde"></div>
+        <div class="color-dot" style="background:#c83030;" onclick="setAccent('#c83030',this)" title="Rojo"></div>
+        <div class="color-dot" style="background:#8050c0;" onclick="setAccent('#8050c0',this)" title="Violeta"></div>
+        <div class="color-dot" style="background:#c08020;" onclick="setAccent('#c08020',this)" title="Dorado"></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">Opciones</div>
+      <div class="pref-row">
+        <span class="pref-label">Ticker de noticias</span>
+        <button class="toggle-sw" id="tog-ticker" data-on="1" onclick="togglePref('ticker',this)" style="background:#2a70d4;"><div class="knob" style="left:19px;"></div></button>
+      </div>
+      <div class="pref-row">
+        <span class="pref-label">Ticker de mercados</span>
+        <button class="toggle-sw" id="tog-markets" data-on="1" onclick="togglePref('markets',this)" style="background:#2a70d4;"><div class="knob" style="left:19px;"></div></button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">Ancho de columnas</div>
+      <p style="font-size:10px;color:#aaa;line-height:1.6;">Arrastra el borde entre columnas para redimensionarlas. El tamaño se guarda automáticamente.</p>
+    </div>
+    <button onclick="resetAllPrefs()" style="width:100%;padding:6px;background:transparent;border:1px solid #ddd;border-radius:3px;color:#999;font-size:11px;cursor:pointer;margin-top:4px;">↺ Restablecer todo</button>
+  </div>
+</div>
+
+<!-- SOURCES PANEL -->
+<div class="panel-modal" id="panel-sources">
+  <div class="panel-modal-header">
+    <span class="panel-modal-title">＋ Fuentes personalizadas</span>
+    <button onclick="closeSidePanel()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;">✕</button>
+  </div>
+  <div class="panel-modal-body">
+    <div class="panel-section">
+      <div class="panel-section-label">Añadir fuente RSS</div>
+      <div class="add-source-row">
+        <input type="text" id="custom-src-name" placeholder="Nombre" style="width:90px;">
+        <input type="text" id="custom-src-url" placeholder="URL del feed RSS" style="flex:1;">
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:10px;">
+        <select id="custom-src-cat" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:3px;font-size:11px;background:#f8f8f8;">
+          <option value="general">General</option>
+          <option value="ukraine">Ucrania</option>
+          <option value="mideast">M.Este</option>
+          <option value="africa">África</option>
+          <option value="asia">Asia</option>
+        </select>
+        <button onclick="addCustomSource()" style="padding:5px 10px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;">Añadir</button>
+      </div>
+      <div id="custom-sources-list"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">Añadir stream de video</div>
+      <div class="add-source-row">
+        <input type="text" id="stream-input-side" placeholder="YouTube o Twitch link / @canal" style="flex:1;">
+        <button onclick="addStreamFromSide()" style="padding:5px 10px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;">+</button>
+      </div>
+      <div id="stream-list-side" style="margin-top:4px;"></div>
     </div>
   </div>
 </div>
 
 <!-- MODAL OVERLAY -->
-<div id="cmodal-overlay" onclick="closeCountryModal()"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:2000;"></div>
-<div id="country-modal"
-  style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:560px;max-width:95vw;max-height:82vh;background:var(--modal-bg,#fff);border:1px solid var(--modal-border,#e0e2e6);
-  border-radius:6px;z-index:2001;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;">
-</div>
+<div id="cmodal-overlay" onclick="closeCountryModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:500;"></div>
+<div id="country-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:95vw;max-height:82vh;background:#fff;border:1px solid #e0e2e6;border-radius:6px;z-index:501;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.15);"></div>
 
 <script>
+
 
 // ══════════════════════════════════════════════════════════
 // CONFLICTOS — actualizados a marzo 2026
@@ -715,6 +766,11 @@ const OSINT_SOURCES = [
   // ── Español ──
   {ch:'AlertaNews24',          n:'Alerta News',          cat:'general', lang:'es'},
   {ch:'infodefensa',           n:'Infodefensa',          cat:'general', lang:'es'},
+  {ch:'Descifrando_la_Guerra', n:'Descifrando la Guerra',cat:'ukraine', lang:'es'},
+  {ch:'Entreguerras',          n:'Entreguerras',         cat:'general', lang:'es'},
+  {ch:'IntelSlava',            n:'Intel Slava Z',        cat:'ukraine', lang:'en'},
+  {ch:'camaradafibirk',        n:'Camarada Fibirk',      cat:'general', lang:'es'},
+  {ch:'armapedia',             n:'Armapedia',            cat:'general', lang:'es'},
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -956,9 +1012,11 @@ async function searchEntity() {
 // ══════════════════════════════════════════════════════════
 // UI HELPERS
 // ══════════════════════════════════════════════════════════
-function setTime(btn){btn.closest('.map-timebar').querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function setTime(btn){}
+
 const REGIONS={global:[20,15,2.5],europe:[52,15,4],mena:[28,42,4],africa:[5,22,3.5],asia:[25,105,3.5],americas:[4,-72,3],caucasus:[41,46,5.5]};
-function setRegion(btn,r){document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');const[la,ln,z]=REGIONS[r];MAP.flyTo([la,ln],z,{duration:1.2});}
+function setRegion(btn,r){}
+
 
 const INTENSITY_ORDER={critical:0,high:1,med:2,low:3,latent:4};
 function renderConflicts(){
@@ -1273,41 +1331,23 @@ function timeAgo(s){
 
 function renderItems(items,areaId){
   const area=document.getElementById(areaId);
+  if(!area)return;
   if(!items.length){area.innerHTML='<div class="fstatus">Sin resultados.</div>';return;}
-  area.innerHTML=items.slice(0,60).map(function(item,i){
-    const t=CLASSIFY(item.title),tagData=TAG[t]||TAG['i'],cls=tagData[0],label=tagData[1];
+  area.innerHTML=items.slice(0,80).map(function(item,ix){
+    const t=CLASSIFY(item.title),td=TAG[t]||TAG['i'];
     const isTg=item.type==='tg';
-    const tagHtml=isTg?'<span class="ftag tag-tg">📲 OSINT</span>':'<span class="ftag '+cls+'">'+label+'</span>';
-    // Security: Telegram/OSINT links blocked, only media links open
-    const canOpen=!isTg && item.link;
-    const safeLink=canOpen?(item.link||'').replace(/"/g,'&quot;'):'';
-    const clickAttr=safeLink?'onclick="window.open(&quot;'+safeLink+'&quot;,&quot;_blank&quot;)" style="cursor:pointer;"':'style="cursor:default;"';
-    const lockIcon=isTg?'<span title="Links de OSINT bloqueados por seguridad" style="color:var(--t3);font-size:9px;margin-left:auto;">🔒</span>':'';
-    const descHtml=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
-    return '<div class="fitem" style="animation-delay:'+Math.min(i,20)*0.025+'s" '+clickAttr+'>'+
-      '<div class="ftop">'+tagHtml+'<span class="fsrc">'+item.src+'</span><span class="ftime">'+timeAgo(item.pubDate)+'</span>'+lockIcon+'</div>'+
-      '<div class="ftitle">'+item.title+'</div>'+
-      descHtml+
+    const tagCls=isTg?'tag-tg':td[0];
+    const tagLbl=isTg?'OSINT':td[1];
+    const href=(!isTg&&item.link)?(item.link||'').replace(/"/g,'&quot;'):'';
+    const openA=href?'data-href="'+href+'" onclick="window.open(this.dataset.href,&quot;_blank&quot;)" style="cursor:pointer;"':'style="cursor:default;"';
+    const lock=isTg?'<span style="color:#bbb;font-size:9px;"> 🔒</span>':'';
+    const saveB=href?'<button class="save-btn" title="Guardar" onclick="event.stopPropagation();doSave(this)" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-src="'+item.src+'" data-link="'+href+'" data-pub="'+item.pubDate+'">🔖</button>':'';
+    const desc=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
+    return '<div class="fitem" '+openA+'>'+
+      '<div class="ftop"><span class="ftag '+tagCls+'">'+tagLbl+'</span><span class="fsrc">'+item.src+'</span>'+lock+'<span class="ftime">'+timeAgo(item.pubDate)+'</span>'+saveB+'</div>'+
+      '<div class="ftitle">'+item.title+'</div>'+desc+
     '</div>';
   }).join('');
-}
-
-// ══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ══════════════════════════════════════════════════════════
-async function loadMedia(force=false){
-  if(!force&&Date.now()-mediaCache.ts<120000&&mediaCache.data.length){renderMedia();return;}
-  document.getElementById('feed-media').innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>`;
-  const all=[];
-  await Promise.allSettled(MEDIA_SOURCES.map(async src=>{
-    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(i=>all.push(i));}catch(e){}
-  }));
-  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  mediaCache={ts:Date.now(),data:all};
-  document.getElementById('ft-media').textContent=all.length;
-  updateTicker(all);
-  if(translateOn) await translateItems(mediaCache.data);
-  renderMedia();
 }
 
 function filterCat(f,btn,panel){
@@ -1396,34 +1436,24 @@ function renderOSINT(failed=[]){
 // TICKER
 // ══════════════════════════════════════════════════════════
 function updateTicker(items){
-  const el=document.getElementById('ticker');
-  if(el){const top=items.slice(0,15).map(i=>'◉ '+i.title+' ['+i.src+']').join('   ');el.textContent=top||'SIN DATOS';}
-  const sn=document.getElementById('st-n');if(sn)sn.textContent=items.length;
-  const sa=document.getElementById('st-a');if(sa){const a=items.filter(i=>{const t=CLASSIFY(i.title);return t==='b'||t==='s';}).length;sa.textContent=a;}
+  const t=document.getElementById('ticker-news-text');
+  if(t) t.textContent=items.slice(0,20).map(function(i){return '◉  '+i.title+'  —  '+i.src;}).join('      ');
   const now=new Date();
   const fu=document.getElementById('ft-updated');
-  if(fu)fu.textContent=String(now.getUTCHours()).padStart(2,'0')+':'+String(now.getUTCMinutes()).padStart(2,'0')+' UTC';
+  if(fu) fu.textContent=String(now.getUTCHours()).padStart(2,'0')+':'+String(now.getUTCMinutes()).padStart(2,'0')+' UTC';
 }
+
 
 // ══════════════════════════════════════════════════════════
 // THEME — day / night
 // ══════════════════════════════════════════════════════════
-let isDark=false;
+
 function toggleTheme(){
-  isDark=!isDark;
+  document.body.classList.toggle('dark');
   const btn=document.getElementById('theme-btn');
-  if(isDark){
-    document.body.classList.add('dark');
-    if(btn) btn.textContent='☀';
-    MAP.removeLayer(TILE_DAY_BASE); MAP.removeLayer(TILE_DAY_LABELS);
-    TILE_DARK_BASE.addTo(MAP); TILE_DARK_LABELS.addTo(MAP);
-  } else {
-    document.body.classList.remove('dark');
-    if(btn) btn.textContent='☾';
-    MAP.removeLayer(TILE_DARK_BASE); MAP.removeLayer(TILE_DARK_LABELS);
-    TILE_DAY_BASE.addTo(MAP); TILE_DAY_LABELS.addTo(MAP);
-  }
+  if(btn) btn.textContent=document.body.classList.contains('dark')?'☀':'☾';
 }
+
 
 // ══════════════════════════════════════════════════════════
 // TRANSLATION — Google Translate unofficial API
@@ -1517,22 +1547,8 @@ const GDACS_STYLE={
 // Severidad → color del borde
 const GDACS_ALERT={Red:'#f85149', Orange:'#f0883e', Green:'#3fb950'};
 
-function toggleLiveEvents(btn){
-  liveActive=!liveActive;
-  btn.classList.toggle('on', liveActive);
-  if(liveActive){
-    btn.textContent='⚡ LOADING...';
-    btn.style.color='var(--green)';
-    loadLiveEvents().then(n=>{
-      btn.textContent=`⚡ LIVE ${n}`;
-    });
-  } else {
-    if(LG['live']) MAP.removeLayer(LG['live']);
-    btn.textContent='⚡ LIVE';
-    btn.style.color='var(--t2)';
-    document.getElementById('st-c').textContent=CONFLICTS.length;
-  }
-}
+function toggleLiveEvents(btn){}
+
 
 async function loadLiveEvents(){
   LG['live']=L.layerGroup();
@@ -1655,47 +1671,8 @@ function parseReliefWeb(data){
 // UCDP — Uppsala Conflict Data Program (sin registro, CORS libre)
 // Fuente académica de referencia mundial sobre conflictos armados
 // ══════════════════════════════════════════════════════════
-async function loadUCDP() {
-  try {
-    // UCDP GED — Georeferenced Event Dataset, eventos recientes
-    const year = new Date().getFullYear();
-    const url = `https://ucdpapi.pcr.uu.se/api/gedevents/${year}?pagesize=100&page=1`;
-    const proxied = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const r = await fetch(proxied, {signal: AbortSignal.timeout(10000)});
-    const raw = await r.json();
-    const data = JSON.parse(raw.contents);
-    if (!data?.Result?.length) return 0;
+function loadUCDP(){}
 
-    if (LG['ucdp']) MAP.removeLayer(LG['ucdp']);
-    LG['ucdp'] = L.layerGroup().addTo(MAP);
-
-    const typeLabel = {1:'State-based',2:'Non-state',3:'One-sided'};
-    const typeCol   = {1:'#f85149', 2:'#f0883e', 3:'#e3b341'};
-
-    data.Result.forEach(ev => {
-      const lat = parseFloat(ev.latitude), lng = parseFloat(ev.longitude);
-      if (isNaN(lat) || isNaN(lng)) return;
-      const deaths = parseInt(ev.best) || 0;
-      const sz = Math.min(6 + Math.floor(Math.sqrt(deaths)), 16);
-      const col = typeCol[ev.type_of_violence] || '#8b949e';
-      const icon = L.divIcon({
-        className:'',
-        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};opacity:0.75;border:1px solid rgba(255,255,255,0.25);cursor:pointer;"></div>`,
-        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
-      });
-      const popup = `
-        <div class="pt">⚔ ${ev.side_a || ''} vs ${ev.side_b || ''}</div>
-        <div class="ps">UCDP · ${ev.country || ''} · ${ev.date_start?.split('T')[0] || ''}</div>
-        <div class="pb">${typeLabel[ev.type_of_violence] || 'Conflict'}${deaths ? ' · <b style="color:var(--red)">'+deaths+' est. deaths</b>' : ''}<br>${(ev.source_headline||'').slice(0,180)}</div>
-      `;
-      L.marker([lat,lng],{icon}).bindPopup(popup,{maxWidth:280}).addTo(LG['ucdp']);
-    });
-    return data.Result.length;
-  } catch(e) {
-    console.warn('UCDP error:', e);
-    return 0;
-  }
-}
 
 // ══════════════════════════════════════════════════════════
 // LIVE DATA — Cloudflare Worker
@@ -1751,52 +1728,8 @@ async function refreshLiveData(force = false) {
 }
 
 // ── WORKER: LiveUAMap + Telegram ──────────────────────────
-async function loadWorkerData() {
-  try {
-    const r = await fetch(`${WORKER_URL}/all`, { signal: AbortSignal.timeout(15000) });
-    if (!r.ok) throw new Error(`Worker ${r.status}`);
-    const data = await r.json();
+function loadWorkerData(){}
 
-    if (!LG['liveuamap']) LG['liveuamap'] = L.layerGroup().addTo(MAP);
-
-    let count = 0;
-    const allEvents = [
-      ...(data.liveuamap || []),
-      ...(data.telegram  || []),
-    ];
-
-    allEvents.forEach(ev => {
-      if (!ev.lat || !ev.lng) return;
-      const isTelegram = ev.src?.startsWith('telegram');
-      const col  = isTelegram ? '#bc8cff' : '#58a6ff';
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:8px;height:8px;border-radius:50%;background:${col};opacity:0.85;border:1px solid rgba(255,255,255,.3);cursor:pointer;"></div>`,
-        iconSize: [8,8], iconAnchor: [4,4]
-      });
-      const srcLabel = isTelegram ? `📲 ${ev.channel?.toUpperCase()}` : '🗺 LIVEUAMAP';
-      const timeStr  = ev.pubDate ? new Date(ev.pubDate).toLocaleString('es-ES') : '';
-      const popup = `
-        <div class="pt">${ev.title?.slice(0,120) || 'Evento'}</div>
-        <div class="ps">${srcLabel}${timeStr ? ' · '+timeStr : ''}</div>
-        ${ev.desc && ev.desc !== ev.title ? `<div class="pb">${ev.desc.slice(0,300)}</div>` : ''}
-        ${ev.link ? `<div style="margin-top:5px;"><a href="${ev.link}" target="_blank" style="color:var(--blue);font-size:9px;font-family:'IBM Plex Mono',monospace;">→ Ver fuente</a></div>` : ''}
-      `;
-      L.marker([ev.lat, ev.lng], {icon})
-        .bindPopup(popup, {maxWidth: 300})
-        .addTo(LG['liveuamap']);
-      count++;
-    });
-
-    // Actualizar pestaña OSINT con posts de Telegram del Worker
-    if (data.telegram?.length) enrichOSINT(data.telegram);
-
-    return count;
-  } catch(e) {
-    console.warn('Worker:', e.message);
-    return 0;
-  }
-}
 
 // Enriquecer panel OSINT con posts frescos del Worker
 function enrichOSINT(posts) {
@@ -1856,87 +1789,12 @@ async function loadUCDP() {
 }
 
 // ── GDACS ─────────────────────────────────────────────────
-async function loadGDACS() {
-  try {
-    const xml = await fetchRSS('https://www.gdacs.org/xml/rss.xml');
-    if (!xml) return 0;
-    if (!LG['gdacs']) LG['gdacs'] = L.layerGroup().addTo(MAP);
+function loadGDACS(){}
 
-    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
-    const alertBorder = {Red:'#f85149', Orange:'#f0883e', Green:'#3fb950'};
-    const typeCol = {EQ:'#e3b341', TC:'#58a6ff', FL:'#79c0ff', VO:'#f0883e', WF:'#f85149'};
-    let count = 0;
-
-    items.forEach(m => {
-      const b = m[1];
-      const get = tag => b.match(new RegExp(`<(?:gdacs:)?${tag}[^>]*>([^<]*)<`,'i'))?.[1]?.trim()||'';
-      const title = b.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i)?.[1]||'';
-      const lat = parseFloat(get('latitude')||get('lat'));
-      const lng = parseFloat(get('longitude')||get('lon'));
-      if (isNaN(lat)||isNaN(lng)||!title) return;
-
-      const alert = get('alertlevel'), eType = get('eventtype'), country = get('country');
-      const col = typeCol[eType]||'#8b949e';
-      const border = alertBorder[alert]||'#444c56';
-      const sz = alert==='Red'?13:alert==='Orange'?10:8;
-
-      const icon = L.divIcon({
-        className:'',
-        html:`<div style="width:${sz}px;height:${sz}px;background:${col};border:2px solid ${border};border-radius:2px;transform:rotate(45deg);cursor:pointer;opacity:.85;"></div>`,
-        iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]
-      });
-      L.marker([lat,lng],{icon}).bindPopup(`
-        <div class="pt">⚠ ${title}</div>
-        <div class="ps">GDACS · ${country} · ${alert||'INFO'}</div>
-        <div class="pb">${eType||'Alert'} · ${get('severity')||''}</div>`,
-        {maxWidth:260}).addTo(LG['gdacs']);
-      count++;
-    });
-    return count;
-  } catch(e) { console.warn('GDACS:', e.message); return 0; }
-}
 
 // ── RELIEFWEB ─────────────────────────────────────────────
-async function loadReliefWeb() {
-  try {
-    const url = 'https://api.reliefweb.int/v1/disasters?appname=conflicttracker&limit=50&filter[field]=status&filter[value]=ongoing&fields[include][]=name&fields[include][]=date&fields[include][]=country&fields[include][]=type';
-    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(10000)});
-    const raw  = await res.json();
-    const json = JSON.parse(raw.contents);
-    if (!json?.data?.length) return 0;
-    if (!LG['gdacs']) LG['gdacs'] = L.layerGroup().addTo(MAP);
+function loadReliefWeb(){}
 
-    const COORDS = {
-      'Ukraine':[49,32],'Sudan':[15,30],'Palestine':[31.5,34.4],'Myanmar':[20,96],
-      'Syria':[35,38],'Yemen':[15,48],'Somalia':[6,46],'Mali':[17,-4],
-      'Ethiopia':[9,40],'Democratic Republic of the Congo':[0,25],'Haiti':[19,-72],
-      'Afghanistan':[33,66],'Libya':[27,17],'Niger':[17,8],'Nigeria':[10,8],
-      'Mozambique':[-18,35],'Pakistan':[30,70],'Lebanon':[33.9,35.5],'Iraq':[33,44],
-    };
-    let count = 0;
-    json.data.forEach(item => {
-      const f = item.fields||{};
-      const countries = (f.country||[]).map(c=>c.name);
-      const types = (f.type||[]).map(t=>t.name).join(', ');
-      let coords = null;
-      for (const cn of countries) { if (COORDS[cn]) { coords=COORDS[cn]; break; } }
-      if (!coords) return;
-      const lat = coords[0]+(Math.random()-.5)*1.5, lng = coords[1]+(Math.random()-.5)*1.5;
-      const icon = L.divIcon({
-        className:'',
-        html:`<div style="width:9px;height:9px;border-radius:50%;background:#bc8cff;opacity:0.75;border:1.5px solid #9f6be0;cursor:pointer;"></div>`,
-        iconSize:[9,9], iconAnchor:[4,4]
-      });
-      L.marker([lat,lng],{icon}).bindPopup(`
-        <div class="pt">🆘 ${f.name||'Crisis'}</div>
-        <div class="ps">RELIEFWEB · ${countries.join(', ')} · ONGOING</div>
-        <div class="pb">${types||'Crisis'}</div>`,
-        {maxWidth:260}).addTo(LG['gdacs']);
-      count++;
-    });
-    return count;
-  } catch(e) { console.warn('ReliefWeb:', e.message); return 0; }
-}
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -2223,18 +2081,225 @@ function openAbout() {
   modal.style.display = 'flex';
 }
 
+
+// ── SAVED NEWS ─────────────────────────────────────
+let savedNews=JSON.parse(localStorage.getItem('ct_saved')||'[]');
+function doSave(btn){
+  const ds=btn.dataset;
+  saveNewsItem({title:ds.title,src:ds.src,link:ds.link,pubDate:ds.pub});
+}
+
+function saveNewsItem(ds){
+  const item={title:ds.title||ds.dataset&&ds.dataset.title,src:ds.src||ds.dataset&&ds.dataset.src,link:ds.link||ds.dataset&&ds.dataset.link,pubDate:ds.pub||ds.dataset&&ds.dataset.pub};
+  if(savedNews.find(function(n){return n.link===item.link;})){showToast('Ya guardada');return;}
+  savedNews.unshift(item);
+  if(savedNews.length>100)savedNews=savedNews.slice(0,100);
+  try{localStorage.setItem('ct_saved',JSON.stringify(savedNews));}catch(e){}
+  showToast('✓ Guardada');
+  const sc=document.getElementById('saved-count');if(sc)sc.textContent=savedNews.length;
+}
+
+function removeSaved(i){
+  savedNews.splice(i,1);
+  try{localStorage.setItem('ct_saved',JSON.stringify(savedNews));}catch(e){}
+  renderSaved();
+  const sc=document.getElementById('saved-count');if(sc)sc.textContent=savedNews.length||'';
+}
+
+function renderSaved(){
+  const el=document.getElementById('feed-saved');
+  if(!el)return;
+  if(!savedNews.length){el.innerHTML='<div class="fstatus">Sin noticias guardadas.<br>Pulsa 🔖 en cualquier noticia.</div>';return;}
+  el.innerHTML=savedNews.map(function(n,i){
+    return '<div class="fitem">'+
+      '<div class="ftop"><span class="fsrc">'+n.src+'</span><span class="ftime">'+timeAgo(n.pubDate)+'</span>'+
+      '<button onclick="removeSaved('+i+')" style="margin-left:auto;background:none;border:none;color:#aaa;cursor:pointer;font-size:11px;">✕</button></div>'+
+      '<div class="ftitle" data-href="'+n.link+'" onclick="window.open(this.dataset.href,&quot;_blank&quot;)" style="cursor:pointer;">'+n.title+'</div>'+
+    '</div>';
+  }).join('');
+}
 function init(){
   applyPrefs();
   startClock();
-  initMap();
-  renderConflicts();
   startCountdown();
-  loadMedia();
-  loadOSINT();
   initVideos();
-  setTimeout(() => refreshLiveData(true), 1500);
+  renderSaved();
+  setTimeout(function(){loadMedia();},200);
+  setTimeout(function(){loadOSINT();},500);
 }
 init();
+
+
+
+// ── NEW UI FUNCTIONS ─────────────────────────────────────
+
+function setSidebarPanel(name, btn) {
+  // Update sidebar button states
+  document.querySelectorAll('.sidebar-btn').forEach(function(b){ b.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+
+  // Show/hide feed areas
+  const media = document.getElementById('feed-media');
+  const saved = document.getElementById('feed-saved');
+  const video = document.getElementById('feed-video');
+  const filters = document.querySelector('#col-news .ffilters');
+  const colTitle = document.querySelector('#col-news .col-title');
+
+  if(media) media.style.display = name==='news' ? 'block' : 'none';
+  if(saved) saved.style.display = name==='saved' ? 'block' : 'none';
+  if(video) video.style.display = name==='video' ? 'flex' : 'none';
+  if(filters) filters.style.display = name==='news' ? 'flex' : 'none';
+  if(colTitle) colTitle.textContent = {news:'NOTICIAS',saved:'GUARDADAS',video:'VIDEO'}[name]||'NOTICIAS';
+
+  if(name==='saved') renderSaved();
+  if(name==='video') renderStreamList();
+
+  // Update saved count badge
+  const sc = document.getElementById('saved-count');
+  if(sc){ sc.textContent=savedNews.length||''; sc.style.display=savedNews.length?'block':'none'; }
+}
+
+function openSidePanel(name) {
+  closeSidePanel();
+  const panel = document.getElementById('panel-' + name);
+  const overlay = document.getElementById('panel-overlay');
+  if(panel){ panel.classList.add('open'); }
+  if(overlay) overlay.style.display = 'block';
+  if(name==='sources') renderCustomSourcesList();
+}
+
+function closeSidePanel() {
+  document.querySelectorAll('.panel-modal').forEach(function(p){ p.classList.remove('open'); });
+  const ov = document.getElementById('panel-overlay');
+  if(ov) ov.style.display = 'none';
+}
+
+function applyFontSize(v) {
+  document.getElementById('fontsize-val').textContent = v + 'px';
+  document.querySelectorAll('.ftitle').forEach(function(el){ el.style.fontSize = v + 'px'; });
+  localStorage.setItem('ct_fontsize', v);
+}
+
+function setAccent(color, dot) {
+  document.querySelectorAll('.color-dot').forEach(function(d){ d.classList.remove('on'); });
+  if(dot) dot.classList.add('on');
+  document.documentElement.style.setProperty('--accent', color);
+  // Apply to blue elements
+  const style = document.getElementById('accent-style') || document.createElement('style');
+  style.id = 'accent-style';
+  style.textContent = '.fsrc,.tab.on,.ffbtn.on,.topbtn.on{color:'+color+' !important;} .ffbtn.on,.topbtn.on{border-color:'+color+' !important;} .tab.on{border-bottom-color:'+color+' !important;}';
+  document.head.appendChild(style);
+  localStorage.setItem('ct_accent', color);
+}
+
+function togglePref(key, btn) {
+  const on = btn.dataset.on === '1';
+  btn.dataset.on = on ? '0' : '1';
+  btn.style.background = on ? '#ddd' : localStorage.getItem('ct_accent')||'#2a70d4';
+  btn.querySelector('.knob').style.left = on ? '3px' : '19px';
+  localStorage.setItem('ct_pref_'+key, on?'0':'1');
+  if(key==='ticker'){ const t=document.querySelector('.ticker-top'); if(t) t.style.display=on?'none':'flex'; }
+  if(key==='markets'){ const t=document.querySelector('.ticker-bottom'); if(t) t.style.display=on?'none':'flex'; }
+}
+
+// ── CUSTOM SOURCES ────────────────────────────────────────
+let customSources = JSON.parse(localStorage.getItem('ct_custom_sources')||'[]');
+
+function addCustomSource() {
+  const name = document.getElementById('custom-src-name').value.trim();
+  const url  = document.getElementById('custom-src-url').value.trim();
+  const cat  = document.getElementById('custom-src-cat').value;
+  if(!name||!url) return;
+  customSources.push({n:name, url:url, cat:cat});
+  try{ localStorage.setItem('ct_custom_sources', JSON.stringify(customSources)); }catch(e){}
+  document.getElementById('custom-src-name').value='';
+  document.getElementById('custom-src-url').value='';
+  renderCustomSourcesList();
+  // Force reload media to include new source
+  mediaCache={ts:0,data:[]};
+  loadMedia(true);
+}
+
+function removeCustomSource(i) {
+  customSources.splice(i,1);
+  try{ localStorage.setItem('ct_custom_sources', JSON.stringify(customSources)); }catch(e){}
+  renderCustomSourcesList();
+  mediaCache={ts:0,data:[]};
+  loadMedia(true);
+}
+
+function renderCustomSourcesList() {
+  const el = document.getElementById('custom-sources-list');
+  if(!el) return;
+  if(!customSources.length){ el.innerHTML='<div style="font-size:10px;color:#aaa;padding:4px 0;">Sin fuentes añadidas.</div>'; return; }
+  el.innerHTML = customSources.map(function(s,i){
+    return '<div class="added-source"><span style="font-size:10px;flex:1;">'+s.n+'</span><span style="font-size:9px;color:#aaa;">'+s.cat+'</span><button class="rm" onclick="removeCustomSource('+i+')">✕</button></div>';
+  }).join('');
+}
+
+function addStreamFromSide() {
+  const input = document.getElementById('stream-input-side');
+  if(!input||!input.value.trim()) return;
+  document.getElementById('stream-input').value = input.value;
+  input.value='';
+  addStream();
+  renderStreamListSide();
+}
+
+function renderStreamListSide() {
+  const el = document.getElementById('stream-list-side');
+  if(!el) return;
+  el.innerHTML = streamSources.map(function(s,i){
+    return '<div class="added-source"><span style="font-size:10px;flex:1;">'+s.title+'</span><button class="rm" data-sid="'+s.id+'" onclick="removeStream(this.dataset.sid);renderStreamListSide()">&#x2715;</button></div>';
+  }).join('');
+}
+
+// ── PATCH loadMedia to include customSources ──────────────
+const _origLoadMedia = loadMedia;
+loadMedia = async function(force) {
+  // Temporarily add custom sources to MEDIA_SOURCES
+  const extras = customSources.filter(function(cs){
+    return !MEDIA_SOURCES.find(function(m){ return m.url===cs.url; });
+  });
+  extras.forEach(function(s){ MEDIA_SOURCES.push(s); });
+  await _origLoadMedia(force);
+  // Remove extras
+  extras.forEach(function(s){
+    const idx = MEDIA_SOURCES.findIndex(function(m){ return m.url===s.url; });
+    if(idx>-1) MEDIA_SOURCES.splice(idx,1);
+  });
+};
+
+// ── APPLY SAVED PREFS ON LOAD ─────────────────────────────
+function applySavedPrefs() {
+  const fs = localStorage.getItem('ct_fontsize');
+  if(fs){ const sl=document.getElementById('pref-fontsize'); if(sl){sl.value=fs;applyFontSize(fs);} }
+  const ac = localStorage.getItem('ct_accent');
+  if(ac){ const dot=document.querySelector('.color-dot[style*="'+ac+'"]'); setAccent(ac,dot); }
+  if(localStorage.getItem('ct_pref_ticker')==='0'){
+    const t=document.querySelector('.ticker-top');if(t)t.style.display='none';
+    const btn=document.getElementById('tog-ticker');if(btn){btn.dataset.on='0';btn.style.background='#ddd';btn.querySelector('.knob').style.left='3px';}
+  }
+  if(localStorage.getItem('ct_pref_markets')==='0'){
+    const t=document.querySelector('.ticker-bottom');if(t)t.style.display='none';
+    const btn=document.getElementById('tog-markets');if(btn){btn.dataset.on='0';btn.style.background='#ddd';btn.querySelector('.knob').style.left='3px';}
+  }
+}
+
+// ── CLOSE ENTITY SEARCH / patch openEntitySearch ──────────
+function openEntitySearch(){openSidePanel('settings');}
+
+function resetAllPrefs(){
+  ['ct_fontsize','ct_accent','ct_pref_ticker','ct_pref_markets','ct_custom_sources','ct_saved','ct_streams'].forEach(function(k){localStorage.removeItem(k);});
+  location.reload();
+}
+
+// Override applyPrefs (from old code) to be a no-op
+applyPrefs = function(){};
+
+// Run on load
+applySavedPrefs();
+setSidebarPanel('news', document.getElementById('sb-news'));
 
 </script>
 </body>
