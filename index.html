@@ -147,7 +147,7 @@ button{font-family:inherit;cursor:pointer;}
 .pu-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 6px;border-radius:2px;margin-top:7px;letter-spacing:1px;}
 
 /* SIDEBAR RIGHT */
-.sr{width:480px;flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+.sr{width:var(--panel-w,480px);flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;position:relative;transition:width .0s;}
 
 /* TABS */
 .tabs{flex-shrink:0;display:flex;align-items:center;background:var(--s2);border-bottom:2px solid var(--b1);}
@@ -237,6 +237,8 @@ button{font-family:inherit;cursor:pointer;}
 .ffooter-stat b{color:var(--t2);}
 .frefresh{margin-left:auto;padding:3px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .15s;border-radius:2px;letter-spacing:1px;}
 .frefresh:hover{border-color:var(--green);color:var(--green);}
+.foot-btn{background:transparent;border:1px solid var(--b2);color:var(--t3);font-size:13px;width:24px;height:24px;border-radius:3px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0;}
+.foot-btn:hover{color:var(--t1);border-color:var(--b3);}
 </style>
 </head>
 <body>
@@ -317,7 +319,11 @@ button{font-family:inherit;cursor:pointer;}
     </div>
 
     <!-- RIGHT SIDEBAR -->
-    <div class="sr">
+    <div class="sr" id="right-panel">
+      <div id="panel-resize-handle" title="Arrastra para redimensionar"
+        style="position:absolute;left:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:100;background:transparent;transition:background .15s;"
+        onmouseenter="this.style.background='var(--blue)'" onmouseleave="this.style.background='transparent'"
+        onmousedown="startPanelResize(event)"></div>
 
       <!-- Tabs -->
       <div class="tabs">
@@ -384,6 +390,10 @@ button{font-family:inherit;cursor:pointer;}
         <span class="ffooter-stat">Medios: <b id="ft-media">0</b></span>
         <span class="ffooter-stat">OSINT: <b id="ft-osint">0</b></span>
         <span class="ffooter-stat" id="ft-updated">—</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
+          <button class="foot-btn" onclick="openSettings()" title="Personalización">⚙</button>
+          <button class="foot-btn" onclick="openAbout()" title="Acerca de">ℹ</button>
+        </div>
       </div>
 
     </div>
@@ -1864,7 +1874,291 @@ async function loadReliefWeb() {
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════
+// PANEL RESIZE — arrastrar borde izquierdo del panel
+// ══════════════════════════════════════════════════════════
+function startPanelResize(e) {
+  e.preventDefault();
+  const panel = document.getElementById('right-panel');
+  const startX = e.clientX;
+  const startW = panel.offsetWidth;
+
+  function onMove(e) {
+    const newW = Math.max(320, Math.min(780, startW - (e.clientX - startX)));
+    document.documentElement.style.setProperty('--panel-w', newW + 'px');
+    setTimeout(() => MAP && MAP.invalidateSize(), 50);
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    localStorage.setItem('ct_panel_w', document.documentElement.style.getPropertyValue('--panel-w'));
+    MAP && MAP.invalidateSize();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ══════════════════════════════════════════════════════════
+// SETTINGS PANEL — personalización
+// ══════════════════════════════════════════════════════════
+const PREFS = {
+  fontSize:   parseInt(localStorage.getItem('ct_fontsize')  || '14'),
+  density:    localStorage.getItem('ct_density')   || 'normal',
+  accentColor:localStorage.getItem('ct_accent')    || '#79b8ff',
+  showTicker: localStorage.getItem('ct_ticker')    !== 'false',
+  showConflictPanel: localStorage.getItem('ct_conflictpanel') !== 'false',
+  animMarkers: localStorage.getItem('ct_animmarkers') !== 'false',
+};
+
+function applyPrefs() {
+  // Font size
+  document.documentElement.style.setProperty('--ui-fontsize', PREFS.fontSize + 'px');
+  document.querySelectorAll('.ftitle').forEach(el => el.style.fontSize = PREFS.fontSize + 'px');
+  document.querySelectorAll('.fitem').forEach(el => el.style.fontSize = (PREFS.fontSize - 1) + 'px');
+
+  // Density
+  const pad = {compact: '6px 10px', normal: '11px 14px', comfortable: '15px 16px'}[PREFS.density] || '11px 14px';
+  document.querySelectorAll('.fitem').forEach(el => el.style.padding = pad);
+
+  // Accent color
+  document.documentElement.style.setProperty('--blue', PREFS.accentColor);
+
+  // Ticker
+  const ticker = document.querySelector('.ticker');
+  if (ticker) ticker.style.display = PREFS.showTicker ? 'flex' : 'none';
+
+  // Panel width restore
+  const savedW = localStorage.getItem('ct_panel_w');
+  if (savedW) document.documentElement.style.setProperty('--panel-w', savedW);
+}
+
+function openSettings() {
+  closeCountryModal();
+  const modal = buildModal();
+  modal.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--b1);flex-shrink:0;">' +
+      '<div style="font-size:16px;">⚙</div>' +
+      '<div style="font-family:IBM Plex Mono,monospace;font-size:13px;font-weight:700;color:var(--t1);flex:1;letter-spacing:1px;">PERSONALIZACIÓN</div>' +
+      '<button onclick="closeCountryModal()" style="background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:20px;">' +
+
+      // Font size
+      '<div>' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--t3);letter-spacing:1px;margin-bottom:10px;">TAMAÑO DE TEXTO</div>' +
+        '<div style="display:flex;align-items:center;gap:12px;">' +
+          '<span style="font-size:11px;color:var(--t3);font-family:monospace;">A</span>' +
+          '<input type="range" id="pref-fontsize" min="11" max="18" value="' + PREFS.fontSize + '" ' +
+            'oninput="updateFontPreview(this.value)" ' +
+            'style="flex:1;accent-color:var(--blue);">' +
+          '<span style="font-size:18px;color:var(--t2);font-family:monospace;">A</span>' +
+          '<span id="fontsize-val" style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--blue);width:28px;">' + PREFS.fontSize + 'px</span>' +
+        '</div>' +
+        '<div id="font-preview" style="margin-top:10px;padding:10px 12px;background:var(--s2);border-radius:4px;font-size:' + PREFS.fontSize + 'px;color:var(--t2);line-height:1.6;">Vista previa: Rusia lanza ataque masivo con drones sobre Ucrania · Fuerzas israelíes avanzan en Gaza</div>' +
+      '</div>' +
+
+      // Density
+      '<div>' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--t3);letter-spacing:1px;margin-bottom:10px;">DENSIDAD DE NOTICIAS</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          ['compact','normal','comfortable'].map(function(d) {
+            const labels = {compact:'Compacto', normal:'Normal', comfortable:'Espaciado'};
+            const on = PREFS.density === d;
+            return '<button onclick="setPrefDensity(\'' + d + '\')" id="density-' + d + '" ' +
+              'style="flex:1;padding:8px 6px;border:1px solid ' + (on ? 'var(--blue)' : 'var(--b2)') + ';' +
+              'background:' + (on ? 'rgba(121,184,255,.1)' : 'transparent') + ';' +
+              'color:' + (on ? 'var(--blue)' : 'var(--t3)') + ';' +
+              'font-family:IBM Plex Mono,monospace;font-size:9px;border-radius:3px;cursor:pointer;">' +
+              labels[d] + '</button>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+
+      // Accent color
+      '<div>' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--t3);letter-spacing:1px;margin-bottom:10px;">COLOR DE ACENTO</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          [['#79b8ff','Azul'],['#56e89d','Verde'],['#ffd166','Amarillo'],['#ff6b6b','Rojo'],['#d2a8ff','Violeta'],['#ffa552','Naranja']].map(function(c) {
+            const on = PREFS.accentColor === c[0];
+            return '<button onclick="setPrefAccent(\'' + c[0] + '\')" title="' + c[1] + '" ' +
+              'style="width:32px;height:32px;border-radius:50%;background:' + c[0] + ';' +
+              'border:' + (on ? '3px solid white' : '2px solid transparent') + ';' +
+              'cursor:pointer;box-shadow:' + (on ? '0 0 0 2px ' + c[0] : 'none') + ';transition:all .15s;"></button>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+
+      // Toggles
+      '<div>' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--t3);letter-spacing:1px;margin-bottom:10px;">OPCIONES</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+          makePrefToggle('ct_ticker', 'Mostrar ticker de noticias', PREFS.showTicker, 'togglePrefTicker') +
+          makePrefToggle('ct_animmarkers', 'Animar marcadores del mapa', PREFS.animMarkers, 'togglePrefAnim') +
+        '</div>' +
+      '</div>' +
+
+      // Panel width reset
+      '<div>' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--t3);letter-spacing:1px;margin-bottom:10px;">PANEL LATERAL</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button onclick="resetPanelWidth()" style="flex:1;padding:8px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t2);font-family:IBM Plex Mono,monospace;font-size:9px;cursor:pointer;">↺ Restablecer ancho</button>' +
+          '<div style="flex:2;padding:8px;background:var(--s2);border-radius:3px;font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);">💡 Arrastra el borde izquierdo del panel para redimensionarlo</div>' +
+        '</div>' +
+      '</div>' +
+
+    '</div>' +
+    '<div style="padding:10px 18px;border-top:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+      '<button onclick="resetAllPrefs()" style="padding:6px 14px;background:transparent;border:1px solid var(--b2);border-radius:3px;color:var(--t3);font-family:IBM Plex Mono,monospace;font-size:9px;cursor:pointer;">↺ Reset todo</button>' +
+      '<button onclick="savePrefsFontSize();closeCountryModal();" style="padding:6px 18px;background:var(--blue);border:none;border-radius:3px;color:var(--bg);font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:700;cursor:pointer;">✓ GUARDAR</button>' +
+    '</div>';
+
+  document.getElementById('cmodal-overlay').style.display = 'block';
+  modal.style.display = 'flex';
+}
+
+function makePrefToggle(key, label, value, fn) {
+  const on = value;
+  return '<div style="display:flex;align-items:center;gap:12px;padding:6px 0;">' +
+    '<div style="flex:1;font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--t2);">' + label + '</div>' +
+    '<button onclick="' + fn + '(this)" ' +
+      'style="width:42px;height:22px;border-radius:11px;border:none;cursor:pointer;position:relative;transition:background .2s;background:' + (on ? 'var(--blue)' : 'var(--b2)') + ';" ' +
+      'data-on="' + on + '">' +
+      '<div style="position:absolute;top:3px;left:' + (on ? '22px' : '3px') + ';width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;"></div>' +
+    '</button>' +
+  '</div>';
+}
+
+function updateFontPreview(val) {
+  document.getElementById('fontsize-val').textContent = val + 'px';
+  const preview = document.getElementById('font-preview');
+  if (preview) preview.style.fontSize = val + 'px';
+}
+
+function setPrefDensity(d) {
+  PREFS.density = d;
+  localStorage.setItem('ct_density', d);
+  applyPrefs();
+  ['compact','normal','comfortable'].forEach(function(x) {
+    const btn = document.getElementById('density-' + x);
+    if (!btn) return;
+    const on = x === d;
+    btn.style.borderColor = on ? 'var(--blue)' : 'var(--b2)';
+    btn.style.color = on ? 'var(--blue)' : 'var(--t3)';
+    btn.style.background = on ? 'rgba(121,184,255,.1)' : 'transparent';
+  });
+}
+
+function setPrefAccent(color) {
+  PREFS.accentColor = color;
+  localStorage.setItem('ct_accent', color);
+  applyPrefs();
+  // Refresh button styles
+  openSettings();
+}
+
+function togglePrefTicker(btn) {
+  PREFS.showTicker = !PREFS.showTicker;
+  localStorage.setItem('ct_ticker', PREFS.showTicker);
+  btn.style.background = PREFS.showTicker ? 'var(--blue)' : 'var(--b2)';
+  btn.querySelector('div').style.left = PREFS.showTicker ? '22px' : '3px';
+  applyPrefs();
+}
+
+function togglePrefAnim(btn) {
+  PREFS.animMarkers = !PREFS.animMarkers;
+  localStorage.setItem('ct_animmarkers', PREFS.animMarkers);
+  btn.style.background = PREFS.animMarkers ? 'var(--blue)' : 'var(--b2)';
+  btn.querySelector('div').style.left = PREFS.animMarkers ? '22px' : '3px';
+  // Toggle CSS animations on markers
+  const style = document.getElementById('anim-override') || document.createElement('style');
+  style.id = 'anim-override';
+  style.textContent = PREFS.animMarkers ? '' : '@keyframes cp,ch,cm,cl{0%,100%{box-shadow:none}}.leaflet-marker-icon div{animation:none!important;}';
+  document.head.appendChild(style);
+}
+
+function savePrefsFontSize() {
+  const val = document.getElementById('pref-fontsize');
+  if (val) {
+    PREFS.fontSize = parseInt(val.value);
+    localStorage.setItem('ct_fontsize', PREFS.fontSize);
+    applyPrefs();
+  }
+}
+
+function resetPanelWidth() {
+  document.documentElement.style.setProperty('--panel-w', '480px');
+  localStorage.removeItem('ct_panel_w');
+  MAP && MAP.invalidateSize();
+}
+
+function resetAllPrefs() {
+  ['ct_fontsize','ct_density','ct_accent','ct_ticker','ct_animmarkers','ct_panel_w'].forEach(function(k) {
+    localStorage.removeItem(k);
+  });
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════════
+// ABOUT MODAL
+// ══════════════════════════════════════════════════════════
+function openAbout() {
+  closeCountryModal();
+  const modal = buildModal();
+  modal.style.maxWidth = '520px';
+  modal.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--b1);flex-shrink:0;">' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:3px;">CONFLICT<span style="color:var(--red)">TRACKER</span></div>' +
+      '<button onclick="closeCountryModal()" style="margin-left:auto;background:transparent;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>' +
+    '</div>' +
+    '<div style="padding:24px 24px 20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;">' +
+
+      '<div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:14px 16px;">' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);letter-spacing:2px;margin-bottom:6px;">SOBRE EL PROYECTO</div>' +
+        '<p style="font-size:13px;color:var(--t2);line-height:1.75;margin:0;">ConflictTracker es un <b style="color:var(--t1)">proyecto personal de código abierto</b> creado para mantenerse informado sobre conflictos globales, geopolítica e inteligencia OSINT en tiempo real.</p>' +
+      '</div>' +
+
+      '<div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:14px 16px;">' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);letter-spacing:2px;margin-bottom:10px;">FUENTES DE DATOS</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
+          [
+            ['📡','UCDP GED','Uppsala University'],
+            ['🌐','GDACS','UN Emergency'],
+            ['🆘','ReliefWeb','OCHA/UN'],
+            ['📰','23 RSS Feeds','Medios internacionales'],
+            ['📲','Telegram OSINT','Canales verificados'],
+            ['🗺','LiveUAMap','Via Worker'],
+          ].map(function(s) {
+            return '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--s3);border-radius:3px;">' +
+              '<span style="font-size:14px;">' + s[0] + '</span>' +
+              '<div><div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t1);font-weight:600;">' + s[1] + '</div>' +
+              '<div style="font-family:IBM Plex Mono,monospace;font-size:8px;color:var(--t3);">' + s[2] + '</div></div>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+
+      '<div style="background:rgba(121,184,255,.06);border:1px solid rgba(121,184,255,.15);border-radius:6px;padding:12px 16px;">' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--blue);letter-spacing:2px;margin-bottom:6px;">OPEN SOURCE</div>' +
+        '<p style="font-size:12px;color:var(--t2);line-height:1.7;margin:0 0 10px;">Este proyecto es de uso libre. Puedes ver el código fuente, hacer fork y adaptarlo a tus necesidades.</p>' +
+        '<a href="https://github.com/lokiff/worldmonitor" target="_blank" ' +
+          'style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--blue);font-family:IBM Plex Mono,monospace;font-size:10px;text-decoration:none;">' +
+          '⭐ github.com/lokiff/worldmonitor</a>' +
+      '</div>' +
+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);">v2.0 · Marzo 2026 · Uso personal</div>' +
+        '<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--t3);">Built with ❤ + Claude</div>' +
+      '</div>' +
+
+    '</div>';
+
+  document.getElementById('cmodal-overlay').style.display = 'block';
+  modal.style.display = 'flex';
+}
+
 function init(){
+  applyPrefs();
   startClock();
   initMap();
   renderConflicts();
