@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ConflictTracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#09090f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ConflictTracker">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ── FONTS ── */
@@ -211,6 +217,8 @@ button{font-family:inherit;cursor:pointer;}
 .fitem:hover{background:var(--bg2);}
 @keyframes fadein{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
 .fitem{animation:fadein .18s ease both;}
+@keyframes newflash{0%{background:rgba(30,158,90,.15);border-left:2px solid #2ecc71}80%{background:rgba(30,158,90,.05)}100%{background:transparent;border-left:none}}
+.fitem-new{animation:fadein .18s ease both,newflash 2.5s ease forwards!important;}
 
 .ftop{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap;}
 .ftag{
@@ -1479,34 +1487,104 @@ function initVideos() {
 // ══════════════════════════════════════════════════════════// ══════════════════════════════════════════════════════════
 // AUTO-REFRESH — cada 2 minutos
 // ══════════════════════════════════════════════════════════
+// ── LIVE UPDATE ENGINE ────────────────────────────────────
+// Merge incoming items with existing ones by link key — no wipes
+const LIVE_INTERVAL = 60; // seconds between auto-refresh
+
 function startCountdown(){
-  countdownSecs=120;
   const el=document.getElementById('refresh-countdown');
-  setInterval(()=>{
-    countdownSecs--;
-    if(countdownSecs<=0){countdownSecs=120;refreshAll(false);}
-    const m=Math.floor(countdownSecs/60),s=String(countdownSecs%60).padStart(2,'0');
+  let secs=LIVE_INTERVAL;
+  setInterval(function(){
+    secs--;
+    if(secs<=0){
+      secs=LIVE_INTERVAL;
+      liveRefreshMedia();
+      liveRefreshOSINT();
+    }
+    const m=Math.floor(secs/60),s=String(secs%60).padStart(2,'0');
     if(el) el.textContent=m+':'+s;
   },1000);
 }
-async function loadMedia(force=false){
-  if(!force&&Date.now()-mediaCache.ts<60000&&mediaCache.data.length){renderMedia();return;}
-  const el=document.getElementById('feed-media');
-  if(el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>';
-  const all=[];
-  const sources=[...MEDIA_SOURCES,...customSources.filter(function(cs){return !MEDIA_SOURCES.find(function(m){return m.url===cs.url;});})];
-  await Promise.allSettled(sources.map(async function(src){
-    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(function(i){all.push(i);});}catch(e){}
-  }));
-  all.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
-  mediaCache={ts:Date.now(),data:all};
-  const ftm=document.getElementById('ft-media');
-  if(ftm) ftm.textContent=all.length;
-  updateTicker(all);
-  if(translateOn) await translateItems(mediaCache.data);
-  renderMedia();
+
+// Merge new items into existing array, return {merged, newCount}
+function mergeItems(existing, incoming){
+  const seen=new Set(existing.map(function(i){return i.link||i.title;}));
+  const fresh=incoming.filter(function(i){
+    const key=i.link||i.title;
+    return key && !seen.has(key);
+  });
+  fresh.forEach(function(i){i._new=true;});
+  // Prepend new, keep existing, cap at 200
+  const merged=[...fresh,...existing].slice(0,200);
+  return {merged, newCount:fresh.length};
 }
 
+// Toast for new items
+function showNewBadge(areaId, count){
+  if(!count) return;
+  const area=document.getElementById(areaId);
+  if(!area) return;
+  const old=area.querySelector('.new-badge');
+  if(old) old.remove();
+  const badge=document.createElement('div');
+  badge.className='new-badge';
+  badge.textContent='+'+count+' nuevas';
+  badge.style.cssText='position:sticky;top:0;left:0;right:0;z-index:10;text-align:center;'+
+    'padding:4px;background:rgba(30,158,90,.15);border-bottom:1px solid rgba(30,158,90,.3);'+
+    'color:#2ecc71;font-size:10px;font-family:JetBrains Mono,monospace;letter-spacing:.5px;cursor:pointer;';
+  badge.onclick=function(){badge.remove();};
+  setTimeout(function(){if(badge.parentNode)badge.remove();},5000);
+  area.insertBefore(badge,area.firstChild);
+}
+async function loadMedia(force=false){
+  const isFirst=!mediaCache.data.length;
+  if(isFirst){
+    const el=document.getElementById('feed-media');
+    if(el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>';
+  }
+  const incoming=[];
+  const sources=[...MEDIA_SOURCES,...customSources.filter(function(cs){return !MEDIA_SOURCES.find(function(m){return m.url===cs.url;});})];
+  await Promise.allSettled(sources.map(async function(src){
+    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(function(i){incoming.push(i);});}catch(e){}
+  }));
+  incoming.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
+  if(isFirst){
+    mediaCache={ts:Date.now(),data:incoming};
+    renderMedia();
+  } else {
+    const {merged,newCount}=mergeItems(mediaCache.data,incoming);
+    mediaCache={ts:Date.now(),data:merged};
+    if(newCount>0){
+      renderMedia();
+      showNewBadge('feed-media',newCount);
+    }
+  }
+  const ftm=document.getElementById('ft-media');
+  if(ftm) ftm.textContent=mediaCache.data.length;
+  updateTicker(mediaCache.data);
+  if(translateOn) await translateItems(mediaCache.data);
+}
+
+async function liveRefreshMedia(){
+  const incoming=[];
+  const sources=[...MEDIA_SOURCES,...customSources.filter(function(cs){return !MEDIA_SOURCES.find(function(m){return m.url===cs.url;});})];
+  await Promise.allSettled(sources.map(async function(src){
+    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(function(i){incoming.push(i);});}catch(e){}
+  }));
+  if(!incoming.length) return;
+  incoming.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
+  const {merged,newCount}=mergeItems(mediaCache.data,incoming);
+  mediaCache={ts:Date.now(),data:merged};
+  if(newCount>0){
+    renderMedia();
+    showNewBadge('feed-media',newCount);
+    const ftm=document.getElementById('ft-media');
+    if(ftm) ftm.textContent=mediaCache.data.length;
+    updateTicker(mediaCache.data);
+  }
+}
+
+function liveRefreshOSINT(){loadOSINT(true);}
 function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
 
 // ══════════════════════════════════════════════════════════
@@ -1612,7 +1690,11 @@ function renderItems(items,areaId){
   const area=document.getElementById(areaId);
   if(!area)return;
   if(!items.length){area.innerHTML='<div class="fstatus">Sin resultados.</div>';return;}
-  area.innerHTML=items.slice(0,80).map(function(item,ix){
+  // Separate new vs existing for animation
+  const newItems=items.filter(function(i){return i._new;});
+  const oldItems=items.filter(function(i){return !i._new;});
+  const sorted=[...newItems,...oldItems];
+  area.innerHTML=sorted.slice(0,150).map(function(item,ix){
     const t=CLASSIFY(item.title),td=TAG[t]||TAG['i'];
     const isTg=item.type==='tg';
     const tagCls=isTg?'tag-tg':td[0];
@@ -1622,7 +1704,8 @@ function renderItems(items,areaId){
     const lock=isTg?'<span style="color:#bbb;font-size:9px;"> 🔒</span>':'';
     const saveB=href?'<button class="save-btn" title="Guardar" onclick="event.stopPropagation();doSave(this)" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-src="'+item.src+'" data-link="'+href+'" data-pub="'+item.pubDate+'">🔖</button>':'';
     const desc=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
-    return '<div class="fitem" '+openA+'>'+
+    const newCls=item._new?' fitem-new':'';
+    return '<div class="fitem'+newCls+'" '+openA+'>'+
       '<div class="ftop"><span class="ftag '+tagCls+'">'+tagLbl+'</span><span class="fsrc">'+item.src+'</span>'+lock+'<span class="ftime">'+timeAgo(item.pubDate)+'</span>'+saveB+'</div>'+
       '<div class="ftitle">'+item.title+'</div>'+desc+
     '</div>';
@@ -1666,10 +1749,22 @@ async function loadOSINT(force=false){
     }catch(e){ failed.push(src.n); }
   }));
   all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  osintCache={ts:Date.now(),data:all};
-  document.getElementById('ft-osint').textContent=all.length;
-  if(translateOn) await translateItems(osintCache.data);
-  renderOSINT(failed);
+  const isFirstOsint=!osintCache.data.length;
+  if(isFirstOsint){
+    osintCache={ts:Date.now(),data:all};
+    if(translateOn) await translateItems(osintCache.data);
+    renderOSINT(failed);
+  } else {
+    const {merged,newCount}=mergeItems(osintCache.data,all);
+    osintCache={ts:Date.now(),data:merged};
+    if(newCount>0){
+      if(translateOn) await translateItems(osintCache.data);
+      renderOSINT(failed);
+      showNewBadge('feed-osint',newCount);
+    }
+  }
+  const fto=document.getElementById('ft-osint');
+  if(fto) fto.textContent=osintCache.data.length;
 }
 
 // Parser HTML de t.me/s/canal
@@ -2694,6 +2789,15 @@ function renderMarketTicker() {
 setTimeout(loadMarkets, 800);
 setInterval(loadMarkets, 90000);
 
+
+// ── PWA SERVICE WORKER ────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){
+      console.log('SW registration failed:', e);
+    });
+  });
+}
 </script>
 </body>
 </html>
