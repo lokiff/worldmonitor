@@ -1,244 +1,205 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ConflictTracker — Global Intelligence</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<title>ConflictTracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root{
-  --bg:#06080b;--s1:#0d1117;--s2:#13181f;--s3:#1a2030;
-  --b1:#1e2530;--b2:#2a3545;--b3:#3d5070;
-  --t1:#f0f6fc;--t2:#c9d1d9;--t3:#8b96a5;
-  --red:#ff6b6b;--orange:#ffa552;--yellow:#ffd166;
-  --green:#56e89d;--blue:#79b8ff;--cyan:#9ecfff;--purple:#d2a8ff;
-}
-body.day{
-  --bg:#eef1f5;--s1:#ffffff;--s2:#f3f6fa;--s3:#e8ecf2;
-  --b1:#c8d0dc;--b2:#adb8c8;--b3:#7a8fa8;
-  --t1:#0d1117;--t2:#2d3b4e;--t3:#4f6278;
-}
-body.day .leaflet-container{background:#d4e2f0!important;}
-body.day .ticker{background:rgba(248,81,73,.06);border-color:rgba(248,81,73,.2);}
-body.day .ticker-text{color:var(--t2);}
-body.day .map-timebar,body.day .map-zoombar .zbtn,body.day .map-regionbar{background:rgba(255,255,255,.92);}
-body.day .spin-sm{border-color:var(--b2);border-top-color:var(--blue);}
-.theme-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .2s;border-radius:2px;line-height:1;}
-.theme-btn:hover{border-color:var(--b3);color:var(--t1);}
-.translate-btn{padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .2s;border-radius:2px;letter-spacing:1px;}
-.translate-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.07);}
-.translate-btn:hover{border-color:var(--b3);color:var(--t1);}
+/* ─── RESET ─────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:14px;}
+html,body{height:100%;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;background:#f0f0f0;color:#222;}
 button{font-family:inherit;cursor:pointer;}
-::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:var(--b3);}
+::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:#bbb;}
+
+/* ─── DARK MODE ─────────────────────────────────────── */
+body.dark{background:#111;color:#d8dce8;}
+body.dark .topbar{background:#181a20;border-color:#252830;}
+body.dark .sr{background:#181a20;border-color:#252830;}
+body.dark .tabs{background:#181a20;border-color:#252830;}
+body.dark .tab{color:#6670838;}
+body.dark .tab.on{color:#d8dce8;border-color:#4a7fff;}
+body.dark .ffilters{border-color:#252830;}
+body.dark .ffbtn{color:#667083;border-color:#252830;}
+body.dark .ffbtn.on{color:#4a7fff;border-color:#4a7fff;}
+body.dark .fitem{border-color:#1e2128;}
+body.dark .fitem:hover{background:#1e2230;}
+body.dark .ftitle{color:#d8dce8;}
+body.dark .fsrc,.dark .ftime{color:#667083;}
+body.dark .fdesc{color:#8890a0;}
+body.dark .ffooter{border-color:#252830;background:#181a20;}
+body.dark .ffooter-stat{color:#667083;}
+body.dark .stream-input-wrap{border-color:#252830;}
+body.dark #stream-input{background:#1e2230;border-color:#252830;color:#d8dce8;}
+body.dark .stream-card{background:#1e2230;border-color:#252830;}
+body.dark .map-timebar{background:#181a20!important;border-color:#252830!important;}
+body.dark .tbtn{color:#667083;}
+body.dark .tbtn.on,.dark .tbtn:hover{background:#252830;color:#d8dce8;}
+body.dark .zbtn{background:#181a20!important;border-color:#252830!important;color:#667083;}
+body.dark .zbtn:hover{color:#d8dce8;}
+body.dark .map-regionbar{background:#181a20!important;border-color:#252830!important;}
+body.dark .rbtn{color:#667083;}
+body.dark .rbtn.on,.dark .rbtn:hover{color:#4a7fff;background:#1e2230;}
+body.dark .leaflet-container{background:#0d0f14!important;}
+body.dark .leaflet-popup-content-wrapper{background:#1e2230!important;border-color:#252830!important;color:#d8dce8!important;}
+body.dark .leaflet-popup-tip{background:#1e2230!important;}
+body.dark .topbar-sep{background:#252830;}
+
+/* ─── LAYOUT ─────────────────────────────────────────── */
 .app{display:flex;flex-direction:column;height:100vh;}
 .main{flex:1;display:flex;min-height:0;}
 
-/* TOPBAR */
-.topbar{height:46px;flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:14px;z-index:500;}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;}
-.logo b{color:var(--red);}
-.live{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);letter-spacing:2px;}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
-.clock{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t2);}
-.clock b{color:var(--t1);}
-.sep{width:1px;height:20px;background:var(--b2);}
-.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;}
-.pill-orange{color:var(--orange);border-color:rgba(240,136,62,.3);background:rgba(240,136,62,.06);}
-.pill-red{color:var(--red);border-color:rgba(248,81,73,.35);background:rgba(248,81,73,.07);}
-.topbar-stats{display:flex;gap:14px;}
-.ts{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);}
-.ts b{color:var(--t1);}
-.ml{margin-left:auto;display:flex;gap:8px;align-items:center;}
-.btn{padding:4px 11px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .15s;letter-spacing:1px;border-radius:2px;}
-.btn:hover{border-color:var(--b3);color:var(--t1);}
+/* ─── TOPBAR ─────────────────────────────────────────── */
+.topbar{height:38px;flex-shrink:0;background:#fff;border-bottom:1px solid #e0e2e6;display:flex;align-items:center;padding:0 12px;gap:10px;z-index:600;}
+.logo{font-size:12px;font-weight:700;letter-spacing:1px;color:#222;white-space:nowrap;}
+.logo span{color:#d04040;}
+.live-dot{width:5px;height:5px;border-radius:50%;background:#d04040;animation:blink 1.5s ease-in-out infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.topbar-sep{width:1px;height:14px;background:#e0e2e6;flex-shrink:0;}
+.clock{font-size:11px;color:#888;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.ts-label{font-size:11px;color:#888;}
+.ts-label b{color:#444;font-weight:500;}
+.ml{margin-left:auto;display:flex;gap:5px;align-items:center;}
+.topbtn{padding:3px 9px;background:transparent;border:1px solid #ddd;color:#666;font-size:11px;border-radius:3px;transition:all .12s;white-space:nowrap;}
+.topbtn:hover{border-color:#aaa;color:#333;}
+.topbtn.on{border-color:#2a70d4;color:#2a70d4;}
 
-/* TICKER */
-.ticker{height:25px;flex-shrink:0;background:rgba(248,81,73,.08);border-bottom:1px solid rgba(248,81,73,.15);display:flex;align-items:center;overflow:hidden;}
-.ticker-tag{flex-shrink:0;background:var(--red);color:#000;height:100%;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;padding:0 12px;display:flex;align-items:center;gap:5px;}
-.tdot{width:5px;height:5px;border-radius:50%;background:#000;animation:blink 1s step-end infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
-.ticker-text{display:inline-block;padding-left:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t2);animation:tickscroll 180s linear infinite;}
-@keyframes tickscroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+/* ─── MAP ────────────────────────────────────────────── */
+.map-wrap{flex:1;position:relative;min-width:0;}
+#map{width:100%;height:100%;}
+.leaflet-container{background:#e8ecf0!important;}
+@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(208,64,64,.5)}50%{box-shadow:0 0 0 9px rgba(208,64,64,0)}}
+@keyframes ch{0%,100%{box-shadow:0 0 0 0 rgba(208,64,64,.4)}50%{box-shadow:0 0 0 7px rgba(208,64,64,0)}}
+@keyframes cm{0%,100%{box-shadow:0 0 0 0 rgba(210,130,40,.4)}50%{box-shadow:0 0 0 5px rgba(210,130,40,0)}}
+@keyframes cl{0%,100%{box-shadow:0 0 0 0 rgba(42,112,212,.3)}50%{box-shadow:0 0 0 4px rgba(42,112,212,0)}}
 
-/* SIDEBAR LEFT — oculto */
-.sl{display:none;}
-.phdr{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--s2);border-bottom:1px solid var(--b1);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--t2);cursor:pointer;user-select:none;flex-shrink:0;transition:color .15s;}
-.phdr:hover{color:var(--t1);}
-.phdr .arr{margin-left:auto;transition:transform .2s;}
-.phdr.closed .arr{transform:rotate(-90deg);}
-.pbody{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
-.pbody.closed{display:none;}
-
-/* conflict list */
-.ci{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;transition:all .1s;border-bottom:1px solid var(--b1);}
-.ci:hover{background:var(--s2);}
-.ci.on{background:var(--s3);border-left:2px solid var(--blue);padding-left:10px;}
-.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.cdot.critical{background:var(--red);box-shadow:0 0 7px var(--red);animation:pulse 1.5s ease-in-out infinite;}
-.cdot.high{background:var(--red);box-shadow:0 0 5px var(--red);}
-.cdot.med{background:var(--orange);box-shadow:0 0 4px var(--orange);}
-.cdot.low{background:var(--blue);}
-.cdot.latent{background:var(--t3);}
-.cinfo{flex:1;min-width:0;}
-.cname{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.creg{font-size:10px;color:var(--t2);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
-.cbadge{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;flex-shrink:0;letter-spacing:.5px;}
-.bc{background:rgba(248,81,73,.2);color:var(--red);border:1px solid rgba(248,81,73,.25);}
-.bh{background:rgba(248,81,73,.13);color:var(--red);}
-.bm{background:rgba(240,136,62,.11);color:var(--orange);}
-.bl{background:rgba(88,166,255,.1);color:var(--blue);}
-.bn{background:rgba(72,79,88,.2);color:var(--t3);}
-
-/* layers */
-.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;}
-.lbtn{display:flex;align-items:center;gap:5px;padding:5px 7px;border:1px solid var(--b2);border-radius:3px;background:transparent;font-size:10px;color:var(--t2);transition:all .15s;width:100%;text-align:left;}
-.lbtn:hover{border-color:var(--b3);color:var(--t1);}
-.lbtn.on{color:var(--t1);border-color:var(--b3);}
-.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-
-/* stability */
-.srow{display:flex;align-items:center;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(33,38,45,.4);}
-.sname{width:80px;font-size:10px;color:var(--t2);flex-shrink:0;}
-.sbg{flex:1;height:3px;background:var(--b1);border-radius:2px;overflow:hidden;}
-.sbar{height:100%;border-radius:2px;transition:width 1s ease;}
-.sval{width:22px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);}
-
-/* MAP */
-.map-wrap{flex:1;position:relative;display:flex;flex-direction:column;min-width:0;}
-#map{flex:1;}
-.leaflet-container{background:#0a0f14!important;}
-@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.6)}50%{box-shadow:0 0 0 12px rgba(248,81,73,0)}}
-@keyframes ch{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.5)}50%{box-shadow:0 0 0 9px rgba(248,81,73,0)}}
-@keyframes cm{0%,100%{box-shadow:0 0 0 0 rgba(240,136,62,.5)}50%{box-shadow:0 0 0 7px rgba(240,136,62,0)}}
-@keyframes cl{0%,100%{box-shadow:0 0 0 0 rgba(88,166,255,.4)}50%{box-shadow:0 0 0 5px rgba(88,166,255,0)}}
-
-.map-timebar{position:absolute;top:10px;left:10px;z-index:400;background:rgba(8,12,16,.9);border:1px solid var(--b1);border-radius:3px;display:flex;overflow:hidden;backdrop-filter:blur(4px);}
-.tbtn{padding:4px 9px;background:transparent;border:none;border-right:1px solid var(--b1);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .12s;}
+/* time buttons — top left of map */
+.map-timebar{position:absolute;top:10px;left:10px;z-index:400;background:#fff;border:1px solid #ddd;border-radius:4px;display:flex;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.tbtn{padding:4px 9px;background:transparent;border:none;border-right:1px solid #e8e8e8;color:#888;font-size:10px;transition:all .1s;}
 .tbtn:last-child{border-right:none;}
-.tbtn.on,.tbtn:hover{background:var(--s2);color:var(--t1);}
+.tbtn.on,.tbtn:hover{background:#f0f2f5;color:#222;}
 
-.map-zoombar{position:absolute;top:10px;right:10px;z-index:400;display:flex;flex-direction:column;gap:4px;}
-.zbtn{width:28px;height:28px;background:rgba(8,12,16,.9);border:1px solid var(--b1);color:var(--t2);font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .15s;backdrop-filter:blur(4px);}
-.zbtn:hover{color:var(--t1);border-color:var(--b3);}
+/* zoom — right side */
+.map-zoombar{position:absolute;top:10px;right:10px;z-index:400;display:flex;flex-direction:column;gap:2px;}
+.zbtn{width:28px;height:28px;background:#fff;border:1px solid #ddd;color:#666;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .12s;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.zbtn:hover{color:#222;border-color:#aaa;}
 
-.map-regionbar{position:absolute;bottom:0;left:0;right:0;z-index:400;background:rgba(8,12,16,.88);border-top:1px solid var(--b1);display:flex;align-items:center;height:32px;padding:0 12px;gap:4px;backdrop-filter:blur(4px);overflow-x:auto;scrollbar-width:none;}
+/* region bar — bottom of map */
+.map-regionbar{position:absolute;bottom:0;left:0;right:0;z-index:400;background:#fff;border-top:1px solid #e0e2e6;display:flex;align-items:center;height:30px;padding:0 10px;gap:2px;overflow-x:auto;scrollbar-width:none;}
 .map-regionbar::-webkit-scrollbar{display:none;}
-.rlabel{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:1px;flex-shrink:0;margin-right:4px;}
-.rbtn{padding:2px 9px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .12s;border-radius:2px;white-space:nowrap;flex-shrink:0;}
-.rbtn:hover,.rbtn.on{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.05);}
+.rlabel{font-size:9px;color:#aaa;flex-shrink:0;margin-right:4px;white-space:nowrap;}
+.rbtn{padding:2px 8px;background:transparent;border:none;color:#888;font-size:11px;border-radius:2px;white-space:nowrap;flex-shrink:0;transition:all .1s;}
+.rbtn:hover{background:#f0f2f5;color:#444;}
+.rbtn.on{background:#e8edf8;color:#2a70d4;font-weight:500;}
 
-.leaflet-popup-content-wrapper{background:var(--s2)!important;color:var(--t1)!important;border:1px solid var(--b2)!important;border-radius:4px!important;box-shadow:0 4px 24px rgba(0,0,0,.7)!important;}
+/* popup */
+.leaflet-popup-content-wrapper{background:#fff!important;color:#222!important;border:1px solid #e0e2e6!important;border-radius:6px!important;box-shadow:0 4px 16px rgba(0,0,0,.15)!important;}
 .leaflet-popup-content{margin:10px 14px!important;}
-.leaflet-popup-tip{background:var(--s2)!important;}
-.leaflet-popup-close-button{color:var(--t2)!important;top:6px!important;right:8px!important;}
-.pt{font-weight:700;font-size:14px;margin-bottom:4px;color:var(--t1);}
-.ps{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);margin-bottom:6px;letter-spacing:.5px;}
-.pb{font-size:11px;color:var(--t2);line-height:1.65;margin-top:4px;}
-.pb b{color:var(--t1);}
-.pu-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 6px;border-radius:2px;margin-top:7px;letter-spacing:1px;}
+.leaflet-popup-tip{background:#fff!important;}
+.leaflet-popup-close-button{color:#999!important;}
+.pt{font-weight:600;font-size:13px;margin-bottom:3px;}
+.ps{font-size:10px;color:#888;margin-bottom:4px;}
+.pb{font-size:11px;color:#555;line-height:1.6;}
+.pb b{color:#222;}
+.pu-tag{display:inline-block;font-size:9px;font-weight:600;padding:1px 6px;border-radius:3px;margin-top:5px;}
 
-/* SIDEBAR RIGHT */
-.sr{width:var(--panel-w,480px);flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;position:relative;transition:width .0s;}
+/* ─── RIGHT PANEL ────────────────────────────────────── */
+.sr{width:var(--panel-w,340px);flex-shrink:0;background:#fff;border-left:1px solid #e0e2e6;display:flex;flex-direction:column;overflow:hidden;position:relative;}
 
-/* TABS */
-.tabs{flex-shrink:0;display:flex;align-items:center;background:var(--s2);border-bottom:2px solid var(--b1);}
-.tab{padding:10px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-bottom:-2px;white-space:nowrap;}
-.tab:hover{color:var(--t2);}
-.tab.on{color:var(--t1);border-bottom-color:var(--blue);font-weight:600;}
-.tab-refresh{margin-left:auto;display:flex;align-items:center;gap:6px;padding-right:8px;}
-.tab-timer{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
+/* resize handle */
+#panel-resize-handle{position:absolute;left:0;top:0;bottom:0;width:4px;cursor:col-resize;z-index:100;background:transparent;transition:background .15s;}
+#panel-resize-handle:hover{background:rgba(42,112,212,.3);}
+
+/* ─── TABS ───────────────────────────────────────────── */
+.tabs{flex-shrink:0;display:flex;align-items:center;background:#fafafa;border-bottom:1px solid #e8eaed;padding:0;}
+.tab{padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;font-size:11px;cursor:pointer;transition:color .12s;margin-bottom:-1px;white-space:nowrap;}
+.tab:hover{color:#444;}
+.tab.on{color:#222;border-bottom-color:#2a70d4;font-weight:500;}
+.tab-refresh{margin-left:auto;display:flex;align-items:center;gap:5px;padding:0 8px;}
+.tab-timer{font-size:10px;color:#aaa;font-variant-numeric:tabular-nums;}
 .tab-panel{display:flex;flex-direction:column;flex:1;min-height:0;}
 .tab-panel.hidden{display:none;}
-.vc{background:var(--s2);border:1px solid var(--b1);border-radius:4px;overflow:hidden;position:relative;}
-.vc-header{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--s3);}
-.vc-title{flex:1;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.vc-del{background:transparent;border:none;color:var(--t3);font-size:12px;cursor:pointer;padding:0 2px;line-height:1;}
-.vc-del:hover{color:var(--red);}
-.vc iframe{width:100%;height:180px;border:none;display:block;}
-.vc-meta{padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
 
-/* GDELT */
-.gdelt-info{flex-shrink:0;padding:7px 12px;background:rgba(88,166,255,.04);border-bottom:1px solid rgba(88,166,255,.1);display:flex;flex-direction:column;gap:2px;}
-.gdelt-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue);letter-spacing:1px;}
-.gdelt-sub{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
-.gdelt-item{padding:9px 12px 8px;border-bottom:1px solid rgba(33,38,45,.55);cursor:pointer;transition:background .1s;animation:fadeup .3s ease both;}
-.gdelt-item:hover{background:var(--s2);}
-.gdelt-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
-.gdelt-tone{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;}
-.tone-neg{background:rgba(248,81,73,.15);color:var(--red);}
-.tone-neu{background:rgba(139,148,158,.1);color:var(--t2);}
-.tone-pos{background:rgba(63,185,80,.1);color:var(--green);}
-.gdelt-src{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t2);background:var(--s3);padding:1px 5px;border-radius:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.gdelt-time{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--t3);}
-.gdelt-title{font-size:12px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:2px;}
-.gdelt-loc{font-size:10px;color:var(--t2);}
-.gdelt-loc b{color:var(--cyan);}
+/* ─── FILTERS ────────────────────────────────────────── */
+.ffilters{flex-shrink:0;display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid #eee;flex-wrap:wrap;}
+.ffbtn{padding:3px 9px;background:transparent;border:1px solid #e0e2e6;border-radius:12px;color:#888;font-size:10px;transition:all .1s;}
+.ffbtn:hover{color:#444;}
+.ffbtn.on{border-color:#2a70d4;color:#2a70d4;background:rgba(42,112,212,.06);}
 
-/* OSINT tag */
-.tag-tg{background:rgba(36,161,222,.15);color:#24a1de;border:1px solid rgba(36,161,222,.2);}
-.tag-osint{background:rgba(188,140,255,.12);color:var(--purple);}
-
-/* feed */
-.ffilters{flex-shrink:0;display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid var(--b1);flex-wrap:wrap;}
-.ffbtn{padding:3px 10px;background:transparent;border:1px solid var(--b2);border-radius:3px;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .12s;letter-spacing:.5px;}
-.ffbtn:hover,.ffbtn.on{border-color:var(--blue);color:var(--blue);background:rgba(121,184,255,.08);}
-
-/* feed source selector */
-.fsource-bar{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--b1);overflow-x:auto;scrollbar-width:none;}
-.fsource-bar::-webkit-scrollbar{display:none;}
-.fsrc-btn{padding:2px 7px;background:transparent;border:1px solid var(--b2);border-radius:2px;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-size:7px;transition:all .12s;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;}
-.fsrc-btn:hover,.fsrc-btn.on{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.05);}
-.fsrc-label{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1px;flex-shrink:0;}
-
-.farea{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
-.farea::-webkit-scrollbar{width:2px;}
-
-.fitem{padding:11px 14px 10px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .1s;animation:fadeup .35s ease both;}
-.fitem:hover{background:var(--s2);border-left:2px solid var(--blue);padding-left:12px;}
-@keyframes fadeup{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-.ftop{display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
-.ftag{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px;flex-shrink:0;}
-.tag-b{background:rgba(248,81,73,.18);color:var(--red);border:1px solid rgba(248,81,73,.2);}
-.tag-s{background:rgba(240,136,62,.13);color:var(--orange);}
-.tag-d{background:rgba(88,166,255,.1);color:var(--blue);}
-.tag-m{background:rgba(188,140,255,.1);color:var(--purple);}
-.tag-i{background:rgba(121,192,255,.08);color:var(--cyan);}
-.tag-e{background:rgba(63,185,80,.08);color:var(--green);}
-.fsrc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t2);background:var(--s3);padding:2px 6px;border-radius:2px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ftime{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);white-space:nowrap;}
-.ftitle{font-size:13px;font-weight:500;color:var(--t1);line-height:1.45;margin-bottom:4px;}
-.fdesc{font-size:12px;color:var(--t2);line-height:1.55;}
-.fstatus{display:flex;align-items:center;justify-content:center;gap:10px;padding:32px 16px;color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:11px;flex-direction:column;text-align:center;}
-.fstatus-detail{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;text-align:center;line-height:1.7;}
+/* ─── FEED ───────────────────────────────────────────── */
+.farea{flex:1;overflow-y:auto;}
+.fitem{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .08s;}
+.fitem:hover{background:#f7f9fc;}
+@keyframes fadeup{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+.fitem{animation:fadeup .25s ease both;}
+.ftop{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.fsrc{font-size:10px;color:#2a70d4;font-weight:500;}
+.ftime{margin-left:auto;font-size:10px;color:#aaa;white-space:nowrap;}
+.ftitle{font-size:12px;color:#222;line-height:1.45;margin-bottom:2px;}
+.fdesc{font-size:11px;color:#777;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ftag{font-size:9px;font-weight:600;padding:1px 5px;border-radius:2px;letter-spacing:.2px;}
+.tag-b{background:#fde8e8;color:#c03030;}
+.tag-s{background:#fef0e0;color:#b06010;}
+.tag-d{background:#e8eef8;color:#2a60c0;}
+.tag-m{background:#f0eaf8;color:#7050b0;}
+.tag-i{background:#e8f4f8;color:#2080a0;}
+.tag-e{background:#e8f4ee;color:#207040;}
+.tag-tg{background:#e0f0f8;color:#1878b0;}
+.fstatus{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 16px;color:#aaa;font-size:12px;flex-direction:column;text-align:center;}
 @keyframes spin{100%{transform:rotate(360deg)}}
-.spin-sm{width:12px;height:12px;border:1px solid var(--b2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
-#country-modal h3{font-size:11px;color:var(--red);margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;}
-#country-modal h4{font-size:10px;color:var(--blue);margin:12px 0 4px;letter-spacing:1px;}
-#country-modal p{margin:0 0 10px;color:var(--t2);font-size:12px;line-height:1.7;}
-#country-modal ul{margin:0 0 10px;padding-left:16px;}
-#country-modal li{margin:4px 0;font-size:12px;color:var(--t2);}
-#country-modal .risk-critical{color:#f85149;font-weight:700;}
-#country-modal .risk-high{color:#f0883e;font-weight:700;}
-#country-modal .risk-med{color:#e3b341;font-weight:700;}
-#country-modal .risk-low{color:#58a6ff;}
+.spin-sm{width:14px;height:14px;border:1.5px solid #e0e2e6;border-top-color:#2a70d4;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 
-/* feed footer */
-.ffooter{flex-shrink:0;border-top:1px solid var(--b1);padding:5px 12px;display:flex;align-items:center;gap:8px;}
-.ffooter-stat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);}
-.ffooter-stat b{color:var(--t2);}
-.frefresh{margin-left:auto;padding:3px 10px;background:transparent;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace;font-size:8px;transition:all .15s;border-radius:2px;letter-spacing:1px;}
-.frefresh:hover{border-color:var(--green);color:var(--green);}
-.foot-btn{background:transparent;border:1px solid var(--b2);color:var(--t3);font-size:13px;width:24px;height:24px;border-radius:3px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0;}
-.foot-btn:hover{color:var(--t1);border-color:var(--b3);}
+/* ─── FOOTER ─────────────────────────────────────────── */
+.ffooter{flex-shrink:0;border-top:1px solid #eee;padding:5px 10px;display:flex;align-items:center;gap:8px;background:#fafafa;}
+.ffooter-stat{font-size:10px;color:#aaa;}
+.ffooter-stat b{color:#666;font-weight:500;}
+.frefresh{padding:3px 8px;background:transparent;border:1px solid #ddd;color:#888;font-size:10px;border-radius:3px;transition:all .12s;}
+.frefresh:hover{border-color:#999;color:#444;}
+.foot-btn{background:transparent;border:1px solid #e0e2e6;color:#aaa;font-size:13px;width:24px;height:24px;border-radius:3px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;padding:0;}
+.foot-btn:hover{color:#666;border-color:#bbb;}
+
+/* ─── STREAM PANEL ───────────────────────────────────── */
+.stream-input-wrap{padding:8px;border-bottom:1px solid #eee;display:flex;gap:5px;}
+#stream-input{flex:1;padding:5px 9px;background:#f5f5f5;border:1px solid #e0e2e6;border-radius:3px;color:#222;font-size:11px;outline:none;}
+#stream-input:focus{border-color:#2a70d4;background:#fff;}
+.stream-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0f0f0;}
+.stream-card:hover{background:#f7f9fc;}
+
+/* ─── MODAL ──────────────────────────────────────────── */
+#country-modal h3{font-size:11px;color:#c03030;margin:12px 0 5px;letter-spacing:.3px;text-transform:uppercase;}
+#country-modal h4{font-size:10px;color:#2a70d4;margin:10px 0 3px;}
+#country-modal p{margin:0 0 8px;color:#555;font-size:12px;line-height:1.65;}
+#country-modal ul{margin:0 0 8px;padding-left:16px;}
+#country-modal li{margin:3px 0;font-size:12px;color:#555;}
+#country-modal .risk-critical{color:#c03030;font-weight:600;}
+#country-modal .risk-high{color:#c06020;font-weight:600;}
+#country-modal .risk-med{color:#a08020;font-weight:600;}
+#country-modal .risk-low{color:#2a70d4;}
+
+/* misc — kept from logic ─────────────────────────────── */
+.sl{display:none;}
+.ci{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;}
+.ci:hover{background:#f7f9fc;}
+.ci.on{background:#eef3fc;}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.cdot.critical{background:#d04040;animation:cp 2s ease-in-out infinite;}
+.cdot.high{background:#d04040;}
+.cdot.med{background:#d08030;}
+.cdot.low{background:#2a70d4;}
+.cdot.latent{background:#aaa;}
+.cname{font-size:12px;font-weight:500;}
+.creg{font-size:10px;color:#999;margin-top:1px;}
+.cbadge{font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px;}
+.bc{background:#fde8e8;color:#c03030;}
+.bh{background:#fde8e8;color:#c03030;}
+.bm{background:#fef0e0;color:#b06010;}
+.bl{background:#e8eef8;color:#2a60c0;}
+.bn{background:#f0f0f0;color:#888;}
 </style>
 </head>
 <body>
@@ -246,39 +207,24 @@ button{font-family:inherit;cursor:pointer;}
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="logo">CONFLICT<b>TRACKER</b></div>
-    <div class="live"><div class="live-dot"></div>LIVE</div>
-    <div class="clock">UTC <b id="clock">--:--:--</b></div>
-    <div class="sep"></div>
-    <div class="pill pill-red" id="threat-pill">▲ CRÍTICO: 3 TEATROS ACTIVOS</div>
-    <div class="sep"></div>
-    <div class="topbar-stats">
-      <span class="ts">CONFLICTOS <b id="st-c">21</b></span>
-      <span class="ts">ALERTAS <b id="st-a" style="color:var(--red)">—</b></span>
-      <span class="ts">NOTICIAS <b id="st-n" style="color:var(--green)">—</b></span>
-    </div>
+    <div class="logo">CONFLICT<span>TRACKER</span></div>
+    <div class="live-dot"></div>
+    <div class="topbar-sep"></div>
+    <div class="clock" id="clock-wrap">UTC <b id="clock">--:--:--</b> <span id="clock-local" style="margin-left:6px;color:#aaa;"></span></div>
+    <div class="topbar-sep"></div>
+    <span class="ts-label">Activos: <b id="st-c">24</b></span>
     <div class="ml">
-      <button class="translate-btn" id="trans-btn" onclick="toggleTranslate(this)" title="Auto-translate to English">🌐 EN</button>
-      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle day/night mode">🌙</button>
-      <button class="btn" onclick="openEntitySearch()" title="Buscar entidad / actor / país" style="background:var(--s3);border-color:var(--purple);color:var(--purple);">🔍 INTEL</button>
-      <button class="btn" id="ref-btn" onclick="refreshAll(true);refreshLiveData(true)">↻ REFRESH</button>
+      <button class="topbtn" id="trans-btn" onclick="toggleTranslate(this)">EN</button>
+      <button class="topbtn" id="theme-btn" onclick="toggleTheme()">☾</button>
+      <button class="topbtn" onclick="openEntitySearch()">Buscar</button>
+      <button class="topbtn" onclick="refreshAll(true);refreshLiveData(true)">↻</button>
     </div>
-  </div>
-
-  <!-- TICKER -->
-  <div class="ticker">
-    <div class="ticker-tag"><div class="tdot"></div>FLASH</div>
-    <div class="ticker-scroll"><span class="ticker-text" id="ticker">CONECTANDO CON FUENTES RSS — CARGANDO INTELIGENCIA EN TIEMPO REAL...</span></div>
   </div>
 
   <div class="main">
-
-    <!-- LEFT SIDEBAR -->
+    <!-- LEFT SIDEBAR — oculto -->
     <div class="sl">
-      <div class="phdr">● CONFLICTOS ACTIVOS // MAR 2026</div>
-      <div style="flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b2) transparent;">
-        <div id="conflict-list"></div>
-      </div>
+      <div id="conflict-list"></div>
     </div>
 
     <!-- MAP -->
@@ -291,116 +237,108 @@ button{font-family:inherit;cursor:pointer;}
         <button class="tbtn on" onclick="setTime(this)">24H</button>
         <button class="tbtn" onclick="setTime(this)">48H</button>
         <button class="tbtn" onclick="setTime(this)">7D</button>
-        <div style="width:1px;height:16px;background:var(--b2);margin:0 2px;"></div>
-        <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:var(--green);" title="Load UN/GDACS live crisis events">⚡ LIVE</button>
+        <button class="tbtn" id="live-btn" onclick="toggleLiveEvents(this)" style="color:#2a8a52;" title="Live events">⚡</button>
       </div>
-
-
-
-
-
 
       <div class="map-zoombar">
         <button class="zbtn" onclick="MAP.zoomIn()">+</button>
         <button class="zbtn" onclick="MAP.zoomOut()">−</button>
-        <button class="zbtn" onclick="MAP.flyTo([20,15],2.5,{duration:1})">⊕</button>
+        <button class="zbtn" onclick="MAP.flyTo([20,15],2.5,{duration:1})" title="Vista global">⊕</button>
       </div>
 
       <div class="map-regionbar">
-        <span class="rlabel">REGIÓN</span>
-        <button class="rbtn on"  onclick="setRegion(this,'global')">GLOBAL</button>
-        <button class="rbtn"     onclick="setRegion(this,'europe')">EUROPA</button>
-        <button class="rbtn"     onclick="setRegion(this,'mena')">MENA</button>
-        <button class="rbtn"     onclick="setRegion(this,'africa')">ÁFRICA</button>
-        <button class="rbtn"     onclick="setRegion(this,'asia')">ASIA-PAC</button>
-        <button class="rbtn"     onclick="setRegion(this,'americas')">AMÉRICAS</button>
-        <button class="rbtn"     onclick="setRegion(this,'caucasus')">CÁUCASO</button>
+        <span class="rlabel">IR A</span>
+        <button class="rbtn on"  onclick="setRegion(this,'global')">Global</button>
+        <button class="rbtn"     onclick="setRegion(this,'europe')">Europa</button>
+        <button class="rbtn"     onclick="setRegion(this,'mena')">Oriente Medio</button>
+        <button class="rbtn"     onclick="setRegion(this,'africa')">África</button>
+        <button class="rbtn"     onclick="setRegion(this,'asia')">Asia-Pac</button>
+        <button class="rbtn"     onclick="setRegion(this,'americas')">Américas</button>
+        <button class="rbtn"     onclick="setRegion(this,'caucasus')">Cáucaso</button>
       </div>
     </div>
 
-    <!-- RIGHT SIDEBAR -->
+    <!-- RIGHT PANEL -->
     <div class="sr" id="right-panel">
-      <div id="panel-resize-handle" title="Arrastra para redimensionar"
-        style="position:absolute;left:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:100;background:transparent;transition:background .15s;"
-        onmouseenter="this.style.background='var(--blue)'" onmouseleave="this.style.background='transparent'"
+      <div id="panel-resize-handle"
+        onmouseenter="this.style.background='rgba(42,112,212,.3)'"
+        onmouseleave="this.style.background='transparent'"
         onmousedown="startPanelResize(event)"></div>
 
-      <!-- Tabs -->
       <div class="tabs">
-        <button class="tab on" onclick="switchTab('media',this)">📰 MEDIOS</button>
-        <button class="tab"    onclick="switchTab('osint',this)">📲 OSINT/TELEGRAM</button>
-        <button class="tab"    onclick="switchTab('video',this)">📺 VIDEO</button>
+        <button class="tab on" onclick="switchTab('media',this)">Noticias</button>
+        <button class="tab"    onclick="switchTab('osint',this)">OSINT</button>
+        <button class="tab"    onclick="switchTab('video',this)">Video</button>
         <div class="tab-refresh">
-          <span id="refresh-countdown" class="tab-timer">↻ 2:00</span>
-          <button class="frefresh" onclick="refreshAll(true)">REFRESH</button>
+          <span id="refresh-countdown" class="tab-timer">2:00</span>
+          <button class="frefresh" onclick="refreshAll(true)" style="margin-left:4px;">↻</button>
         </div>
       </div>
 
-      <!-- MEDIA panel -->
+      <!-- NOTICIAS -->
       <div class="tab-panel" id="panel-media">
         <div class="ffilters">
-          <button class="ffbtn on" onclick="filterCat('all',this,'media')">TODO</button>
-          <button class="ffbtn"    onclick="filterCat('ukraine',this,'media')">UCRANIA</button>
-          <button class="ffbtn"    onclick="filterCat('mideast',this,'media')">M.ESTE</button>
-          <button class="ffbtn"    onclick="filterCat('africa',this,'media')">ÁFRICA</button>
-          <button class="ffbtn"    onclick="filterCat('asia',this,'media')">ASIA</button>
-          <button class="ffbtn"    onclick="filterCat('breaking',this,'media')">🔴 FLASH</button>
+          <button class="ffbtn on" onclick="filterCat('all',this,'media')">Todo</button>
+          <button class="ffbtn"    onclick="filterCat('ukraine',this,'media')">Ucrania</button>
+          <button class="ffbtn"    onclick="filterCat('mideast',this,'media')">M.Este</button>
+          <button class="ffbtn"    onclick="filterCat('africa',this,'media')">África</button>
+          <button class="ffbtn"    onclick="filterCat('asia',this,'media')">Asia</button>
+          <button class="ffbtn"    onclick="filterCat('breaking',this,'media')">🔴 Flash</button>
         </div>
         <div class="farea" id="feed-media">
-          <div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>
+          <div class="fstatus"><div class="spin-sm"></div>Cargando...</div>
         </div>
       </div>
 
-      <!-- OSINT/TELEGRAM panel -->
+      <!-- OSINT -->
       <div class="tab-panel hidden" id="panel-osint">
         <div class="ffilters">
-          <button class="ffbtn on" onclick="filterCat('all',this,'osint')">TODO</button>
-          <button class="ffbtn"    onclick="filterCat('ukraine',this,'osint')">UCRANIA</button>
-          <button class="ffbtn"    onclick="filterCat('mideast',this,'osint')">M.ESTE</button>
-          <button class="ffbtn"    onclick="filterCat('africa',this,'osint')">ÁFRICA</button>
-          <button class="ffbtn"    onclick="filterCat('asia',this,'osint')">ASIA</button>
+          <button class="ffbtn on" onclick="filterCat('all',this,'osint')">Todo</button>
+          <button class="ffbtn"    onclick="filterCat('ukraine',this,'osint')">Ucrania</button>
+          <button class="ffbtn"    onclick="filterCat('mideast',this,'osint')">M.Este</button>
+          <button class="ffbtn"    onclick="filterCat('africa',this,'osint')">África</button>
+          <button class="ffbtn"    onclick="filterCat('asia',this,'osint')">Asia</button>
         </div>
         <div class="farea" id="feed-osint">
-          <div class="fstatus"><div class="spin-sm"></div>Cargando canales OSINT...</div>
+          <div class="fstatus"><div class="spin-sm"></div>Cargando...</div>
         </div>
       </div>
 
-      <!-- VIDEO panel -->
+      <!-- VIDEO -->
       <div class="tab-panel hidden" id="panel-video">
-        <div style="padding:10px 10px 6px;display:flex;gap:6px;align-items:center;">
-          <input id="yt-input" type="text" placeholder="Pega un link de YouTube..." 
-            style="flex:1;padding:6px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;
-            color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:10px;outline:none;"
-            onkeydown="if(event.key==='Enter')addVideo()">
-          <button onclick="addVideo()" 
-            style="padding:6px 12px;background:var(--red);border:none;border-radius:3px;
-            color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">
-            + ADD
-          </button>
+        <div class="stream-input-wrap">
+          <input id="stream-input" type="text" placeholder="YouTube o Twitch — link o @canal"
+            onkeydown="if(event.key==='Enter')addStream()">
+          <button onclick="addStream()" style="padding:5px 10px;background:#2a70d4;border:none;border-radius:3px;color:#fff;font-size:11px;white-space:nowrap;">+ Añadir</button>
         </div>
-        <div id="video-list" style="flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:8px;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);text-align:center;padding:20px 0;">
-            Añade canales de YouTube sobre conflictos,<br>análisis geopolítico o OSINT.
-          </div>
-        </div>
+        <div id="stream-list" style="flex:1;overflow-y:auto;"></div>
       </div>
 
-      <!-- Footer -->
+      <!-- FOOTER -->
       <div class="ffooter">
         <span class="ffooter-stat">Medios: <b id="ft-media">0</b></span>
         <span class="ffooter-stat">OSINT: <b id="ft-osint">0</b></span>
-        <span class="ffooter-stat" id="ft-updated">—</span>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
-          <button class="foot-btn" onclick="openSettings()" title="Personalización">⚙</button>
+        <span class="ffooter-stat" id="ft-updated" style="margin-left:4px;"></span>
+        <div style="margin-left:auto;display:flex;gap:4px;">
+          <button class="foot-btn" onclick="openSettings()" title="Ajustes">⚙</button>
           <button class="foot-btn" onclick="openAbout()" title="Acerca de">ℹ</button>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
+<!-- MODAL OVERLAY -->
+<div id="cmodal-overlay" onclick="closeCountryModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:2000;"></div>
+<div id="country-modal"
+  style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:560px;max-width:95vw;max-height:82vh;background:var(--modal-bg,#fff);border:1px solid var(--modal-border,#e0e2e6);
+  border-radius:6px;z-index:2001;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;">
+</div>
+
 <script>
+
 // ══════════════════════════════════════════════════════════
 // CONFLICTOS — actualizados a marzo 2026
 // ══════════════════════════════════════════════════════════
@@ -711,6 +649,20 @@ const MEDIA_SOURCES = [
   {url:'https://www.rfa.org/english/news/rss2.html',                       n:'Radio Free Asia',  cat:'asia'},
   {url:'https://www.crisisgroup.org/rss.xml',                              n:'ICG',              cat:'general'},
   {url:'https://www.cfr.org/rss.xml',                                       n:'CFR',              cat:'general'},
+  {url:'https://www.economist.com/international/rss.xml',                   n:'Economist',        cat:'general'},
+  {url:'https://www.ft.com/world?format=rss',                               n:'Financial Times',  cat:'general'},
+  {url:'https://feeds.npr.org/1004/rss.json',                               n:'NPR World',        cat:'general'},
+  {url:'https://www.bbc.co.uk/news/world/middle_east/rss.xml',              n:'BBC M.East',       cat:'mideast'},
+  {url:'https://www.bbc.co.uk/news/world/africa/rss.xml',                   n:'BBC Africa',       cat:'africa'},
+  {url:'https://rss.dw.com/xml/rss-en-africa',                              n:'DW Africa',        cat:'africa'},
+  {url:'https://www.voanews.com/api/zkyqt$ype',                             n:'VOA News',         cat:'general'},
+  {url:'https://www.aljazeera.com/xml/rss/all.xml',                         n:'AJ Arabic',        cat:'mideast'},
+  {url:'https://www.lemonde.fr/international/rss_full.xml',                 n:'Le Monde',         cat:'general'},
+  {url:'https://elpais.com/rss/internacional.html',                         n:'El País',          cat:'general'},
+  {url:'https://www.jpost.com/Rss/RssFeedsHeadlines.aspx',                  n:'Jerusalem Post',   cat:'mideast'},
+  {url:'https://www.haaretz.com/cmlink/1.628752',                           n:'Haaretz',          cat:'mideast'},
+  {url:'https://www.spacewar.com/military_news.xml',                        n:'SpaceWar',         cat:'general'},
+  {url:'https://feeds.feedburner.com/blogspot/gJZg',                        n:'War on Rocks',     cat:'general'},
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -745,8 +697,16 @@ let activeTab='media', countdownSecs=120;
 // CLOCK
 // ══════════════════════════════════════════════════════════
 function startClock(){
-  const el=document.getElementById('clock');
-  const tick=()=>{const d=new Date();el.textContent=[d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds()].map(n=>String(n).padStart(2,'0')).join(':');};
+  const utcEl=document.getElementById('clock');
+  const localEl=document.getElementById('clock-local');
+  const tick=()=>{
+    const d=new Date();
+    utcEl.textContent=[d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+    if(localEl){
+      const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+      localEl.textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false})+' LOCAL';
+    }
+  };
   tick();setInterval(tick,1000);
 }
 
@@ -999,118 +959,190 @@ function switchTab(tab,btn){
 // ══════════════════════════════════════════════════════════
 // VIDEO PANEL — YouTube embeds con persistencia
 // ══════════════════════════════════════════════════════════
-let videoSources = JSON.parse(localStorage.getItem('ct_videos') || '[]');
+// ══════════════════════════════════════════════════════════
+// STREAMING — YouTube + Twitch, floating player
+// ══════════════════════════════════════════════════════════
+let streamSources = JSON.parse(localStorage.getItem('ct_streams') || '[]');
+let activeFloats = []; // floating windows
 
-// Videos sugeridos por defecto (canales OSINT/geopolítica en YouTube)
-const DEFAULT_VIDEOS = [
-  { id: 'UCbnPZeHKikhHes1s3bV_FxQ', type: 'channel', title: 'War Monitor',        url: 'https://www.youtube.com/@WarMonitor' },
-  { id: 'UCF7CRQaA7IWl7CTu0pGJrUw', type: 'channel', title: 'CRUX',               url: 'https://www.youtube.com/@CruxIndia' },
-  { id: 'UCNye-wNBqNL5ZzHSJj3l8Bg', type: 'channel', title: 'Hindustan Times',    url: 'https://www.youtube.com/@hindustantimes' },
-];
-
-function parseYouTubeInput(raw) {
+function parseStreamInput(raw) {
   const s = raw.trim();
-  // Formato: URL video   → https://youtube.com/watch?v=ID
-  // Formato: URL short   → https://youtu.be/ID
-  // Formato: URL live    → https://youtube.com/live/ID
-  // Formato: URL channel → https://youtube.com/@handle o /channel/ID
-  // Formato: ID directo  → 11 chars alfanuméricos
+  const result = {type:'', platform:'', id:'', title:'', embedUrl:''};
 
-  let videoId = null, channelHandle = null, channelId = null;
+  // ── TWITCH ──
+  if (s.includes('twitch.tv') || s.toLowerCase().startsWith('twitch:')) {
+    const m = s.match(/twitch\.tv\/([A-Za-z0-9_]+)/);
+    const ch = m ? m[1] : s.replace(/^twitch:/i,'').trim();
+    result.platform = 'twitch'; result.type = 'live';
+    result.id = 'tw_' + ch; result.title = '🟣 ' + ch;
+    result.embedUrl = 'https://player.twitch.tv/?channel=' + ch + '&parent=' + location.hostname + '&autoplay=false';
+    return result;
+  }
 
-  // Video ID en watch?v=
+  // ── YOUTUBE VIDEO ──
   let m = s.match(/[?&]v=([A-Za-z0-9_-]{11})/);
-  if (m) videoId = m[1];
+  if (!m) m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+  if (!m) m = s.match(/\/live\/([A-Za-z0-9_-]{11})/);
+  if (!m) m = s.match(/\/shorts\/([A-Za-z0-9_-]{11})/);
+  if (!m && /^[A-Za-z0-9_-]{11}$/.test(s)) m = [null, s];
+  if (m) {
+    result.platform = 'youtube'; result.type = 'video';
+    result.id = 'yt_' + m[1]; result.title = '▶ Video';
+    result.embedUrl = 'https://www.youtube-nocookie.com/embed/' + m[1] + '?rel=0&modestbranding=1';
+    return result;
+  }
 
-  // youtu.be/ID
-  if (!videoId) { m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/); if (m) videoId = m[1]; }
+  // ── YOUTUBE CHANNEL ──
+  m = s.match(/youtube\.com\/@([A-Za-z0-9_.-]+)/);
+  if (!m && s.startsWith('@')) m = [null, s.slice(1)];
+  if (m) {
+    result.platform = 'youtube'; result.type = 'channel';
+    result.id = 'ytch_' + m[1]; result.title = '▶ @' + m[1];
+    result.embedUrl = 'https://www.youtube-nocookie.com/embed?listType=user_uploads&list=' + m[1] + '&rel=0';
+    return result;
+  }
 
-  // /live/ID
-  if (!videoId) { m = s.match(/\/live\/([A-Za-z0-9_-]{11})/); if (m) videoId = m[1]; }
+  m = s.match(/\/channel\/([A-Za-z0-9_-]{24})/);
+  if (m) {
+    result.platform = 'youtube'; result.type = 'channel';
+    result.id = 'ytch2_' + m[1]; result.title = '▶ Canal YT';
+    result.embedUrl = 'https://www.youtube-nocookie.com/embed?listType=user_uploads&list=' + m[1];
+    return result;
+  }
 
-  // /shorts/ID
-  if (!videoId) { m = s.match(/\/shorts\/([A-Za-z0-9_-]{11})/); if (m) videoId = m[1]; }
-
-  // Raw video ID (exactamente 11 chars)
-  if (!videoId && /^[A-Za-z0-9_-]{11}$/.test(s)) videoId = s;
-
-  // Channel @handle
-  if (!videoId) { m = s.match(/youtube\.com\/@([A-Za-z0-9_.-]+)/); if (m) channelHandle = m[1]; }
-  if (!videoId && !channelHandle && s.startsWith('@')) channelHandle = s.slice(1);
-
-  // Channel /channel/ID
-  if (!videoId && !channelHandle) { m = s.match(/\/channel\/([A-Za-z0-9_-]{24})/); if (m) channelId = m[1]; }
-
-  if (videoId)       return { type: 'video',   id: videoId,       title: 'Video', embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0` };
-  if (channelHandle) return { type: 'channel', id: channelHandle, title: '@'+channelHandle, embedUrl: `https://www.youtube.com/embed?listType=user_uploads&list=${channelHandle}` };
-  if (channelId)     return { type: 'channel', id: channelId,     title: channelId, embedUrl: `https://www.youtube.com/embed?listType=user_uploads&list=${channelId}` };
   return null;
 }
 
-function addVideo() {
-  const input = document.getElementById('yt-input');
-  const raw = input.value.trim();
+function addStream() {
+  const input = document.getElementById('stream-input');
+  const raw = input ? input.value.trim() : '';
   if (!raw) return;
-
-  const parsed = parseYouTubeInput(raw);
+  const parsed = parseStreamInput(raw);
   if (!parsed) {
-    input.style.borderColor = 'var(--red)';
-    setTimeout(() => input.style.borderColor = 'var(--b2)', 1500);
+    if (input) { input.style.borderColor = 'var(--red)'; setTimeout(function(){input.style.borderColor='var(--b2)';}, 1500); }
     return;
   }
-
-  // Evitar duplicados
-  if (videoSources.find(v => v.id === parsed.id)) {
-    input.value = '';
-    return;
-  }
-
-  videoSources.unshift(parsed);
-  saveAndRenderVideos();
-  input.value = '';
-  input.style.borderColor = 'var(--green)';
-  setTimeout(() => input.style.borderColor = 'var(--b2)', 1500);
+  if (streamSources.find(function(v){return v.id===parsed.id;})) { if(input) input.value=''; return; }
+  streamSources.unshift(parsed);
+  try { localStorage.setItem('ct_streams', JSON.stringify(streamSources)); } catch(e) {}
+  renderStreamList();
+  if (input) { input.value=''; input.style.borderColor='var(--green)'; setTimeout(function(){input.style.borderColor='var(--b2)';},1500); }
 }
 
-function removeVideo(id) {
-  videoSources = videoSources.filter(v => v.id !== id);
-  saveAndRenderVideos();
+function removeStream(id) {
+  streamSources = streamSources.filter(function(v){return v.id!==id;});
+  try { localStorage.setItem('ct_streams', JSON.stringify(streamSources)); } catch(e) {}
+  // Close floating window if open
+  const fw = document.getElementById('fw_' + id);
+  if (fw) fw.remove();
+  renderStreamList();
 }
 
-function saveAndRenderVideos() {
-  try { localStorage.setItem('ct_videos', JSON.stringify(videoSources)); } catch(e) {}
-  renderVideos();
-}
-
-function renderVideos() {
-  const list = document.getElementById('video-list');
+function renderStreamList() {
+  const list = document.getElementById('stream-list');
   if (!list) return;
-
-  if (!videoSources.length) {
-    list.innerHTML = '<div style="font-family:monospace;font-size:11px;color:var(--t3);text-align:center;padding:30px 16px;">Añade canales de YouTube sobre conflictos,<br>análisis geopolítico o OSINT.</div>';
+  if (!streamSources.length) {
+    list.innerHTML = '<div style="text-align:center;padding:30px 16px;color:var(--t3);font-family:monospace;font-size:11px;">Añade un stream de YouTube o Twitch.<br><br><span style="font-size:10px;opacity:.7;">Ejemplos:<br>https://twitch.tv/arte<br>https://youtube.com/@DWNews<br>https://youtu.be/VIDEO_ID</span></div>';
     return;
   }
-
-  list.innerHTML = videoSources.map(function(v) {
-    const typeLabel = v.type === 'channel' ? '📡 Canal' : '🎬 Vídeo';
-    return '<div class="vc">' +
-      '<div class="vc-header">' +
-        '<span style="font-size:10px;">📺</span>' +
-        '<span class="vc-title">' + v.title + '</span>' +
-        '<button class="vc-del" data-vid="' + v.id + '" onclick="removeVideo(this.dataset.vid)" title="Eliminar">✕</button>' +
+  list.innerHTML = streamSources.map(function(v) {
+    const icon = v.platform === 'twitch' ? '🟣' : '▶';
+    const platLabel = v.platform === 'twitch' ? 'Twitch' : 'YouTube';
+    const typeLabel = v.type === 'live' ? 'LIVE' : v.type === 'channel' ? 'Canal' : 'Video';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;">' +
+      '<span style="font-size:16px;">' + icon + '</span>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v.title + '</div>' +
+        '<div style="font-family:monospace;font-size:9px;color:var(--t3);">' + platLabel + ' · ' + typeLabel + '</div>' +
       '</div>' +
-      '<iframe src="' + v.embedUrl + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>' +
-      '<div class="vc-meta">' + typeLabel + ' · YouTube</div>' +
+      '<button data-strid="' + v.id + '" onclick="openFloatingPlayer(this.dataset.strid)" title="Abrir" style="padding:5px 10px;background:var(--blue);border:none;border-radius:4px;color:var(--bg);font-family:monospace;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">&#9654; ABRIR</button>' +
+        'style="padding:5px 10px;background:var(--blue);border:none;border-radius:4px;color:var(--bg);font-family:monospace;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">▶ ABRIR</button>' +
+      '<button data-sid="' + v.id + '" onclick="removeStream(this.dataset.sid)" title="Eliminar" ' +
+        'style="padding:5px 8px;background:transparent;border:1px solid var(--b2);border-radius:4px;color:var(--t3);font-size:11px;cursor:pointer;">✕</button>' +
     '</div>';
   }).join('');
 }
 
-// Cargar videos guardados al iniciar
-function initVideos() {
-  renderVideos();
+function openFloatingPlayer(id) {
+  const src = streamSources.find(function(v){return v.id===id;});
+  if (!src) return;
+  const fwId = 'fw_' + id;
+  if (document.getElementById(fwId)) { document.getElementById(fwId).style.display='flex'; return; }
+
+  const fw = document.createElement('div');
+  fw.id = fwId;
+  fw.style.cssText = 'position:fixed;z-index:4000;width:400px;height:260px;border-radius:8px;overflow:hidden;' +
+    'box-shadow:0 16px 48px rgba(0,0,0,.8);border:1px solid var(--b2);display:flex;flex-direction:column;' +
+    'bottom:60px;right:500px;resize:both;';
+
+  const icon = src.platform === 'twitch' ? '🟣' : '▶';
+  fw.innerHTML =
+    '<div id="fw-bar-' + id + '" style="height:32px;background:var(--s3);display:flex;align-items:center;padding:0 10px;gap:8px;cursor:grab;flex-shrink:0;user-select:none;">' +
+      '<span style="font-size:12px;">' + icon + '</span>' +
+      '<span style="font-family:monospace;font-size:10px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + src.title + '</span>' +
+      '<button data-fid="' + id + '" onclick="minimizeFloat(this.dataset.fid)" title="Minimizar" style="background:transparent;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0 4px;">&#8722;</button>' +
+      '<button data-fid="' + id + '" onclick="document.getElementById(&quot;fw_&quot;+this.dataset.fid).remove()" title="Cerrar" style="background:transparent;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0 4px;">&#x2715;</button>' +
+    '</div>' +
+    '<iframe src="' + src.embedUrl + '" style="flex:1;border:none;background:#000;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+
+  document.body.appendChild(fw);
+  makeDraggable(fw, document.getElementById('fw-bar-' + id));
+  offsetNextFloat(fw);
 }
 
-// ══════════════════════════════════════════════════════════
+function minimizeFloat(id) {
+  const fw = document.getElementById('fw_' + id);
+  if (!fw) return;
+  if (fw.dataset.minimized === '1') {
+    fw.style.height = fw.dataset.prevH || '260px';
+    fw.querySelector('iframe').style.display = 'block';
+    fw.dataset.minimized = '0';
+  } else {
+    fw.dataset.prevH = fw.style.height || '260px';
+    fw.style.height = '32px';
+    fw.querySelector('iframe').style.display = 'none';
+    fw.dataset.minimized = '1';
+  }
+}
+
+function offsetNextFloat(el) {
+  const existing = document.querySelectorAll('[id^="fw_"]');
+  const offset = (existing.length - 1) * 28;
+  const rect = el.getBoundingClientRect();
+  el.style.bottom = (60 + offset) + 'px';
+  el.style.right = (500 + offset) + 'px';
+}
+
+function makeDraggable(el, handle) {
+  let ox=0, oy=0, sx=0, sy=0;
+  handle.onmousedown = function(e) {
+    e.preventDefault();
+    sx = e.clientX; sy = e.clientY;
+    const rect = el.getBoundingClientRect();
+    el.style.left = rect.left + 'px'; el.style.top = rect.top + 'px';
+    el.style.bottom = 'auto'; el.style.right = 'auto';
+    handle.style.cursor = 'grabbing';
+    function onMove(e) {
+      ox = sx - e.clientX; oy = sy - e.clientY;
+      sx = e.clientX; sy = e.clientY;
+      el.style.top = Math.max(0, el.offsetTop - oy) + 'px';
+      el.style.left = Math.max(0, el.offsetLeft - ox) + 'px';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      handle.style.cursor = 'grab';
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+}
+
+function initVideos() {
+  renderStreamList();
+}
+
+// ══════════════════════════════════════════════════════════// ══════════════════════════════════════════════════════════
 // AUTO-REFRESH — cada 2 minutos
 // ══════════════════════════════════════════════════════════
 function startCountdown(){
@@ -1209,16 +1241,19 @@ function timeAgo(s){
 
 function renderItems(items,areaId){
   const area=document.getElementById(areaId);
-  if(!items.length){area.innerHTML='<div class="fstatus" style="color:var(--t3)">Sin resultados.</div>';return;}
-  area.innerHTML=items.slice(0,60).map((item,i)=>{
-    const t=CLASSIFY(item.title),[cls,label]=TAG[t]||TAG['i'];
-    const safeLink=(item.link||'').replace(/'/g,"\\'");
+  if(!items.length){area.innerHTML='<div class="fstatus">Sin resultados.</div>';return;}
+  area.innerHTML=items.slice(0,60).map(function(item,i){
+    const t=CLASSIFY(item.title),tagData=TAG[t]||TAG['i'],cls=tagData[0],label=tagData[1];
     const isTg=item.type==='tg';
-    const tagHtml=isTg?'<span class="ftag tag-tg">📲 TELEGRAM</span>':'<span class="ftag '+cls+'">'+label+'</span>';
-    const clickAttr=safeLink?'onclick="window.open(\''+safeLink+'\',\'_blank\')" style="cursor:pointer;"':'';
-    const descHtml=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'…</div>':'';
+    const tagHtml=isTg?'<span class="ftag tag-tg">📲 OSINT</span>':'<span class="ftag '+cls+'">'+label+'</span>';
+    // Security: Telegram/OSINT links blocked, only media links open
+    const canOpen=!isTg && item.link;
+    const safeLink=canOpen?(item.link||'').replace(/"/g,'&quot;'):'';
+    const clickAttr=safeLink?'onclick="window.open(&quot;'+safeLink+'&quot;,&quot;_blank&quot;)" style="cursor:pointer;"':'style="cursor:default;"';
+    const lockIcon=isTg?'<span title="Links de OSINT bloqueados por seguridad" style="color:var(--t3);font-size:9px;margin-left:auto;">🔒</span>':'';
+    const descHtml=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
     return '<div class="fitem" style="animation-delay:'+Math.min(i,20)*0.025+'s" '+clickAttr+'>'+
-      '<div class="ftop">'+tagHtml+'<span class="fsrc">'+item.src+'</span><span class="ftime">'+timeAgo(item.pubDate)+'</span></div>'+
+      '<div class="ftop">'+tagHtml+'<span class="fsrc">'+item.src+'</span><span class="ftime">'+timeAgo(item.pubDate)+'</span>'+lockIcon+'</div>'+
       '<div class="ftitle">'+item.title+'</div>'+
       descHtml+
     '</div>';
@@ -1925,8 +1960,7 @@ function applyPrefs() {
   document.documentElement.style.setProperty('--blue', PREFS.accentColor);
 
   // Ticker
-  const ticker = document.querySelector('.ticker');
-  if (ticker) ticker.style.display = PREFS.showTicker ? 'flex' : 'none';
+  // ticker removed in minimal UI
 
   // Panel width restore
   const savedW = localStorage.getItem('ct_panel_w');
@@ -2169,6 +2203,7 @@ function init(){
   setTimeout(() => refreshLiveData(true), 1500);
 }
 init();
+
 </script>
 </body>
 </html>
