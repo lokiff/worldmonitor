@@ -6,192 +6,444 @@
 <title>ConflictTracker</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ── RESET & BASE ── */
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;background:#f4f5f7;color:#1a1d23;}
-button{font-family:inherit;cursor:pointer;}
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:#bbb;}
+/* ── FONTS ── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap');
 
-/* ── DARK ── */
-body.dark{background:#111318;color:#d8dce8;}
-body.dark .topbar{background:#181a22;border-color:#252830;}
-body.dark .ticker-top,.dark .ticker-bottom{background:#181a22;border-color:#252830;color:#667083;}
-body.dark .ticker-label{background:#252830;color:#667083;}
-body.dark .sidebar{background:#181a22;border-color:#252830;}
-body.dark .sidebar-btn{color:#667083;}
-body.dark .sidebar-btn:hover,.dark .sidebar-btn.on{background:#252830;color:#d8dce8;}
-body.dark .col-panel{background:#181a22;border-color:#252830;}
-body.dark .col-header{background:#1e2230;border-color:#252830;color:#9099b0;}
-body.dark .ffilters{border-color:#252830;}
-body.dark .ffbtn{color:#667083;border-color:#252830;}
-body.dark .ffbtn.on{color:#4a7fff;border-color:#4a7fff;background:rgba(74,127,255,.08);}
-body.dark .fitem{border-color:#1e2230;}
-body.dark .fitem:hover{background:#1e2230;}
-body.dark .ftitle{color:#d8dce8;}
-body.dark .fsrc{color:#4a7fff;}
-body.dark .ftime{color:#505870;}
-body.dark .fdesc{color:#7880a0;}
-body.dark .topbtn{border-color:#252830;color:#667083;}
-body.dark .topbtn:hover{color:#d8dce8;border-color:#505870;}
-body.dark .topbtn.on{color:#4a7fff;border-color:#4a7fff;}
-body.dark .tab{color:#667083;}
-body.dark .tab.on{color:#d8dce8;border-color:#4a7fff;}
-body.dark .osint-notice{background:#1e2230;border-color:#2a3048;color:#667083;}
-body.dark .stream-input-wrap{border-color:#252830;}
-body.dark #stream-input{background:#1e2230;border-color:#252830;color:#d8dce8;}
-body.dark .stream-card{border-color:#1e2230;}
-body.dark .stream-card:hover{background:#1e2230;}
-body.dark .panel-modal{background:#181a22;border-color:#252830;}
-body.dark .panel-modal input,.dark .panel-modal select{background:#1e2230;border-color:#2a3048;color:#d8dce8;}
-body.dark .save-btn{color:#505870;}
-body.dark .save-btn:hover{color:#d8dce8;}
+/* ── DESIGN TOKENS ── */
+:root{
+  --bg0:#09090f;
+  --bg1:#0d0e17;
+  --bg2:#111220;
+  --bg3:#161828;
+  --border:#1e2035;
+  --border2:#262840;
+  --text0:#e2e4f0;
+  --text1:#9aa0bc;
+  --text2:#555a75;
+  --accent:#e03030;
+  --accent2:#ff4444;
+  --amber:#e8a020;
+  --blue:#3a6eea;
+  --blue2:#5588ff;
+  --green:#1e9e5a;
+  --scan:rgba(255,255,255,0.015);
+}
+
+/* ── RESET ── */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:14px;
+  background:var(--bg0);
+  color:var(--text0);
+  /* CRT scanline texture */
+  background-image:repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scan) 2px,
+    var(--scan) 4px
+  );
+}
+button{font-family:inherit;cursor:pointer;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:0;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 
 /* ── LAYOUT ── */
-.app{display:flex;flex-direction:column;height:100vh;}
+.app{display:flex;flex-direction:column;height:100vh;position:relative;}
 
-/* ── TICKER TOP ── */
-.ticker-top{height:26px;flex-shrink:0;background:#fff;border-bottom:1px solid #e4e6ea;display:flex;align-items:center;overflow:hidden;font-size:11px;color:#666;}
-.ticker-label{padding:0 10px;background:#d03030;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;height:100%;display:flex;align-items:center;flex-shrink:0;white-space:nowrap;}
-.ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
-.ticker-text{display:inline-block;padding-left:100%;animation:ticker 120s linear infinite;}
-@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+/* Subtle grid overlay */
+.app::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(var(--border) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:40px 40px;
+  opacity:.3;
+  pointer-events:none;
+  z-index:0;
+}
+.app > *{position:relative;z-index:1;}
 
 /* ── TOPBAR ── */
-.topbar{height:38px;flex-shrink:0;background:#fff;border-bottom:1px solid #e4e6ea;display:flex;align-items:center;padding:0 12px;gap:10px;z-index:100;}
-.logo{font-size:12px;font-weight:700;letter-spacing:.8px;color:#222;white-space:nowrap;}
-.logo span{color:#d03030;}
-.live-dot{width:5px;height:5px;border-radius:50%;background:#d03030;animation:blink 1.5s ease-in-out infinite;flex-shrink:0;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.clock-wrap{font-size:11px;color:#999;font-variant-numeric:tabular-nums;white-space:nowrap;}
-.clock-wrap b{color:#555;font-weight:500;}
-.tsep{width:1px;height:14px;background:#e4e6ea;flex-shrink:0;}
-.st-label{font-size:11px;color:#999;}
-.st-label b{color:#555;font-weight:500;}
-.ml{margin-left:auto;display:flex;gap:5px;align-items:center;}
-.topbtn{padding:3px 9px;background:transparent;border:1px solid #ddd;color:#666;font-size:11px;border-radius:3px;transition:all .12s;white-space:nowrap;}
-.topbtn:hover{border-color:#aaa;color:#333;}
-.topbtn.on{border-color:#2a70d4;color:#2a70d4;background:rgba(42,112,212,.05);}
+.topbar{
+  height:42px;flex-shrink:0;
+  background:var(--bg1);
+  border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;
+  padding:0 14px;gap:12px;
+  z-index:100;
+}
+.logo{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:600;
+  letter-spacing:2px;
+  color:var(--text0);
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.logo span{
+  color:var(--accent);
+  text-shadow:0 0 12px var(--accent);
+}
+.live-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 6px var(--accent);
+  animation:blink 1.4s ease-in-out infinite;flex-shrink:0;
+}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--accent)}50%{opacity:.2;box-shadow:none}}
+.tsep{width:1px;height:16px;background:var(--border2);flex-shrink:0;}
+.clock-wrap{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--text2);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+  letter-spacing:.5px;
+}
+.clock-wrap b{color:var(--amber);font-weight:500;}
+.st-label{font-size:11px;color:var(--text2);letter-spacing:.3px;white-space:nowrap;}
+.st-label b{color:var(--text1);font-weight:500;}
+.ml{margin-left:auto;display:flex;gap:4px;align-items:center;}
+.topbtn{
+  padding:3px 10px;
+  background:transparent;
+  border:1px solid var(--border2);
+  color:var(--text2);
+  font-size:11px;
+  font-family:'JetBrains Mono',monospace;
+  border-radius:2px;
+  transition:all .12s;
+  white-space:nowrap;
+  letter-spacing:.5px;
+}
+.topbtn:hover{border-color:var(--blue);color:var(--blue2);}
+.topbtn.on{border-color:var(--blue);color:var(--blue2);background:rgba(58,110,234,.08);}
 
-/* ── MAIN 3-COL ── */
+/* ── MAIN ── */
 .main{flex:1;display:flex;min-height:0;}
 
-/* ── LEFT SIDEBAR (ajustes) ── */
-.sidebar{width:44px;flex-shrink:0;background:#fff;border-right:1px solid #e4e6ea;display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px;z-index:10;}
-.sidebar-btn{width:34px;height:34px;border:none;background:transparent;border-radius:6px;font-size:16px;color:#aaa;display:flex;align-items:center;justify-content:center;transition:all .12s;position:relative;}
-.sidebar-btn:hover{background:#f0f2f5;color:#444;}
-.sidebar-btn.on{background:#e8edf8;color:#2a70d4;}
-.sidebar-sep{width:24px;height:1px;background:#eee;margin:4px 0;}
+/* ── SIDEBAR ── */
+.sidebar{
+  width:46px;flex-shrink:0;
+  background:var(--bg1);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 0;gap:2px;z-index:10;
+}
+.sidebar-btn{
+  width:36px;height:36px;
+  border:none;background:transparent;
+  border-radius:3px;
+  font-size:15px;
+  color:var(--text2);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;position:relative;
+}
+.sidebar-btn:hover{background:var(--bg3);color:var(--text1);}
+.sidebar-btn.on{
+  background:rgba(58,110,234,.12);
+  color:var(--blue2);
+  box-shadow:inset 2px 0 0 var(--blue);
+}
+.sidebar-sep{width:28px;height:1px;background:var(--border);margin:4px 0;}
 
 /* ── COLUMNS ── */
-.columns{flex:1;display:flex;min-width:0;gap:0;}
-.col-panel{flex:1;display:flex;flex-direction:column;min-width:0;background:#fff;border-right:1px solid #e4e6ea;}
+.columns{flex:1;display:flex;min-width:0;}
+.col-panel{
+  flex:1;display:flex;flex-direction:column;min-width:0;
+  background:var(--bg1);
+  border-right:1px solid var(--border);
+}
 .col-panel:last-child{border-right:none;}
-.col-header{padding:0 10px;height:36px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #eee;background:#fafbfc;flex-shrink:0;}
-.col-title{font-size:11px;font-weight:600;color:#444;letter-spacing:.3px;}
-.col-count{font-size:10px;color:#aaa;margin-left:auto;}
+.col-header{
+  padding:0 12px;height:38px;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--border2);
+  background:var(--bg2);flex-shrink:0;
+}
+.col-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;font-weight:600;
+  color:var(--text2);
+  letter-spacing:2px;text-transform:uppercase;
+}
+.col-count{font-size:10px;color:var(--text2);margin-left:auto;font-family:'JetBrains Mono',monospace;}
 
-/* tabs inside col */
-.col-tabs{display:flex;border-bottom:1px solid #eee;flex-shrink:0;background:#fafbfc;}
-.tab{padding:8px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:#999;font-size:11px;cursor:pointer;transition:color .12s;margin-bottom:-1px;}
-.tab:hover{color:#555;}
-.tab.on{color:#222;border-bottom-color:#2a70d4;font-weight:500;}
+/* ── FILTERS ── */
+.ffilters{
+  flex-shrink:0;display:flex;gap:2px;
+  padding:6px 8px;
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap;background:var(--bg1);
+}
+.ffbtn{
+  padding:2px 8px;
+  background:transparent;
+  border:1px solid var(--border2);
+  border-radius:1px;
+  color:var(--text2);
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:.3px;
+  transition:all .1s;
+}
+.ffbtn:hover{color:var(--text1);border-color:var(--border2);}
+.ffbtn.on{
+  border-color:var(--blue);
+  color:var(--blue2);
+  background:rgba(58,110,234,.08);
+}
 
-/* filters */
-.ffilters{flex-shrink:0;display:flex;gap:3px;padding:5px 8px;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;}
-.ffbtn{padding:2px 8px;background:transparent;border:1px solid #e4e6ea;border-radius:10px;color:#999;font-size:10px;transition:all .1s;}
-.ffbtn:hover{color:#555;}
-.ffbtn.on{border-color:#2a70d4;color:#2a70d4;background:rgba(42,112,212,.05);}
+/* ── FEED ── */
+.farea{flex:1;overflow-y:auto;background:var(--bg0);}
+.fitem{
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  transition:background .08s;
+  cursor:pointer;
+}
+.fitem:hover{background:var(--bg2);}
+@keyframes fadein{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
+.fitem{animation:fadein .18s ease both;}
 
-/* feed */
-.farea{flex:1;overflow-y:auto;}
-.fitem{padding:9px 12px;border-bottom:1px solid #f2f2f2;transition:background .08s;}
-.fitem:hover{background:#f7f9fc;}
-@keyframes fadeup{from{opacity:0;transform:translateY(-2px)}to{opacity:1}}
-.fitem{animation:fadeup .2s ease both;}
-.ftop{display:flex;align-items:center;gap:4px;margin-bottom:3px;flex-wrap:wrap;}
-.ftag{font-size:9px;font-weight:600;padding:1px 5px;border-radius:2px;}
-.tag-b{background:#fde8e8;color:#c03030;}
-.tag-s{background:#fef0e0;color:#b06010;}
-.tag-d{background:#e8eef8;color:#2a60c0;}
-.tag-m{background:#f0eaf8;color:#7050b0;}
-.tag-i{background:#e8f4f8;color:#2080a0;}
-.tag-e{background:#e8f4ee;color:#207040;}
-.tag-tg{background:#e0f0f8;color:#1878b0;}
-.fsrc{font-size:10px;color:#2a70d4;font-weight:500;}
-.ftime{margin-left:auto;font-size:10px;color:#aaa;white-space:nowrap;}
-.save-btn{margin-left:4px;background:none;border:none;font-size:11px;color:#ccc;cursor:pointer;padding:0;transition:color .12s;line-height:1;}
-.save-btn:hover{color:#f0a020;}
-.ftitle{font-size:12px;color:#1a1d23;line-height:1.45;margin-bottom:2px;font-weight:400;}
-.fdesc{font-size:11px;color:#777;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.fstatus{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 16px;color:#bbb;font-size:12px;flex-direction:column;text-align:center;line-height:1.8;}
+.ftop{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap;}
+.ftag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;font-weight:600;
+  padding:1px 5px;
+  border-radius:1px;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.tag-b{background:rgba(224,48,48,.15);color:#ff5555;border:1px solid rgba(224,48,48,.3);}
+.tag-s{background:rgba(232,160,32,.12);color:var(--amber);border:1px solid rgba(232,160,32,.25);}
+.tag-d{background:rgba(58,110,234,.12);color:var(--blue2);border:1px solid rgba(58,110,234,.25);}
+.tag-m{background:rgba(160,80,200,.12);color:#c070f0;border:1px solid rgba(160,80,200,.25);}
+.tag-i{background:rgba(30,158,90,.12);color:#2ecc71;border:1px solid rgba(30,158,90,.25);}
+.tag-e{background:rgba(30,158,90,.12);color:#2ecc71;border:1px solid rgba(30,158,90,.25);}
+.tag-tg{background:rgba(0,136,204,.12);color:#29b6f6;border:1px solid rgba(0,136,204,.25);}
+
+.fsrc{
+  font-size:10px;color:var(--blue2);
+  font-family:'JetBrains Mono',monospace;
+  font-weight:500;letter-spacing:.2px;
+}
+.ftime{margin-left:auto;font-size:9px;color:var(--text2);white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.save-btn{
+  margin-left:3px;background:none;border:none;
+  font-size:11px;color:var(--border2);
+  cursor:pointer;padding:0;
+  transition:color .12s;line-height:1;
+}
+.save-btn:hover{color:var(--amber);}
+.ftitle{
+  font-size:13px;color:var(--text0);
+  line-height:1.5;margin-bottom:2px;
+  font-weight:400;
+  font-family:'Barlow Condensed',sans-serif;
+}
+.fdesc{
+  font-size:11px;color:var(--text2);
+  line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;
+  font-family:'Barlow Condensed',sans-serif;
+}
+.fstatus{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:48px 16px;color:var(--text2);
+  font-size:11px;flex-direction:column;text-align:center;line-height:2;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.5px;
+}
 @keyframes spin{100%{transform:rotate(360deg)}}
-.spin-sm{width:14px;height:14px;border:1.5px solid #e0e2e6;border-top-color:#2a70d4;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+.spin-sm{
+  width:14px;height:14px;
+  border:1px solid var(--border2);
+  border-top-color:var(--blue);
+  border-radius:50%;
+  animation:spin .7s linear infinite;flex-shrink:0;
+}
 
-/* OSINT disclaimer */
-.osint-notice{margin:8px;padding:8px 10px;background:#fffbe8;border:1px solid #f0d060;border-radius:4px;font-size:10px;color:#886010;line-height:1.55;flex-shrink:0;}
+/* ── OSINT NOTICE ── */
+.osint-notice{
+  margin:8px;padding:8px 10px;
+  background:rgba(232,160,32,.06);
+  border:1px solid rgba(232,160,32,.2);
+  border-radius:2px;
+  font-size:10px;color:rgba(232,160,32,.8);
+  line-height:1.6;flex-shrink:0;
+  font-family:'JetBrains Mono',monospace;
+}
 
-/* stream panel */
-.stream-input-wrap{padding:8px;border-bottom:1px solid #eee;display:flex;gap:5px;flex-shrink:0;}
-#stream-input{flex:1;padding:5px 8px;background:#f5f5f5;border:1px solid #e0e2e6;border-radius:3px;color:#222;font-size:11px;outline:none;}
-#stream-input:focus{border-color:#2a70d4;background:#fff;}
-.stream-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f2f2f2;transition:background .08s;}
-.stream-card:hover{background:#f7f9fc;}
+/* ── STREAM PANEL ── */
+.stream-input-wrap{
+  padding:8px;border-bottom:1px solid var(--border);
+  display:flex;gap:5px;flex-shrink:0;
+  background:var(--bg1);
+}
+#stream-input{
+  flex:1;padding:5px 8px;
+  background:var(--bg0);
+  border:1px solid var(--border2);
+  border-radius:2px;color:var(--text0);
+  font-size:11px;outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+#stream-input:focus{border-color:var(--blue);}
+.stream-card{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-bottom:1px solid var(--border);
+  transition:background .08s;
+}
+.stream-card:hover{background:var(--bg2);}
 
-/* ── TICKER BOTTOM ── */
-.ticker-bottom{height:24px;flex-shrink:0;background:#fff;border-top:1px solid #e4e6ea;display:flex;align-items:center;overflow:hidden;font-size:10px;color:#888;}
-.ticker-label-b{padding:0 10px;background:#f0f2f5;color:#888;font-size:9px;font-weight:600;letter-spacing:1px;height:100%;display:flex;align-items:center;flex-shrink:0;border-right:1px solid #e4e6ea;white-space:nowrap;}
+/* ── TICKER BOTTOM — mercados ── */
+.ticker-bottom{
+  height:26px;flex-shrink:0;
+  background:var(--bg1);
+  border-top:1px solid var(--border2);
+  display:flex;align-items:center;overflow:hidden;
+  font-size:10px;color:var(--text2);
+}
+.ticker-label-b{
+  padding:0 12px;
+  background:var(--bg2);
+  color:var(--amber);
+  font-size:8px;font-weight:600;
+  letter-spacing:2px;height:100%;
+  display:flex;align-items:center;flex-shrink:0;
+  border-right:1px solid var(--border2);
+  white-space:nowrap;
+  font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;
+}
+.ticker-scroll{flex:1;overflow:hidden;white-space:nowrap;}
+.ticker-text{
+  display:inline-block;padding-left:60%;
+  animation:ticker 80s linear infinite;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.3px;color:var(--text1);
+}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 
-/* ── SLIDE-IN PANELS (ajustes, etc.) ── */
-.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;}
-.panel-modal{position:fixed;left:44px;top:0;bottom:0;width:280px;background:#fff;border-right:1px solid #e4e6ea;z-index:201;display:none;flex-direction:column;box-shadow:2px 0 12px rgba(0,0,0,.08);}
+/* ── SLIDE PANELS ── */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;}
+.panel-modal{
+  position:fixed;left:46px;top:0;bottom:0;width:290px;
+  background:var(--bg1);
+  border-right:1px solid var(--border2);
+  z-index:201;display:none;flex-direction:column;
+  box-shadow:4px 0 24px rgba(0,0,0,.5);
+}
 .panel-modal.open{display:flex;}
-.panel-modal-header{padding:12px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;}
-.panel-modal-title{font-size:12px;font-weight:600;color:#333;flex:1;}
+.panel-modal-header{
+  padding:12px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg2);
+}
+.panel-modal-title{
+  font-size:10px;font-weight:600;
+  color:var(--text1);flex:1;
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:1.5px;text-transform:uppercase;
+}
 .panel-modal-body{flex:1;overflow-y:auto;padding:14px;}
-.panel-section{margin-bottom:18px;}
-.panel-section-label{font-size:10px;font-weight:600;color:#aaa;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
-.panel-modal input[type=text],.panel-modal input[type=range],.panel-modal select{width:100%;padding:5px 8px;border:1px solid #ddd;border-radius:3px;font-size:11px;background:#f8f8f8;color:#333;outline:none;}
-.panel-modal input[type=text]:focus{border-color:#2a70d4;background:#fff;}
-.pref-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.pref-label{flex:1;font-size:12px;color:#555;}
-.toggle-sw{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
-.toggle-sw .knob{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;}
-.color-opts{display:flex;gap:6px;flex-wrap:wrap;}
-.color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;}
-.color-dot.on{border-color:#fff;box-shadow:0 0 0 2px #2a70d4;}
+.panel-section{margin-bottom:20px;}
+.panel-section-label{
+  font-size:9px;font-weight:600;
+  color:var(--text2);letter-spacing:1.5px;
+  text-transform:uppercase;margin-bottom:10px;
+  font-family:'JetBrains Mono',monospace;
+  border-bottom:1px solid var(--border);
+  padding-bottom:5px;
+}
+.panel-modal input[type=text],
+.panel-modal input[type=range],
+.panel-modal select{
+  width:100%;padding:6px 8px;
+  border:1px solid var(--border2);
+  border-radius:2px;
+  font-size:11px;
+  background:var(--bg0);
+  color:var(--text0);outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+.panel-modal input[type=text]:focus{border-color:var(--blue);}
+.pref-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pref-label{flex:1;font-size:11px;color:var(--text1);}
+.toggle-sw{
+  width:36px;height:20px;border-radius:10px;
+  border:none;cursor:pointer;position:relative;
+  transition:background .2s;flex-shrink:0;
+}
+.toggle-sw .knob{
+  position:absolute;top:3px;
+  width:14px;height:14px;border-radius:50%;
+  background:#fff;transition:left .2s;
+}
+.color-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.color-dot{
+  width:22px;height:22px;border-radius:50%;
+  cursor:pointer;border:2px solid transparent;
+  transition:all .15s;
+}
+.color-dot.on{border-color:var(--text0);box-shadow:0 0 0 1px var(--border2);}
 .add-source-row{display:flex;gap:5px;margin-bottom:6px;}
-.added-source{display:flex;align-items:center;gap:6px;padding:4px 6px;background:#f5f5f5;border-radius:3px;font-size:11px;margin-bottom:4px;}
-.added-source .rm{background:none;border:none;color:#aaa;cursor:pointer;font-size:12px;margin-left:auto;}
+.added-source{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;
+  background:var(--bg0);
+  border:1px solid var(--border);
+  border-radius:2px;
+  font-size:10px;margin-bottom:3px;
+  font-family:'JetBrains Mono',monospace;
+}
+.added-source .rm{background:none;border:none;color:var(--text2);cursor:pointer;font-size:12px;margin-left:auto;}
+.added-source .rm:hover{color:var(--accent);}
 
-/* modal for country intel */
-#cmodal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:500;}
-#country-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:95vw;max-height:82vh;background:#fff;border:1px solid #e0e2e6;border-radius:6px;z-index:501;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.15);font-size:13px;}
-body.dark #country-modal{background:#181a22;border-color:#252830;}
-#country-modal h3{font-size:11px;color:#c03030;margin:12px 0 5px;text-transform:uppercase;}
-#country-modal h4{font-size:10px;color:#2a70d4;margin:10px 0 3px;}
-#country-modal p{margin:0 0 8px;color:#555;font-size:12px;line-height:1.65;}
-#country-modal ul{margin:0 0 8px;padding-left:16px;}
-#country-modal li{margin:3px 0;font-size:12px;color:#555;}
-#country-modal .risk-critical{color:#c03030;font-weight:600;}
-#country-modal .risk-high{color:#c06020;font-weight:600;}
-#country-modal .risk-med{color:#a08020;font-weight:600;}
-#country-modal .risk-low{color:#2a70d4;}
 
-/* misc kept */
-.sl{display:none;}
-.ci,.cname,.creg,.cbadge,.cdot,.bc,.bh,.bm,.bl,.bn{display:none;}
+/* ── LIGHT MODE OVERRIDES ── */
+body.light{
+  --bg0:#f0f2f5;
+  --bg1:#ffffff;
+  --bg2:#f5f6fa;
+  --bg3:#eceef5;
+  --border:#dde0ea;
+  --border2:#c8ccd8;
+  --text0:#1a1d2e;
+  --text1:#444866;
+  --text2:#8890b0;
+  --scan:rgba(0,0,0,0);
+  background-image:none;
+}
+body.light .app::before{opacity:.15;background-image:
+  linear-gradient(#dde0ea 1px,transparent 1px),
+  linear-gradient(90deg,#dde0ea 1px,transparent 1px);}
+body.light .ticker-text{color:var(--text2);}
+body.light .fitem:hover{background:var(--bg3);}
+body.light .farea{background:var(--bg1);}
+
+/* ── MISC ── */
+.sl,.ci,.cname,.creg,.cbadge,.cdot,.bc,.bh,.bm,.bl,.bn{display:none;}
+#cmodal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;}
+#country-modal{
+  display:none;position:fixed;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  width:560px;max-width:95vw;max-height:82vh;
+  background:var(--bg1);border:1px solid var(--border2);
+  border-radius:3px;z-index:501;flex-direction:column;
+  box-shadow:0 16px 64px rgba(0,0,0,.7);font-size:13px;
+}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- TICKER TOP: noticias -->
-  <div class="ticker-top">
-    <div class="ticker-label">🔴 FLASH</div>
-    <div class="ticker-scroll"><span class="ticker-text" id="ticker-news-text">Cargando noticias...</span></div>
-  </div>
 
   <!-- TOPBAR -->
   <div class="topbar">
@@ -203,7 +455,7 @@ body.dark #country-modal{background:#181a22;border-color:#252830;}
     <span class="st-label">Conflictos activos: <b id="st-c">24</b></span>
     <div class="ml">
       <button class="topbtn" id="trans-btn" onclick="toggleTranslate(this)" title="Traducir al inglés">EN</button>
-      <button class="topbtn" id="theme-btn" onclick="toggleTheme()" title="Modo oscuro">☾</button>
+      <button class="topbtn" id="theme-btn" onclick="toggleTheme()" title="Modo claro">☀</button>
       <button class="topbtn" onclick="refreshAll(true)" title="Actualizar">↻ Actualizar</button>
       <span id="ft-updated" style="font-size:10px;color:#bbb;"></span>
     </div>
@@ -326,10 +578,7 @@ body.dark #country-modal{background:#181a22;border-color:#252830;}
     </div>
     <div class="panel-section">
       <div class="panel-section-label">Opciones</div>
-      <div class="pref-row">
-        <span class="pref-label">Ticker de noticias</span>
-        <button class="toggle-sw" id="tog-ticker" data-on="1" onclick="togglePref('ticker',this)" style="background:#2a70d4;"><div class="knob" style="left:19px;"></div></button>
-      </div>
+
       <div class="pref-row">
         <span class="pref-label">Ticker de mercados</span>
         <button class="toggle-sw" id="tog-markets" data-on="1" onclick="togglePref('markets',this)" style="background:#2a70d4;"><div class="knob" style="left:19px;"></div></button>
@@ -1463,9 +1712,10 @@ function updateTicker(items){
 // ══════════════════════════════════════════════════════════
 
 function toggleTheme(){
-  document.body.classList.toggle('dark');
+  document.body.classList.toggle('light');
   const btn=document.getElementById('theme-btn');
-  if(btn) btn.textContent=document.body.classList.contains('dark')?'☀':'☾';
+  if(btn) btn.textContent=document.body.classList.contains('light')?'☾':'☀';
+  localStorage.setItem('ct_theme', document.body.classList.contains('light')?'light':'dark');
 }
 
 
@@ -2212,7 +2462,7 @@ function togglePref(key, btn) {
   btn.style.background = on ? '#ddd' : localStorage.getItem('ct_accent')||'#2a70d4';
   btn.querySelector('.knob').style.left = on ? '3px' : '19px';
   localStorage.setItem('ct_pref_'+key, on?'0':'1');
-  if(key==='ticker'){ const t=document.querySelector('.ticker-top'); if(t) t.style.display=on?'none':'flex'; }
+  
   if(key==='markets'){ const t=document.querySelector('.ticker-bottom'); if(t) t.style.display=on?'none':'flex'; }
 }
 
@@ -2272,13 +2522,20 @@ function renderStreamListSide() {
 
 // ── APPLY SAVED PREFS ON LOAD ─────────────────────────────
 function applySavedPrefs() {
+  // Theme
+  const theme = localStorage.getItem('ct_theme');
+  if(theme==='light') {
+    document.body.classList.add('light');
+    const btn=document.getElementById('theme-btn');
+    if(btn) btn.textContent='☾';
+  }
   const fs = localStorage.getItem('ct_fontsize');
   if(fs){ const sl=document.getElementById('pref-fontsize'); if(sl){sl.value=fs;applyFontSize(fs);} }
   const ac = localStorage.getItem('ct_accent');
   if(ac){ const dot=document.querySelector('.color-dot[style*="'+ac+'"]'); setAccent(ac,dot); }
   if(localStorage.getItem('ct_pref_ticker')==='0'){
-    const t=document.querySelector('.ticker-top');if(t)t.style.display='none';
-    const btn=document.getElementById('tog-ticker');if(btn){btn.dataset.on='0';btn.style.background='#ddd';btn.querySelector('.knob').style.left='3px';}
+    
+    
   }
   if(localStorage.getItem('ct_pref_markets')==='0'){
     const t=document.querySelector('.ticker-bottom');if(t)t.style.display='none';
@@ -2303,106 +2560,123 @@ setSidebarPanel('news', document.getElementById('sb-news'));
 
 
 // ── MERCADOS EN TIEMPO REAL ──────────────────────────────
-// Símbolos: índices, forex, materias primas, defensa
+// Fuentes: Frankfurter (forex), Coinbase (crypto), stooq (índices/acciones)
 const MARKET_SYMBOLS = [
-  // Índices
-  {sym:'%5EGSPC', label:'S&P 500'},
-  {sym:'%5EIXIC', label:'NASDAQ'},
-  {sym:'%5EDJI',  label:'DOW'},
-  // Forex
-  {sym:'EURUSD%3DX', label:'EUR/USD'},
-  {sym:'GBPUSD%3DX', label:'GBP/USD'},
-  {sym:'JPY%3DX',    label:'USD/JPY'},
-  // Materias primas
-  {sym:'BZ%3DF',  label:'Brent'},
-  {sym:'CL%3DF',  label:'WTI'},
-  {sym:'GC%3DF',  label:'ORO'},
-  // Crypto
-  {sym:'BTC-USD', label:'BTC'},
-  // Defensa
-  {sym:'LMT',  label:'Lockheed'},
-  {sym:'RTX',  label:'Raytheon'},
-  {sym:'BA',   label:'Boeing'},
-  {sym:'NOC',  label:'Northrop'},
-  {sym:'GD',   label:'Gen.Dynamics'},
-  {sym:'HII',  label:'Huntington'},
-  // ETF defensa
-  {sym:'ITA',  label:'ETF Defensa'},
+  // Índices via stooq CSV
+  {sym:'^spx',   label:'S&P 500',    type:'stooq'},
+  {sym:'^ndq',   label:'NASDAQ',     type:'stooq'},
+  {sym:'^dji',   label:'DOW',        type:'stooq'},
+  // Materias primas via stooq
+  {sym:'brent.f',label:'Brent',      type:'stooq'},
+  {sym:'cl.f',   label:'WTI',        type:'stooq'},
+  {sym:'gc.f',   label:'ORO',        type:'stooq'},
+  // Defensa via stooq
+  {sym:'lmt.us', label:'LMT',        type:'stooq'},
+  {sym:'rtx.us', label:'RTX',        type:'stooq'},
+  {sym:'ba.us',  label:'Boeing',     type:'stooq'},
+  {sym:'noc.us', label:'Northrop',   type:'stooq'},
+  // Forex via Frankfurter
+  {sym:'USD',    label:'EUR/USD',    type:'forex', base:'EUR', quote:'USD'},
+  {sym:'GBP',    label:'GBP/USD',    type:'forex', base:'GBP', quote:'USD'},
+  // Crypto via Coinbase
+  {sym:'BTC-USD',label:'BTC',        type:'crypto'},
+  {sym:'ETH-USD',label:'ETH',        type:'crypto'},
 ];
 
 let marketData = {};
 
 async function loadMarkets() {
-  const symbols = MARKET_SYMBOLS.map(function(s){ return s.sym; }).join('%2C');
-  const url = 'https://query1.finance.yahoo.com/v8/finance/spark?symbols=' + symbols + '&range=1d&interval=5m';
-  const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-  try {
-    const res = await fetch(proxy, {signal: AbortSignal.timeout(8000)});
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const sparks = data.spark && data.spark.result;
-    if (!sparks) throw new Error('No data');
-    sparks.forEach(function(r) {
-      if (!r || !r.symbol) return;
-      const resp = r.response && r.response[0];
-      const meta = resp && resp.meta;
-      if (!meta) return;
-      const price = meta.regularMarketPrice;
-      const prev  = meta.chartPreviousClose || meta.previousClose;
-      const pct   = prev ? ((price - prev) / prev * 100) : 0;
-      marketData[r.symbol] = {price: price, pct: pct, currency: meta.currency || ''};
-    });
-    renderMarketTicker();
-  } catch(e) {
-    // Fallback: try alternative endpoint
-    await loadMarketsAlt();
-  }
+  await Promise.allSettled([
+    loadStooqPrices(),
+    loadForexPrices(),
+    loadCryptoPrices(),
+  ]);
+  renderMarketTicker();
 }
 
-async function loadMarketsAlt() {
-  // Alternative: use YF v7 quote endpoint per batch
-  const syms = MARKET_SYMBOLS.map(function(s){ return decodeURIComponent(s.sym); }).join(',');
-  const url = 'https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + encodeURIComponent(syms) + '&fields=regularMarketPrice,regularMarketChangePercent,shortName';
-  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+// stooq.com — free, no key, CORS ok via proxy
+async function loadStooqPrices() {
+  const stooqSyms = MARKET_SYMBOLS.filter(function(s){ return s.type==='stooq'; });
+  await Promise.allSettled(stooqSyms.map(async function(item) {
+    try {
+      const url = 'https://stooq.com/q/l/?s=' + item.sym + '&f=sd2t2ohlcv&h&e=csv';
+      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      const res = await fetch(proxy, {signal: AbortSignal.timeout(6000)});
+      const txt = await res.text();
+      const lines = txt.trim().split('\n');
+      if (lines.length < 2) return;
+      const cols = lines[1].split(',');
+      // cols: Symbol,Date,Time,Open,High,Low,Close,Volume
+      const close = parseFloat(cols[6]);
+      const open  = parseFloat(cols[3]);
+      if (!close || isNaN(close)) return;
+      const pct = open ? ((close - open) / open * 100) : 0;
+      marketData[item.sym] = {price: close, pct: pct, label: item.label};
+    } catch(e) {}
+  }));
+}
+
+// Frankfurter — free forex API, CORS allowed
+async function loadForexPrices() {
   try {
-    const res = await fetch(proxy, {signal: AbortSignal.timeout(8000)});
+    const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,GBP', {signal: AbortSignal.timeout(5000)});
     const data = await res.json();
-    const quotes = data.quoteResponse && data.quoteResponse.result;
-    if (!quotes) return;
-    quotes.forEach(function(q) {
-      marketData[q.symbol] = {
-        price: q.regularMarketPrice,
-        pct: q.regularMarketChangePercent || 0,
-        currency: q.currency || ''
-      };
-    });
-    renderMarketTicker();
-  } catch(e) {
-    console.warn('Markets load failed:', e);
-    document.getElementById('ticker-markets-text').textContent =
-      'S&P ·  NASDAQ  ·  Brent  ·  ORO  ·  LMT  ·  RTX  ·  BA  — No disponible ahora';
-  }
+    if (data.rates) {
+      marketData['USD'] = {price: data.rates.USD, pct: 0, label: 'EUR/USD'};
+      // GBP/USD = EUR/USD ÷ EUR/GBP
+      if (data.rates.GBP) {
+        const gbpusd = data.rates.USD / data.rates.GBP;
+        marketData['GBP'] = {price: gbpusd, pct: 0, label: 'GBP/USD'};
+      }
+    }
+  } catch(e) {}
+}
+
+// Coinbase — free, CORS allowed
+async function loadCryptoPrices() {
+  const cryptos = [{sym:'BTC-USD',label:'BTC'},{sym:'ETH-USD',label:'ETH'}];
+  await Promise.allSettled(cryptos.map(async function(item) {
+    try {
+      const res = await fetch('https://api.coinbase.com/v2/prices/' + item.sym + '/spot', {signal: AbortSignal.timeout(5000)});
+      const data = await res.json();
+      const price = parseFloat(data.data && data.data.amount);
+      if (!price) return;
+      // Get 24h change
+      const res2 = await fetch('https://api.coinbase.com/v2/assets/spot?base=' + item.sym.split('-')[0], {signal: AbortSignal.timeout(4000)});
+      let pct = 0;
+      try {
+        const d2 = await res2.json();
+        pct = d2.data && d2.data.percent_change_24h ? parseFloat(d2.data.percent_change_24h) : 0;
+      } catch(e2) {}
+      marketData[item.sym] = {price: price, pct: pct, label: item.label};
+    } catch(e) {}
+  }));
 }
 
 function renderMarketTicker() {
   const el = document.getElementById('ticker-markets-text');
   if (!el) return;
   const parts = MARKET_SYMBOLS.map(function(s) {
-    const sym = decodeURIComponent(s.sym);
-    const d = marketData[sym];
+    const key = s.sym;
+    const d = marketData[key];
     if (!d || !d.price) return null;
-    const price = d.price < 10 ? d.price.toFixed(4) : d.price < 1000 ? d.price.toFixed(2) : Math.round(d.price).toLocaleString();
-    const pct = d.pct;
+    const p = d.price;
+    const price = p >= 10000 ? Math.round(p).toLocaleString('es-ES')
+                : p >= 100   ? p.toFixed(2)
+                : p >= 1     ? p.toFixed(3)
+                :              p.toFixed(4);
+    const pct = d.pct || 0;
     const arrow = pct >= 0 ? '▲' : '▼';
     const sign  = pct >= 0 ? '+' : '';
+    const color = ''; // plain text ticker
     return s.label + ' ' + arrow + ' ' + price + ' (' + sign + pct.toFixed(2) + '%)';
   }).filter(Boolean);
-  el.textContent = parts.join('   ·   ');
+  if (parts.length) el.textContent = parts.join('   ·   ');
 }
 
-// Load markets on init, then every 60s
-setTimeout(loadMarkets, 1000);
-setInterval(loadMarkets, 60000);
+// Load on init + every 90s
+setTimeout(loadMarkets, 800);
+setInterval(loadMarkets, 90000);
 
 </script>
 </body>
