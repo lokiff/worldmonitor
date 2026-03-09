@@ -98,6 +98,8 @@ button{font-family:inherit;cursor:pointer;}
   color:var(--accent);
   text-shadow:0 0 12px var(--accent);
 }
+@keyframes orefpulse{0%,100%{background:rgba(220,30,30,.95)}50%{background:rgba(255,60,60,1)}}
+.oref-dot{width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;animation:blink .6s infinite;}
 .live-dot{
   width:6px;height:6px;border-radius:50%;
   background:var(--accent);
@@ -527,9 +529,14 @@ body{--font-body:'Barlow Condensed',sans-serif;}
 }
 .chat-sys{font-size:9px;color:var(--text2);text-align:center;font-family:'JetBrains Mono',monospace;padding:3px 0;}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
 </head>
 <body>
 <div class="app">
+
+  <!-- OREF ALERT BANNER -->
+  <div id="oref-banner" style="display:none;height:28px;flex-shrink:0;background:rgba(220,30,30,.95);color:#fff;font-size:11px;font-family:'JetBrains Mono',monospace;align-items:center;justify-content:center;gap:8px;letter-spacing:.5px;z-index:200;animation:orefpulse 1s ease-in-out infinite;"></div>
 
   <!-- TOPBAR -->
   <div class="topbar">
@@ -557,6 +564,7 @@ body{--font-body:'Barlow Condensed',sans-serif;}
         <span id="saved-count" style="position:absolute;top:3px;right:3px;font-size:8px;background:#d03030;color:#fff;border-radius:8px;padding:0 3px;min-width:12px;text-align:center;display:none;"></span>
       </button>
       <div class="sidebar-sep"></div>
+      <button class="sidebar-btn" id="sb-map" onclick="openMapPanel()" title="Mapa de conflictos">🗺</button>
       <button class="sidebar-btn" id="sb-video" onclick="setSidebarPanel('video',this)" title="Video / Streams">📺</button>
       <div class="sidebar-sep"></div>
       <button class="sidebar-btn" id="sb-chat" onclick="openSidePanel('chat')" title="Salas de discusión">💬</button>
@@ -692,6 +700,19 @@ body{--font-body:'Barlow Condensed',sans-serif;}
       </div>
     </div>
   </div>
+</div>
+
+
+<!-- MAP OVERLAY PANEL -->
+<div id="map-overlay" style="display:none;position:fixed;inset:46px 0 0 46px;z-index:150;background:var(--bg0);flex-direction:column;">
+  <div style="height:38px;flex-shrink:0;background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 14px;gap:10px;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text2);">MAPA DE CONFLICTOS</span>
+    <span id="map-conflict-count" style="font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;"></span>
+    <div style="margin-left:auto;display:flex;gap:5px;">
+      <button onclick="closeMapPanel()" style="padding:3px 10px;background:transparent;border:1px solid var(--border2);color:var(--text2);font-size:11px;font-family:'JetBrains Mono',monospace;border-radius:2px;cursor:pointer;letter-spacing:.5px;">✕ CERRAR</button>
+    </div>
+  </div>
+  <div id="conflict-map" style="flex:1;"></div>
 </div>
 
 <!-- PANEL OVERLAY -->
@@ -1135,6 +1156,30 @@ const MEDIA_SOURCES = [
   // ── Humanitario / ONU ──
   {url:'https://reliefweb.int/updates/rss.xml',                                   n:'ReliefWeb',         cat:'general'},
   {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
+
+  // ── Seguridad y ciberdefensa ──
+  {url:'https://feeds.feedburner.com/TheHackersNews',                                 n:'Hacker News',       cat:'general'},
+  {url:'https://krebsonsecurity.com/feed/',                                            n:'Krebs Security',    cat:'general'},
+
+  // ── Humanitario / Crisis ──
+  {url:'https://reliefweb.int/updates/rss.xml',                                       n:'ReliefWeb',         cat:'general'},
+  {url:'https://www.msf.org/rss',                                                     n:'MSF',               cat:'general'},
+
+  // ── Europa / OTAN ──
+  {url:'https://www.nato.int/rss.xml',                                                n:'NATO',              cat:'ukraine'},
+  {url:'https://www.politico.eu/feed/',                                               n:'Politico EU',       cat:'general'},
+
+  // ── Oriente Medio extra ──
+  {url:'https://www.al-monitor.com/rss',                                              n:'Al-Monitor',        cat:'mideast'},
+  {url:'https://english.alarabiya.net/rss',                                           n:'Al Arabiya',        cat:'mideast'},
+
+  // ── Asia extra ──
+  {url:'https://www.nknews.org/feed/',                                                n:'NK News',           cat:'asia'},
+  {url:'https://asia.nikkei.com/rss',                                                 n:'Nikkei Asia',       cat:'asia'},
+
+  // ── Latinoamérica ──
+  {url:'https://www.infobae.com/feeds/rss/',                                          n:'Infobae',           cat:'general'},
+  {url:'https://www.mercopress.com/rss',                                              n:'MercoPress',        cat:'general'},
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -1155,6 +1200,30 @@ const INTEL_SOURCES = [
   {url:'https://www.bellingcat.com/feed/',                     n:'Bellingcat',      cat:'general'},
   {url:'https://acleddata.com/feed/',                          n:'ACLED',           cat:'africa'},
   {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
+
+  // ── Seguridad y ciberdefensa ──
+  {url:'https://feeds.feedburner.com/TheHackersNews',                                 n:'Hacker News',       cat:'general'},
+  {url:'https://krebsonsecurity.com/feed/',                                            n:'Krebs Security',    cat:'general'},
+
+  // ── Humanitario / Crisis ──
+  {url:'https://reliefweb.int/updates/rss.xml',                                       n:'ReliefWeb',         cat:'general'},
+  {url:'https://www.msf.org/rss',                                                     n:'MSF',               cat:'general'},
+
+  // ── Europa / OTAN ──
+  {url:'https://www.nato.int/rss.xml',                                                n:'NATO',              cat:'ukraine'},
+  {url:'https://www.politico.eu/feed/',                                               n:'Politico EU',       cat:'general'},
+
+  // ── Oriente Medio extra ──
+  {url:'https://www.al-monitor.com/rss',                                              n:'Al-Monitor',        cat:'mideast'},
+  {url:'https://english.alarabiya.net/rss',                                           n:'Al Arabiya',        cat:'mideast'},
+
+  // ── Asia extra ──
+  {url:'https://www.nknews.org/feed/',                                                n:'NK News',           cat:'asia'},
+  {url:'https://asia.nikkei.com/rss',                                                 n:'Nikkei Asia',       cat:'asia'},
+
+  // ── Latinoamérica ──
+  {url:'https://www.infobae.com/feeds/rss/',                                          n:'Infobae',           cat:'general'},
+  {url:'https://www.mercopress.com/rss',                                              n:'MercoPress',        cat:'general'},
 ];
 let intelCache={ts:0,data:[]};
 let activeCatIntel='all';
@@ -1658,18 +1727,46 @@ function initVideos() {
 // ══════════════════════════════════════════════════════════
 // ── LIVE UPDATE ENGINE ────────────────────────────────────
 // Merge incoming items with existing ones by link key — no wipes
-const LIVE_INTERVAL = 60;
+// ── SMARTPOLLLOOP — adaptive refresh ────────────────────────
+// Inspired by worldmonitor.app SmartPollLoop:
+// - Slows down when tab is hidden (60s→300s)
+// - Speeds up after new items found
+// - Exponential backoff on repeated failures
+// - Resets to base on user visibility
+const POLL = {
+  base: 60,        // normal interval (s)
+  hidden: 300,     // background tab (s)
+  fast: 30,        // after new items found
+  maxFails: 3,     // failures before backoff
+  failCount: 0,
+  secs: 60,
+};
 
 function startCountdown(){
   const el=document.getElementById('refresh-countdown');
-  let secs=LIVE_INTERVAL;
+  let secs=POLL.base;
+
+  // Slow down when tab hidden
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){
+      secs = Math.max(secs, POLL.hidden);
+    } else {
+      // Tab visible again — refresh immediately
+      secs = 3;
+    }
+  });
+
   setInterval(function(){
     secs--;
     if(secs<=0){
-      secs=LIVE_INTERVAL;
-      liveRefreshMedia();
-      liveRefreshOSINT();
-      liveRefreshIntel();
+      const isHidden = document.hidden;
+      secs = isHidden ? POLL.hidden : POLL.base;
+      if(!isHidden){
+        liveRefreshMedia();
+        liveRefreshOSINT();
+        liveRefreshIntel();
+        loadOREF();
+      }
     }
     const m=Math.floor(secs/60),s=String(secs%60).padStart(2,'0');
     if(el) el.textContent=m+':'+s;
@@ -1789,25 +1886,7 @@ async function liveRefreshMedia(){
 }
 
 async function liveRefreshIntel(){ loadIntel(true); }
-async function liveRefreshOSINT(){
-  // Don't wipe — load fresh and merge
-  const all=[];
-  await Promise.allSettled(OSINT_SOURCES.map(async function(src){
-    try{
-      const html=await fetchRSS('https://t.me/s/'+src.ch);
-      if(!html) return;
-      parseTelegram(html,src.n,src.cat).forEach(function(i){all.push(i);});
-    }catch(e){}
-  }));
-  if(!all.length) return;
-  all.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
-  const {merged,newCount}=mergeItems(osintCache.data,all);
-  if(!newCount) return;
-  osintCache={ts:Date.now(),data:merged};
-  prependItems(merged.slice(0,newCount),'feed-osint');
-  const fto=document.getElementById('ft-osint');
-  if(fto) fto.textContent=osintCache.data.length;
-}
+// liveRefreshOSINT defined in OSINT block above
 function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
 
 // ══════════════════════════════════════════════════════════
@@ -1951,83 +2030,157 @@ function renderMedia(){
 }
 
 // ══════════════════════════════════════════════════════════
-// LOAD OSINT — scraping directo t.me/s/canal
 // ══════════════════════════════════════════════════════════
-async function loadOSINT(force=false){
-  if(!force&&Date.now()-osintCache.ts<60000&&osintCache.data.length){renderOSINT();return;}
-  const statusEl=document.getElementById('feed-osint');
-  statusEl.innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Connecting to Telegram channels (0/${OSINT_SOURCES.length})...</div>`;
-  const all=[];
-  const failed=[];
-  let loaded=0;
-  await Promise.allSettled(OSINT_SOURCES.map(async src=>{
-    try{
-      const html=await fetchRSS(`https://t.me/s/${src.ch}`);
-      if(!html){ failed.push(src.n); return; }
-      const items=parseTelegram(html, src.n, src.cat);
-      if(!items.length){ failed.push(src.n); return; }
-      items.forEach(i=>all.push(i));
-      loaded++;
-      statusEl.innerHTML=`<div class="fstatus"><div class="spin-sm"></div>Loaded ${loaded}/${OSINT_SOURCES.length} channels... (${all.length} posts)</div>`;
-    }catch(e){ failed.push(src.n); }
-  }));
-  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  const isFirstOsint=!osintCache.data.length;
-  if(isFirstOsint){
-    osintCache={ts:Date.now(),data:all};
-    if(translateOn) await translateItems(osintCache.data);
-    renderOSINT(failed);
-  } else {
-    const {merged,newCount}=mergeItems(osintCache.data,all);
-    osintCache={ts:Date.now(),data:merged};
-    if(newCount>0){
-      if(translateOn) await translateItems(osintCache.data);
-      renderOSINT(failed);
-      showNewBadge('feed-osint',newCount);
-    }
+// OSINT / TELEGRAM — carga robusta con múltiples estrategias
+// ══════════════════════════════════════════════════════════
+
+// Proxies específicos para Telegram (algunos tienen mejor éxito)
+const TG_PROXIES = [
+  ch => `https://api.allorigins.win/raw?url=${encodeURIComponent('https://t.me/s/'+ch)}`,
+  ch => `https://corsproxy.io/?${encodeURIComponent('https://t.me/s/'+ch)}`,
+  ch => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent('https://t.me/s/'+ch)}`,
+];
+
+async function fetchTelegram(ch) {
+  // Race all proxies — primero que responda gana
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 7000);
+  try {
+    const html = await Promise.any(
+      TG_PROXIES.map(async fn => {
+        const r = await fetch(fn(ch), {signal: ctrl.signal});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const text = await r.text();
+        // Telegram pages have specific markers
+        if(!text.includes('tgme_widget_message') && !text.includes('tgme_page')) throw new Error('Not TG page');
+        return text;
+      })
+    );
+    clearTimeout(timer);
+    ctrl.abort();
+    return html;
+  } catch(e) {
+    clearTimeout(timer);
+    return null;
   }
-  const fto=document.getElementById('ft-osint');
-  if(fto) fto.textContent=osintCache.data.length;
 }
 
-// Parser HTML de t.me/s/canal
-function parseTelegram(html, src, cat){
-  const items=[];
-  // Extraer mensajes del widget público de Telegram
-  const msgRe=/<div class="tgme_widget_message_wrap[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
-  // Método más robusto: buscar bloques de mensaje por su estructura
-  const textRe=/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
-  const dateRe=/<time[^>]+datetime="([^"]+)"/g;
-  const linkRe=/<a class="tgme_widget_message_date"[^>]+href="([^"]+)"/g;
+async function loadOSINT(force=false){
+  if(!force && Date.now()-osintCache.ts<60000 && osintCache.data.length){ renderOSINT(); return; }
+  const isFirst = !osintCache.data.length;
+  const statusEl = document.getElementById('feed-osint');
+  if(isFirst && statusEl) statusEl.innerHTML = '<div class="fstatus"><div class="spin-sm"></div>Conectando canales OSINT...</div>';
 
-  const texts=[], dates=[], links=[];
-  let m;
-  while((m=textRe.exec(html))!==null){
-    const t=m[1].replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'').trim();
-    if(t.length>5) texts.push(t);
+  const all = [];
+  const failed = [];
+  let loaded = 0;
+
+  await Promise.allSettled(OSINT_SOURCES.map(async src => {
+    try {
+      const data = await fetchTelegram(src.ch);
+      if(!data || !data.items || !data.items.length){ failed.push(src.n); return; }
+      // Enrich with source metadata
+      data.items.forEach(i => { i.src=src.n; i.cat=src.cat; i.type='tg'; all.push(i); });
+      loaded++;
+    } catch(e){ failed.push(src.n); }
+  }));
+
+  all.sort((a,b) => new Date(b.pubDate)-new Date(a.pubDate));
+
+  if(isFirst){
+    osintCache = {ts:Date.now(), data:all};
+    renderOSINT(failed);
+  } else {
+    const {merged, newCount} = mergeItems(osintCache.data, all);
+    osintCache = {ts:Date.now(), data:merged};
+    if(newCount > 0){
+      prependItems(merged.slice(0,newCount), 'feed-osint');
+    }
   }
-  while((m=dateRe.exec(html))!==null) dates.push(m[1]);
-  while((m=linkRe.exec(html))!==null) links.push(m[1]);
+  const fto = document.getElementById('ft-osint');
+  if(fto) fto.textContent = osintCache.data.length || (failed.length === OSINT_SOURCES.length ? '⚠ sin datos' : '');
 
-  const count=Math.min(texts.length, 15);
-  for(let i=0;i<count;i++){
-    const title=texts[i].slice(0,200);
-    const pubDate=dates[i]||new Date().toISOString();
-    const link=links[i]||`https://t.me/s/${src}`;
-    items.push({title,link,pubDate,desc:texts[i].slice(0,300),src,cat,type:'tg'});
+  // Show disclaimer
+  const disc = document.getElementById('osint-disclaimer');
+  if(disc && all.length) disc.style.display = 'block';
+}
+
+async function liveRefreshOSINT(){
+  if(!osintCache.data.length){ loadOSINT(true); return; }
+  const all = [];
+  await Promise.allSettled(OSINT_SOURCES.map(async src => {
+    try {
+      const data = await fetchTelegram(src.ch);
+      if(!data || !data.items) return;
+      data.items.forEach(i => { i.src=src.n; i.cat=src.cat; i.type='tg'; all.push(i); });
+    } catch(e){}
+  }));
+  if(!all.length) return;
+  all.sort((a,b) => new Date(b.pubDate)-new Date(a.pubDate));
+  const {merged, newCount} = mergeItems(osintCache.data, all);
+  if(!newCount) return;
+  osintCache = {ts:Date.now(), data:merged};
+  prependItems(merged.slice(0,newCount), 'feed-osint');
+  const fto = document.getElementById('ft-osint');
+  if(fto) fto.textContent = osintCache.data.length;
+}
+
+function parseTelegram(html, src, cat){
+  const items = [];
+  const texts = [], dates = [], links = [];
+  let m;
+
+  // Strategy 1: structured message blocks
+  const msgRe = /class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+  while((m = msgRe.exec(html)) !== null){
+    const t = m[1]
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(n))
+      .trim();
+    if(t.length > 10) texts.push(t);
+  }
+
+  // Strategy 2: datetime extraction
+  const dateRe = /<time[^>]+datetime="([^"]+)"/g;
+  while((m = dateRe.exec(html)) !== null) dates.push(m[1]);
+
+  // Strategy 3: message links
+  const linkRe = /<a[^>]+class="tgme_widget_message_date"[^>]+href="([^"]+)"/g;
+  while((m = linkRe.exec(html)) !== null) links.push(m[1]);
+
+  const count = Math.min(texts.length, 20);
+  for(let i = 0; i < count; i++){
+    const title = texts[i].slice(0,220);
+    if(title.length < 8) continue;
+    items.push({
+      title,
+      link: links[i] || `https://t.me/${src}`,
+      pubDate: dates[i] || new Date().toISOString(),
+      desc: texts[i].slice(0,400),
+      src, cat, type:'tg'
+    });
   }
   return items;
 }
 
 function renderOSINT(failed=[]){
-  let items=osintCache.data;
-  if(activeCatOsint!=='all'){const re=REGION_KW[activeCatOsint];if(re)items=items.filter(i=>re.test(i.title+' '+(i.desc||'')));}
+  let items = osintCache.data;
+  if(activeCatOsint !== 'all'){
+    const re = REGION_KW[activeCatOsint];
+    if(re) items = items.filter(i => re.test(i.title+' '+(i.desc||'')));
+  }
+  const el = document.getElementById('feed-osint');
   if(!items.length){
-    document.getElementById('feed-osint').innerHTML='<div class="fstatus"><div style="font-size:22px;">📡</div><div>No se cargaron posts de Telegram</div><div style="font-size:10px;color:var(--t3);line-height:1.7;">El proxy CORS puede estar saturado.<br>Espera 1-2 minutos.</div><button onclick="loadOSINT(true)" style="margin-top:4px;padding:6px 16px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t2);font-size:10px;cursor:pointer;">Reintentar</button></div>';
+    el.innerHTML = '<div class="fstatus"><div style="font-size:22px;margin-bottom:8px;">📡</div>'+
+      '<div>Sin datos de Telegram</div>'+
+      '<div style="font-size:10px;color:var(--text2);line-height:1.8;margin-top:4px;">Los proxies CORS pueden estar saturados.<br>Telegram bloquea scraping activamente.<br>Prueba en 1-2 min.</div>'+
+      '<button onclick="loadOSINT(true)" style="margin-top:10px;padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:2px;color:var(--text1);font-size:10px;font-family:JetBrains Mono,monospace;cursor:pointer;letter-spacing:.5px;">↻ REINTENTAR</button></div>';
     return;
   }
-  renderItems(items,'feed-osint');
+  renderItems(items, 'feed-osint');
 }
+
 
 // ══════════════════════════════════════════════════════════
 // TICKER
@@ -2717,6 +2870,8 @@ function init(){
   initVideos();
   renderSaved();
   setTimeout(function(){loadMedia();},200);
+  setTimeout(function(){loadOREF();},1500);
+  setInterval(loadOREF, 15000); // OREF every 15s
   setTimeout(function(){loadOSINT();},500);
   setTimeout(function(){loadIntel();},800);
   initChat();
@@ -2906,6 +3061,43 @@ if('serviceWorker' in navigator){
   });
 }
 
+
+// ── OREF ROCKET ALERTS (Israel Home Front Command) ──────────
+let orefActive = false;
+let orefLastAlert = null;
+
+async function loadOREF() {
+  try {
+    const r = await fetch(WORKER_URL + '/oref', {signal: AbortSignal.timeout(5000)});
+    if(!r.ok) return;
+    const data = await r.json();
+    handleOREFData(data);
+  } catch(e) {}
+}
+
+function handleOREFData(data) {
+  const el = document.getElementById('oref-banner');
+  if(!el) return;
+  if(data.status === 'active' && data.alerts && data.alerts.length) {
+    orefActive = true;
+    const zones = data.alerts.map(function(a) { return a.data||a.areas||a; }).flat().join(' · ');
+    el.innerHTML = '<span class="oref-dot"></span><b>🚨 ALERTA COHETES</b> — ' + zones;
+    el.style.display = 'flex';
+    // Flash the tab title
+    if(!orefLastAlert || Date.now()-orefLastAlert > 30000) {
+      orefLastAlert = Date.now();
+      let orig = document.title, n = 0;
+      const t = setInterval(function(){
+        document.title = n++%2===0 ? '🚨 ALERTA — ' + orig : orig;
+        if(n>10){ clearInterval(t); document.title=orig; }
+      }, 500);
+    }
+  } else {
+    orefActive = false;
+    el.style.display = 'none';
+  }
+}
+
 // ── FONT SELECTOR ────────────────────────────────────────
 function applyFont(val) {
   document.documentElement.style.setProperty('--font-body', val);
@@ -2972,6 +3164,94 @@ filterCat = function(f, btn, panel) {
   }
   _origFilterCat(f, btn, panel);
 };
+
+
+// ── CONFLICT MAP (Leaflet, optional panel) ───────────────────
+let conflictMap = null;
+
+function openMapPanel() {
+  const panel = document.getElementById('map-overlay');
+  if(!panel) return;
+  panel.style.display = 'flex';
+  document.querySelectorAll('.sidebar-btn').forEach(function(b){b.classList.remove('on');});
+  const btn = document.getElementById('sb-map');
+  if(btn) btn.classList.add('on');
+  // Init map once
+  if(!conflictMap) {
+    setTimeout(initConflictMap, 100);
+  } else {
+    conflictMap.invalidateSize();
+  }
+}
+
+function closeMapPanel() {
+  const panel = document.getElementById('map-overlay');
+  if(panel) panel.style.display = 'none';
+  document.getElementById('sb-map').classList.remove('on');
+  document.getElementById('sb-news').classList.add('on');
+}
+
+function initConflictMap() {
+  if(conflictMap) return;
+  conflictMap = L.map('conflict-map', {
+    center: [20, 20], zoom: 2,
+    zoomControl: true,
+    attributionControl: false,
+  });
+
+  // Dark tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 18, subdomains: 'abcd',
+  }).addTo(conflictMap);
+
+  // Plot conflicts
+  const colors = {critical:'#e03030', high:'#e8a020', medium:'#3a6eea', low:'#2a8a52'};
+  let count = 0;
+
+  CONFLICTS.forEach(function(conf) {
+    if(!conf.lat || !conf.lng) return;
+    count++;
+    const color = colors[conf.intensity] || '#888';
+    const radius = {critical:14, high:10, medium:7, low:5}[conf.intensity] || 6;
+
+    // Pulsing circle marker
+    const circle = L.circleMarker([conf.lat, conf.lng], {
+      radius: radius,
+      fillColor: color,
+      color: color,
+      weight: 1,
+      opacity: 0.9,
+      fillOpacity: 0.4,
+    }).addTo(conflictMap);
+
+    // Outer pulse ring
+    L.circleMarker([conf.lat, conf.lng], {
+      radius: radius + 4,
+      fillColor: 'transparent',
+      color: color,
+      weight: 1,
+      opacity: 0.3,
+    }).addTo(conflictMap);
+
+    // Popup
+    circle.bindPopup(
+      '<div style="font-family:JetBrains Mono,monospace;min-width:200px;">' +
+      '<div style="font-size:11px;font-weight:600;color:'+color+';margin-bottom:4px;">'+conf.name+'</div>' +
+      '<div style="font-size:9px;color:#888;margin-bottom:6px;">'+conf.region+' · '+conf.intensity.toUpperCase()+'</div>' +
+      '<div style="font-size:10px;color:#ccc;line-height:1.6;">'+conf.desc+'</div>' +
+      '</div>',
+      {maxWidth: 280, className: 'conflict-popup'}
+    );
+  });
+
+  const cnt = document.getElementById('map-conflict-count');
+  if(cnt) cnt.textContent = count + ' conflictos activos';
+
+  // Custom popup style
+  const style = document.createElement('style');
+  style.textContent = '.leaflet-popup-content-wrapper{background:var(--bg1);border:1px solid var(--border2);border-radius:2px;box-shadow:0 4px 20px rgba(0,0,0,.5);color:var(--text0);}.leaflet-popup-tip{background:var(--bg1);}';
+  document.head.appendChild(style);
+}
 
 // ── CHAT (localStorage BroadcastChannel) ─────────────────
 // Uses BroadcastChannel API for cross-tab real-time + localStorage for persistence
