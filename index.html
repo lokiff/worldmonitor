@@ -290,11 +290,7 @@ body.dark #country-modal{background:#181a22;border-color:#252830;}
   <!-- TICKER BOTTOM: mercados -->
   <div class="ticker-bottom">
     <div class="ticker-label-b">MERCADOS</div>
-    <div class="ticker-scroll">
-      <span class="ticker-text" id="ticker-markets-text">
-        S&amp;P 500 ▲ 5.780  ·  NASDAQ ▲ 18.250  ·  DOW ▲ 42.100  ·  EUR/USD 1.085  ·  GBP/USD 1.265  ·  USD/JPY 149.2  ·  Brent ▲ 82.4$/bl  ·  WTI ▲ 78.1$/bl  ·  ORO ▲ 2.650$/oz  ·  BTC ▲ 67.400$  ·  ETH ▲ 3.200$  ·  DEF +2.1%  ·  LMT ▲ 480$  ·  RTX ▲ 105$  ·  BA ▼ 175$
-      </span>
-    </div>
+    <div class="ticker-scroll"><span class="ticker-text" id="ticker-markets-text">Cargando mercados...</span></div>
   </div>
 
 </div><!-- /app -->
@@ -1245,6 +1241,24 @@ function startCountdown(){
     if(el) el.textContent=m+':'+s;
   },1000);
 }
+async function loadMedia(force=false){
+  if(!force&&Date.now()-mediaCache.ts<120000&&mediaCache.data.length){renderMedia();return;}
+  const el=document.getElementById('feed-media');
+  if(el) el.innerHTML='<div class="fstatus"><div class="spin-sm"></div>Cargando medios...</div>';
+  const all=[];
+  const sources=[...MEDIA_SOURCES,...customSources.filter(function(cs){return !MEDIA_SOURCES.find(function(m){return m.url===cs.url;});})];
+  await Promise.allSettled(sources.map(async function(src){
+    try{const xml=await fetchRSS(src.url);if(!xml)return;parseRSS(xml,src.n,src.cat,'rss').forEach(function(i){all.push(i);});}catch(e){}
+  }));
+  all.sort(function(a,b){return new Date(b.pubDate)-new Date(a.pubDate);});
+  mediaCache={ts:Date.now(),data:all};
+  const ftm=document.getElementById('ft-media');
+  if(ftm) ftm.textContent=all.length;
+  updateTicker(all);
+  if(translateOn) await translateItems(mediaCache.data);
+  renderMedia();
+}
+
 function refreshAll(force=true){loadMedia(force);loadOSINT(force);}
 
 // ══════════════════════════════════════════════════════════
@@ -2254,21 +2268,7 @@ function renderStreamListSide() {
   }).join('');
 }
 
-// ── PATCH loadMedia to include customSources ──────────────
-const _origLoadMedia = loadMedia;
-loadMedia = async function(force) {
-  // Temporarily add custom sources to MEDIA_SOURCES
-  const extras = customSources.filter(function(cs){
-    return !MEDIA_SOURCES.find(function(m){ return m.url===cs.url; });
-  });
-  extras.forEach(function(s){ MEDIA_SOURCES.push(s); });
-  await _origLoadMedia(force);
-  // Remove extras
-  extras.forEach(function(s){
-    const idx = MEDIA_SOURCES.findIndex(function(m){ return m.url===s.url; });
-    if(idx>-1) MEDIA_SOURCES.splice(idx,1);
-  });
-};
+// loadMedia patch removed - now built-in
 
 // ── APPLY SAVED PREFS ON LOAD ─────────────────────────────
 function applySavedPrefs() {
@@ -2300,6 +2300,109 @@ applyPrefs = function(){};
 // Run on load
 applySavedPrefs();
 setSidebarPanel('news', document.getElementById('sb-news'));
+
+
+// ── MERCADOS EN TIEMPO REAL ──────────────────────────────
+// Símbolos: índices, forex, materias primas, defensa
+const MARKET_SYMBOLS = [
+  // Índices
+  {sym:'%5EGSPC', label:'S&P 500'},
+  {sym:'%5EIXIC', label:'NASDAQ'},
+  {sym:'%5EDJI',  label:'DOW'},
+  // Forex
+  {sym:'EURUSD%3DX', label:'EUR/USD'},
+  {sym:'GBPUSD%3DX', label:'GBP/USD'},
+  {sym:'JPY%3DX',    label:'USD/JPY'},
+  // Materias primas
+  {sym:'BZ%3DF',  label:'Brent'},
+  {sym:'CL%3DF',  label:'WTI'},
+  {sym:'GC%3DF',  label:'ORO'},
+  // Crypto
+  {sym:'BTC-USD', label:'BTC'},
+  // Defensa
+  {sym:'LMT',  label:'Lockheed'},
+  {sym:'RTX',  label:'Raytheon'},
+  {sym:'BA',   label:'Boeing'},
+  {sym:'NOC',  label:'Northrop'},
+  {sym:'GD',   label:'Gen.Dynamics'},
+  {sym:'HII',  label:'Huntington'},
+  // ETF defensa
+  {sym:'ITA',  label:'ETF Defensa'},
+];
+
+let marketData = {};
+
+async function loadMarkets() {
+  const symbols = MARKET_SYMBOLS.map(function(s){ return s.sym; }).join('%2C');
+  const url = 'https://query1.finance.yahoo.com/v8/finance/spark?symbols=' + symbols + '&range=1d&interval=5m';
+  const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+  try {
+    const res = await fetch(proxy, {signal: AbortSignal.timeout(8000)});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const sparks = data.spark && data.spark.result;
+    if (!sparks) throw new Error('No data');
+    sparks.forEach(function(r) {
+      if (!r || !r.symbol) return;
+      const resp = r.response && r.response[0];
+      const meta = resp && resp.meta;
+      if (!meta) return;
+      const price = meta.regularMarketPrice;
+      const prev  = meta.chartPreviousClose || meta.previousClose;
+      const pct   = prev ? ((price - prev) / prev * 100) : 0;
+      marketData[r.symbol] = {price: price, pct: pct, currency: meta.currency || ''};
+    });
+    renderMarketTicker();
+  } catch(e) {
+    // Fallback: try alternative endpoint
+    await loadMarketsAlt();
+  }
+}
+
+async function loadMarketsAlt() {
+  // Alternative: use YF v7 quote endpoint per batch
+  const syms = MARKET_SYMBOLS.map(function(s){ return decodeURIComponent(s.sym); }).join(',');
+  const url = 'https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + encodeURIComponent(syms) + '&fields=regularMarketPrice,regularMarketChangePercent,shortName';
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  try {
+    const res = await fetch(proxy, {signal: AbortSignal.timeout(8000)});
+    const data = await res.json();
+    const quotes = data.quoteResponse && data.quoteResponse.result;
+    if (!quotes) return;
+    quotes.forEach(function(q) {
+      marketData[q.symbol] = {
+        price: q.regularMarketPrice,
+        pct: q.regularMarketChangePercent || 0,
+        currency: q.currency || ''
+      };
+    });
+    renderMarketTicker();
+  } catch(e) {
+    console.warn('Markets load failed:', e);
+    document.getElementById('ticker-markets-text').textContent =
+      'S&P ·  NASDAQ  ·  Brent  ·  ORO  ·  LMT  ·  RTX  ·  BA  — No disponible ahora';
+  }
+}
+
+function renderMarketTicker() {
+  const el = document.getElementById('ticker-markets-text');
+  if (!el) return;
+  const parts = MARKET_SYMBOLS.map(function(s) {
+    const sym = decodeURIComponent(s.sym);
+    const d = marketData[sym];
+    if (!d || !d.price) return null;
+    const price = d.price < 10 ? d.price.toFixed(4) : d.price < 1000 ? d.price.toFixed(2) : Math.round(d.price).toLocaleString();
+    const pct = d.pct;
+    const arrow = pct >= 0 ? '▲' : '▼';
+    const sign  = pct >= 0 ? '+' : '';
+    return s.label + ' ' + arrow + ' ' + price + ' (' + sign + pct.toFixed(2) + '%)';
+  }).filter(Boolean);
+  el.textContent = parts.join('   ·   ');
+}
+
+// Load markets on init, then every 60s
+setTimeout(loadMarkets, 1000);
+setInterval(loadMarkets, 60000);
 
 </script>
 </body>
