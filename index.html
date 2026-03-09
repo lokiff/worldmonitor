@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ── FONTS ── */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&family=Source+Sans+3:wght@300;400;600&family=Roboto+Condensed:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap');
 
 /* ── DESIGN TOKENS ── */
 :root{
@@ -448,6 +448,84 @@ body.light .farea{background:var(--bg1);}
   border-radius:3px;z-index:501;flex-direction:column;
   box-shadow:0 16px 64px rgba(0,0,0,.7);font-size:13px;
 }
+
+/* ── FONT OVERRIDE ── */
+body{--font-body:'Barlow Condensed',sans-serif;}
+.ftitle,.fdesc,.fstatus{font-family:var(--font-body);}
+
+/* ── READ ITEMS ── */
+.fitem.read{opacity:.45;}
+.fitem.read .ftitle{text-decoration:line-through;text-decoration-color:var(--text2);}
+.fitem.read:hover{opacity:.65;}
+.read-btn{margin-left:3px;background:none;border:none;font-size:10px;color:var(--border2);cursor:pointer;padding:0;transition:color .12s;line-height:1;}
+.read-btn:hover{color:var(--text1);}
+.fitem.read .read-btn{color:var(--green);}
+
+/* ── INTEL FEED (3rd col) ── */
+.col-panel.intel-col{}
+
+/* ── CHAT PANEL ── */
+#panel-chat{width:320px;}
+.chat-room-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.chat-room-card{
+  padding:8px 10px;background:var(--bg0);border:1px solid var(--border);
+  border-radius:2px;cursor:pointer;transition:all .12s;
+  display:flex;align-items:center;gap:8px;
+}
+.chat-room-card:hover{border-color:var(--blue);background:var(--bg2);}
+.chat-room-card.active{border-color:var(--blue);background:rgba(58,110,234,.08);}
+.room-name{font-size:12px;font-weight:500;color:var(--text0);flex:1;}
+.room-lock{font-size:10px;color:var(--text2);}
+.room-count{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.chat-area{display:flex;flex-direction:column;flex:1;min-height:0;}
+.chat-header{
+  padding:7px 10px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.chat-back{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:0;}
+.chat-back:hover{color:var(--text0);}
+.chat-room-title{font-size:11px;font-weight:600;color:var(--text1);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.chat-msgs{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px;}
+.chat-msg{padding:6px 8px;border-radius:2px;background:var(--bg2);border:1px solid var(--border);animation:fadein .15s ease both;}
+.chat-msg.own{background:rgba(58,110,234,.1);border-color:rgba(58,110,234,.2);align-self:flex-end;max-width:90%;}
+.chat-msg .msg-nick{font-size:9px;color:var(--blue2);font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+.chat-msg.own .msg-nick{color:var(--amber);}
+.chat-msg .msg-text{font-size:12px;color:var(--text0);line-height:1.5;word-break:break-word;}
+.chat-msg .msg-time{font-size:8px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.chat-input-wrap{
+  padding:8px;border-top:1px solid var(--border);
+  display:flex;gap:5px;flex-shrink:0;background:var(--bg1);
+}
+.chat-input-wrap input{
+  flex:1;padding:5px 8px;background:var(--bg0);border:1px solid var(--border2);
+  border-radius:2px;color:var(--text0);font-size:11px;outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+.chat-input-wrap input:focus{border-color:var(--blue);}
+.chat-input-wrap button{
+  padding:5px 10px;background:var(--blue);border:none;border-radius:2px;
+  color:#fff;font-size:11px;cursor:pointer;transition:opacity .12s;
+}
+.chat-input-wrap button:hover{opacity:.85;}
+.chat-nick-wrap{padding:10px 0;display:flex;flex-direction:column;gap:6px;}
+.chat-nick-wrap label{font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.chat-nick-wrap input{
+  padding:6px 8px;background:var(--bg0);border:1px solid var(--border2);
+  border-radius:2px;color:var(--text0);font-size:12px;outline:none;
+}
+.chat-nick-wrap input:focus{border-color:var(--blue);}
+.create-room-form{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.create-room-form input{
+  padding:6px 8px;background:var(--bg0);border:1px solid var(--border2);
+  border-radius:2px;color:var(--text0);font-size:11px;outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+.create-room-form input:focus{border-color:var(--blue);}
+.create-room-form button{
+  padding:6px;background:var(--blue);border:none;border-radius:2px;
+  color:#fff;font-size:11px;cursor:pointer;
+}
+.chat-sys{font-size:9px;color:var(--text2);text-align:center;font-family:'JetBrains Mono',monospace;padding:3px 0;}
 </style>
 </head>
 <body>
@@ -481,6 +559,7 @@ body.light .farea{background:var(--bg1);}
       <div class="sidebar-sep"></div>
       <button class="sidebar-btn" id="sb-video" onclick="setSidebarPanel('video',this)" title="Video / Streams">📺</button>
       <div class="sidebar-sep"></div>
+      <button class="sidebar-btn" id="sb-chat" onclick="openSidePanel('chat')" title="Salas de discusión">💬</button>
       <button class="sidebar-btn" id="sb-settings" onclick="openSidePanel('settings')" title="Ajustes">⚙</button>
       <button class="sidebar-btn" id="sb-sources" onclick="openSidePanel('sources')" title="Fuentes personalizadas">＋</button>
       <div style="margin-top:auto;"></div>
@@ -543,6 +622,25 @@ body.light .farea{background:var(--bg1);}
         </div>
       </div>
 
+
+      <!-- COL 3: INTEL FEED -->
+      <div class="col-panel" id="col-intel">
+        <div class="col-header">
+          <span class="col-title">INTELIGENCIA</span>
+          <span class="col-count" id="ft-intel"></span>
+        </div>
+        <div class="ffilters">
+          <button class="ffbtn on" onclick="filterCat('all',this,'intel')">Todo</button>
+          <button class="ffbtn" onclick="filterCat('ukraine',this,'intel')">Ucrania</button>
+          <button class="ffbtn" onclick="filterCat('mideast',this,'intel')">M.Este</button>
+          <button class="ffbtn" onclick="filterCat('africa',this,'intel')">África</button>
+          <button class="ffbtn" onclick="filterCat('asia',this,'intel')">Asia</button>
+        </div>
+        <div class="farea" id="feed-intel">
+          <div class="fstatus"><div class="spin-sm"></div>Cargando intel...</div>
+        </div>
+      </div>
+
     </div><!-- /columns -->
 
   </div><!-- /main -->
@@ -551,6 +649,50 @@ body.light .farea{background:var(--bg1);}
 
 
 </div><!-- /app -->
+
+
+<!-- CHAT PANEL -->
+<div class="panel-modal" id="panel-chat" style="width:320px;">
+  <div class="panel-modal-header">
+    <span class="panel-modal-title">💬 Salas de discusión</span>
+    <button onclick="closeSidePanel()" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;">✕</button>
+  </div>
+  <div class="panel-modal-body" id="chat-body" style="padding:0;display:flex;flex-direction:column;flex:1;min-height:0;">
+    <!-- Nick setup -->
+    <div id="chat-nick-setup" style="padding:14px;">
+      <div class="panel-section-label">Tu nombre en el chat</div>
+      <div class="chat-nick-wrap">
+        <label>APODO</label>
+        <input type="text" id="chat-nick-input" placeholder="Introduce tu apodo..." maxlength="20">
+        <button onclick="setChatNick()" style="padding:6px;background:var(--blue);border:none;border-radius:2px;color:#fff;font-size:11px;cursor:pointer;margin-top:2px;">Continuar →</button>
+      </div>
+    </div>
+    <!-- Room list -->
+    <div id="chat-rooms-view" style="display:none;padding:14px;flex:1;overflow-y:auto;">
+      <div class="panel-section-label">Crear sala</div>
+      <div class="create-room-form">
+        <input type="text" id="new-room-name" placeholder="Nombre de la sala" maxlength="30">
+        <input type="password" id="new-room-pass" placeholder="Contraseña (opcional)" maxlength="20">
+        <button onclick="createRoom()">+ Crear sala</button>
+      </div>
+      <div class="panel-section-label">Salas activas</div>
+      <div class="chat-room-list" id="chat-room-list"></div>
+    </div>
+    <!-- Chat view -->
+    <div id="chat-active-view" style="display:none;flex-direction:column;flex:1;min-height:0;">
+      <div class="chat-header">
+        <button class="chat-back" onclick="showRoomList()">←</button>
+        <span class="chat-room-title" id="active-room-name"></span>
+        <span class="room-count" id="active-room-count"></span>
+      </div>
+      <div class="chat-msgs" id="chat-messages"></div>
+      <div class="chat-input-wrap">
+        <input type="text" id="chat-msg-input" placeholder="Escribe un mensaje..." maxlength="300" onkeydown="if(event.key==='Enter')sendChatMsg()">
+        <button onclick="sendChatMsg()">→</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- PANEL OVERLAY -->
 <div class="panel-overlay" id="panel-overlay" onclick="closeSidePanel()"></div>
@@ -562,6 +704,20 @@ body.light .farea{background:var(--bg1);}
     <button onclick="closeSidePanel()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;">✕</button>
   </div>
   <div class="panel-modal-body">
+    <div class="panel-section">
+      <div class="panel-section-label">Tipografía del contenido</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <select id="pref-font" onchange="applyFont(this.value)" style="width:100%;padding:6px 8px;background:var(--bg0);border:1px solid var(--border2);border-radius:2px;color:var(--text0);font-size:11px;">
+          <option value="'Barlow Condensed',sans-serif">Barlow Condensed (por defecto)</option>
+          <option value="'Inter',sans-serif">Inter — moderna y limpia</option>
+          <option value="'IBM Plex Sans',sans-serif">IBM Plex Sans — técnica</option>
+          <option value="'Source Sans 3',sans-serif">Source Sans 3 — legible</option>
+          <option value="'Roboto Condensed',sans-serif">Roboto Condensed — compacta</option>
+          <option value="'Space Mono',monospace">Space Mono — terminal</option>
+          <option value="'JetBrains Mono',monospace">JetBrains Mono — código</option>
+        </select>
+      </div>
+    </div>
     <div class="panel-section">
       <div class="panel-section-label">Tamaño de texto</div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -984,6 +1140,25 @@ const MEDIA_SOURCES = [
 // ══════════════════════════════════════════════════════════
 // CANALES OSINT / TELEGRAM — scraping directo t.me/s/
 // ══════════════════════════════════════════════════════════
+
+// ── FUENTES DE INTELIGENCIA / ANÁLISIS ESTRATÉGICO ──
+const INTEL_SOURCES = [
+  {url:'https://www.understandingwar.org/feed',                n:'ISW',             cat:'ukraine'},
+  {url:'https://www.crisisgroup.org/rss.xml',                  n:'Crisis Group',    cat:'general'},
+  {url:'https://warontherocks.com/feed/',                      n:'War on the Rocks',cat:'general'},
+  {url:'https://www.rand.org/pubs/rss/all.xml',                n:'RAND',            cat:'general'},
+  {url:'https://www.iiss.org/rss',                             n:'IISS',            cat:'general'},
+  {url:'https://www.cfr.org/rss.xml',                         n:'CFR',             cat:'general'},
+  {url:'https://foreignpolicy.com/feed/',                      n:'Foreign Policy',  cat:'general'},
+  {url:'https://www.38north.org/feed/',                        n:'38 North',        cat:'asia'},
+  {url:'https://thediplomat.com/feed/',                        n:'The Diplomat',    cat:'asia'},
+  {url:'https://www.bellingcat.com/feed/',                     n:'Bellingcat',      cat:'general'},
+  {url:'https://acleddata.com/feed/',                          n:'ACLED',           cat:'africa'},
+  {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
+];
+let intelCache={ts:0,data:[]};
+let activeCatIntel='all';
+
 const OSINT_SOURCES = [
   // ── Ucrania / Europa del Este ──
   {ch:'war_monitor',           n:'War Monitor',          cat:'ukraine', lang:'en'},
@@ -1494,6 +1669,7 @@ function startCountdown(){
       secs=LIVE_INTERVAL;
       liveRefreshMedia();
       liveRefreshOSINT();
+      liveRefreshIntel();
     }
     const m=Math.floor(secs/60),s=String(secs%60).padStart(2,'0');
     if(el) el.textContent=m+':'+s;
@@ -1547,14 +1723,29 @@ function buildItemHTML(item, ix){
   const tagCls=isTg?'tag-tg':td[0];
   const tagLbl=isTg?'OSINT':td[1];
   const href=(!isTg&&item.link)?(item.link||'').replace(/"/g,'&quot;'):'';
-  const openA=href?'data-href="'+href+'" onclick="window.open(this.dataset.href,&quot;_blank&quot;)" style="cursor:pointer;"':'style="cursor:default;"';
+  const readCls=isRead(href)?' read':'';
+  const openFn=href?'window.open(this.dataset.href,&quot;_blank&quot;);markRead(this.dataset.href);this.closest(&quot;.fitem&quot;).classList.add(&quot;read&quot;)':'';
+  const openA=href?'data-href="'+href+'" onclick="'+openFn+'" style="cursor:pointer;"':'style="cursor:default;"';
   const lock=isTg?'<span style="color:var(--text2);font-size:9px;"> 🔒</span>':'';
   const saveB=href?'<button class="save-btn" title="Guardar" onclick="event.stopPropagation();doSave(this)" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-src="'+item.src+'" data-link="'+href+'" data-pub="'+item.pubDate+'">🔖</button>':'';
+  const readB=href?'<button class="read-btn" title="Marcar leída" onclick="event.stopPropagation();toggleRead(this,&quot;'+href+'&quot;)">◉</button>':'';
   const desc=item.desc&&item.desc!==item.title?'<div class="fdesc">'+item.desc+'</div>':'';
-  return '<div class="fitem" '+openA+'>'+
-    '<div class="ftop"><span class="ftag '+tagCls+'">'+tagLbl+'</span><span class="fsrc">'+item.src+'</span>'+lock+'<span class="ftime">'+timeAgo(item.pubDate)+'</span>'+saveB+'</div>'+
+  return '<div class="fitem'+readCls+'" '+openA+'>'+
+    '<div class="ftop"><span class="ftag '+tagCls+'">'+tagLbl+'</span><span class="fsrc">'+item.src+'</span>'+lock+'<span class="ftime">'+timeAgo(item.pubDate)+'</span>'+saveB+readB+'</div>'+
     '<div class="ftitle">'+item.title+'</div>'+desc+
   '</div>';
+}
+
+function toggleRead(btn, href) {
+  const item = btn.closest('.fitem');
+  if(readItems.has(href)) {
+    readItems.delete(href);
+    item.classList.remove('read');
+  } else {
+    markRead(href);
+    item.classList.add('read');
+  }
+  try { localStorage.setItem('ct_read', JSON.stringify([...readItems].slice(-500))); } catch(e) {}
 }
 
 async function loadMedia(force=false){
@@ -1597,6 +1788,7 @@ async function liveRefreshMedia(){
   if(ftm) ftm.textContent=mediaCache.data.length;
 }
 
+async function liveRefreshIntel(){ loadIntel(true); }
 async function liveRefreshOSINT(){
   // Don't wipe — load fresh and merge
   const all=[];
@@ -2526,6 +2718,8 @@ function init(){
   renderSaved();
   setTimeout(function(){loadMedia();},200);
   setTimeout(function(){loadOSINT();},500);
+  setTimeout(function(){loadIntel();},800);
+  initChat();
 }
 init();
 
@@ -2658,6 +2852,9 @@ function renderStreamListSide() {
 
 // ── APPLY SAVED PREFS ON LOAD ─────────────────────────────
 function applySavedPrefs() {
+  // Font
+  const savedFont = localStorage.getItem('ct_font');
+  if(savedFont) applyFont(savedFont);
   // Theme
   const theme = localStorage.getItem('ct_theme');
   if(theme==='light') {
@@ -2708,6 +2905,271 @@ if('serviceWorker' in navigator){
     });
   });
 }
+
+// ── FONT SELECTOR ────────────────────────────────────────
+function applyFont(val) {
+  document.documentElement.style.setProperty('--font-body', val);
+  localStorage.setItem('ct_font', val);
+  const sel = document.getElementById('pref-font');
+  if(sel) sel.value = val;
+}
+
+// ── READ / UNREAD ─────────────────────────────────────────
+let readItems = new Set(JSON.parse(localStorage.getItem('ct_read') || '[]'));
+
+function markRead(link) {
+  if(!link) return;
+  readItems.add(link);
+  try { localStorage.setItem('ct_read', JSON.stringify([...readItems].slice(-500))); } catch(e) {}
+}
+
+function isRead(link) { return link && readItems.has(link); }
+
+// ── INTEL FEED ────────────────────────────────────────────
+async function loadIntel(force=false) {
+  if(!force && Date.now()-intelCache.ts<120000 && intelCache.data.length) { renderIntel(); return; }
+  const el = document.getElementById('feed-intel');
+  if(el && !intelCache.data.length) el.innerHTML = '<div class="fstatus"><div class="spin-sm"></div>Cargando intel...</div>';
+  const incoming = [];
+  await Promise.allSettled(INTEL_SOURCES.map(async function(src) {
+    try {
+      const xml = await fetchRSS(src.url);
+      if(!xml) return;
+      parseRSS(xml, src.n, src.cat, 'rss').forEach(function(i) { incoming.push(i); });
+    } catch(e) {}
+  }));
+  incoming.sort(function(a,b) { return new Date(b.pubDate)-new Date(a.pubDate); });
+  if(!intelCache.data.length) {
+    intelCache = {ts:Date.now(), data:incoming};
+    renderIntel();
+  } else {
+    const {merged, newCount} = mergeItems(intelCache.data, incoming);
+    intelCache = {ts:Date.now(), data:merged};
+    if(newCount > 0) prependItems(merged.slice(0,newCount), 'feed-intel');
+  }
+  const fti = document.getElementById('ft-intel');
+  if(fti) fti.textContent = intelCache.data.length;
+}
+
+function renderIntel() {
+  let items = intelCache.data;
+  if(activeCatIntel !== 'all') {
+    const re = REGION_KW[activeCatIntel];
+    if(re) items = items.filter(function(i) { return re.test(i.title+' '+(i.desc||'')); });
+  }
+  renderItems(items, 'feed-intel');
+}
+
+// Extend filterCat for intel
+const _origFilterCat = filterCat;
+filterCat = function(f, btn, panel) {
+  if(panel === 'intel') {
+    activeCatIntel = f;
+    btn.closest('.ffilters').querySelectorAll('.ffbtn').forEach(function(b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    renderIntel();
+    return;
+  }
+  _origFilterCat(f, btn, panel);
+};
+
+// ── CHAT (localStorage BroadcastChannel) ─────────────────
+// Uses BroadcastChannel API for cross-tab real-time + localStorage for persistence
+const CHAT_KEY = 'ct_chat_rooms';
+const CHAT_MSG_PREFIX = 'ct_chat_msg_';
+let chatNick = localStorage.getItem('ct_chat_nick') || '';
+let currentRoom = null;
+let chatChannel = null;
+let chatMsgInterval = null;
+
+function getChatRooms() {
+  try { return JSON.parse(localStorage.getItem(CHAT_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function saveChatRooms(rooms) {
+  try { localStorage.setItem(CHAT_KEY, JSON.stringify(rooms)); } catch(e) {}
+}
+
+function getRoomMsgs(roomId) {
+  try { return JSON.parse(localStorage.getItem(CHAT_MSG_PREFIX + roomId) || '[]'); } catch(e) { return []; }
+}
+
+function saveRoomMsgs(roomId, msgs) {
+  try { localStorage.setItem(CHAT_MSG_PREFIX + roomId, JSON.stringify(msgs.slice(-200))); } catch(e) {}
+}
+
+function setChatNick() {
+  const inp = document.getElementById('chat-nick-input');
+  const nick = inp ? inp.value.trim() : '';
+  if(!nick) return;
+  chatNick = nick;
+  localStorage.setItem('ct_chat_nick', nick);
+  document.getElementById('chat-nick-setup').style.display = 'none';
+  document.getElementById('chat-rooms-view').style.display = 'block';
+  renderRoomList();
+}
+
+function createRoom() {
+  const name = document.getElementById('new-room-name').value.trim();
+  if(!name) return;
+  const pass = document.getElementById('new-room-pass').value.trim();
+  const rooms = getChatRooms();
+  const id = 'room_' + Date.now();
+  rooms.push({id, name, pass: pass ? btoa(pass) : '', created: Date.now(), creator: chatNick});
+  saveChatRooms(rooms);
+  document.getElementById('new-room-name').value = '';
+  document.getElementById('new-room-pass').value = '';
+  renderRoomList();
+  // Broadcast room creation
+  broadcastChat({type:'room_created', roomId:id});
+}
+
+function renderRoomList() {
+  const el = document.getElementById('chat-room-list');
+  if(!el) return;
+  const rooms = getChatRooms();
+  if(!rooms.length) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--text2);font-family:JetBrains Mono,monospace;padding:8px 0;">Sin salas. Crea la primera.</div>';
+    return;
+  }
+  el.innerHTML = rooms.map(function(room) {
+    const msgs = getRoomMsgs(room.id);
+    const last = msgs.length ? msgs[msgs.length-1] : null;
+    return '<div class="chat-room-card" data-rid="'+room.id+'" onclick="joinRoom(this.dataset.rid)">'+
+      '<div style="flex:1;">'+
+        '<div class="room-name">'+room.name+(room.pass?'  🔒':' 🌐')+'</div>'+
+        (last ? '<div style="font-size:9px;color:var(--text2);margin-top:1px;font-family:JetBrains Mono,monospace;">'+last.nick+': '+last.text.slice(0,30)+'...</div>' : '')+
+      '</div>'+
+      '<span class="room-count">'+msgs.length+' msgs</span>'+
+    '</div>';
+  }).join('');
+}
+
+function joinRoom(roomId) {
+  const rooms = getChatRooms();
+  const room = rooms.find(function(r) { return r.id === roomId; });
+  if(!room) return;
+  if(room.pass) {
+    const entered = prompt('🔒 Sala protegida — introduce la contraseña:');
+    if(!entered || btoa(entered) !== room.pass) {
+      alert('Contraseña incorrecta.');
+      return;
+    }
+  }
+  currentRoom = room;
+  document.getElementById('chat-rooms-view').style.display = 'none';
+  const av = document.getElementById('chat-active-view');
+  av.style.display = 'flex';
+  document.getElementById('active-room-name').textContent = '# ' + room.name;
+  // Setup BroadcastChannel for real-time
+  if(chatChannel) chatChannel.close();
+  chatChannel = new BroadcastChannel('ct_chat_' + roomId);
+  chatChannel.onmessage = function(e) {
+    if(e.data.type === 'msg') {
+      appendChatMsg(e.data.msg);
+    }
+  };
+  renderChatMsgs();
+  // Auto-refresh msgs from storage every 2s (for cross-browser/cross-device if same origin)
+  if(chatMsgInterval) clearInterval(chatMsgInterval);
+  chatMsgInterval = setInterval(function() {
+    if(currentRoom) renderChatMsgs(true);
+  }, 2000);
+  // Scroll to bottom
+  setTimeout(function() {
+    const el = document.getElementById('chat-messages');
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+function showRoomList() {
+  currentRoom = null;
+  if(chatChannel) { chatChannel.close(); chatChannel = null; }
+  if(chatMsgInterval) { clearInterval(chatMsgInterval); chatMsgInterval = null; }
+  document.getElementById('chat-active-view').style.display = 'none';
+  document.getElementById('chat-rooms-view').style.display = 'block';
+  renderRoomList();
+}
+
+function renderChatMsgs(silent=false) {
+  if(!currentRoom) return;
+  const msgs = getRoomMsgs(currentRoom.id);
+  const el = document.getElementById('chat-messages');
+  if(!el) return;
+  const wasBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+  el.innerHTML = msgs.map(function(msg) {
+    const isOwn = msg.nick === chatNick;
+    return '<div class="chat-msg'+(isOwn?' own':'')+'">'+
+      '<div class="msg-nick">'+msg.nick+'</div>'+
+      '<div class="msg-text">'+escapeHtml(msg.text)+'</div>'+
+      '<div class="msg-time">'+new Date(msg.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'</div>'+
+    '</div>';
+  }).join('') || '<div class="chat-sys">Sin mensajes. Sé el primero.</div>';
+  if(wasBottom || !silent) el.scrollTop = el.scrollHeight;
+  // Update count
+  const cnt = document.getElementById('active-room-count');
+  if(cnt) cnt.textContent = msgs.length + ' msgs';
+}
+
+function appendChatMsg(msg) {
+  const el = document.getElementById('chat-messages');
+  if(!el) return;
+  const isOwn = msg.nick === chatNick;
+  const div = document.createElement('div');
+  div.className = 'chat-msg' + (isOwn?' own':'');
+  div.innerHTML = '<div class="msg-nick">'+msg.nick+'</div>'+
+    '<div class="msg-text">'+escapeHtml(msg.text)+'</div>'+
+    '<div class="msg-time">'+new Date(msg.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'</div>';
+  // Remove placeholder if present
+  const ph = el.querySelector('.chat-sys');
+  if(ph) ph.remove();
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function sendChatMsg() {
+  if(!currentRoom || !chatNick) return;
+  const inp = document.getElementById('chat-msg-input');
+  const text = inp ? inp.value.trim() : '';
+  if(!text) return;
+  inp.value = '';
+  const msg = {nick: chatNick, text: text, ts: Date.now()};
+  // Save to localStorage
+  const msgs = getRoomMsgs(currentRoom.id);
+  msgs.push(msg);
+  saveRoomMsgs(currentRoom.id, msgs);
+  // Broadcast to other tabs
+  if(chatChannel) chatChannel.postMessage({type:'msg', msg});
+  // Append locally
+  appendChatMsg(msg);
+}
+
+function broadcastChat(data) {
+  try {
+    const ch = new BroadcastChannel('ct_chat_global');
+    ch.postMessage(data);
+    ch.close();
+  } catch(e) {}
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init chat panel
+function initChat() {
+  if(chatNick) {
+    document.getElementById('chat-nick-setup').style.display = 'none';
+    document.getElementById('chat-rooms-view').style.display = 'block';
+    renderRoomList();
+  } else {
+    const inp = document.getElementById('chat-nick-input');
+    // Generate a random suggestion
+    const animals = ['Wolf','Eagle','Fox','Raven','Cobra','Hawk','Tiger','Bear'];
+    if(inp) inp.placeholder = animals[Math.floor(Math.random()*animals.length)] + Math.floor(Math.random()*99);
+  }
+}
+
 </script>
 </body>
 </html>
