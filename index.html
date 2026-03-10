@@ -469,6 +469,17 @@ select.sp-input{cursor:pointer;}
 .sitem-t{font-size:12px;color:var(--t0);line-height:1.4;}
 .sitem-m{font-size:10px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:6px;}
 
+/* ── PROGRESS BAR ── */
+#prog-bar{height:2px;flex-shrink:0;background:transparent;overflow:hidden;}
+#prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),#93c5fd);box-shadow:0 0 6px var(--blue);transition:width .25s ease;border-radius:0 1px 1px 0;}
+#prog-bar.idle #prog-fill{width:100%;opacity:0;transition:width .15s,opacity .5s ease .15s;}
+
+/* ── COL STATUS ── */
+.col-status{font-family:var(--mono);font-size:9px;color:var(--t2);display:flex;align-items:center;gap:4px;padding-left:6px;white-space:nowrap;}
+.cs-spin{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border2);border-top-color:var(--blue);animation:spin .7s linear infinite;flex-shrink:0;}
+.cs-ok{color:var(--green);}
+.cs-err{color:var(--red);}
+
 /* ═══════════════════════════════════════════════════
    RESPONSIVE — MOBILE
 ═══════════════════════════════════════════════════ */
@@ -507,6 +518,7 @@ select.sp-input{cursor:pointer;}
 
 <div id="app">
 
+  <div id="prog-bar"><div id="prog-fill"></div></div>
   <!-- ═══ TOPBAR ═══ -->
   <div id="topbar">
     <div class="tb-lights">
@@ -519,7 +531,7 @@ select.sp-input{cursor:pointer;}
     <div class="tb-divider"></div>
     <span id="clock">--:--:-- UTC</span>
     <div class="tb-badge live"><span class="bd"></span>EN VIVO</div>
-    <span id="refresh-countdown">1:00</span>
+    <span id="last-updated" title="Última actualización" style="font-family:var(--mono);font-size:10px;color:var(--t2);">—</span>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
       <button class="tb-btn" onclick="refreshAll()" id="refresh-btn">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2.5A6.5 6.5 0 1 1 8 1.5"/><path d="M13 2.5V6h-3.5"/></svg>
@@ -553,8 +565,8 @@ select.sp-input{cursor:pointer;}
       <div class="col" id="col-news">
         <div class="col-hdr">
           <span class="col-title">Noticias</span>
-          <span class="col-live"></span>
-          <span class="col-badge" id="ft-media"></span>
+          <span class="col-badge" id="ft-media" style="margin-left:auto;"></span>
+          <span class="col-status" id="cs-media"></span>
         </div>
         <div class="filters" id="filters-media">
           <button class="fbtn on"  onclick="filterFeed('all',this,'media')">Todo</button>
@@ -572,8 +584,8 @@ select.sp-input{cursor:pointer;}
       <div class="col" id="col-osint">
         <div class="col-hdr">
           <span class="col-title">OSINT / Fuentes</span>
-          <span class="col-live"></span>
-          <span class="col-badge" id="ft-osint"></span>
+          <span class="col-badge" id="ft-osint" style="margin-left:auto;"></span>
+          <span class="col-status" id="cs-osint"></span>
         </div>
         <div class="filters" id="filters-osint">
           <button class="fbtn on" onclick="filterFeed('all',this,'osint')">Todo</button>
@@ -881,27 +893,48 @@ function classify(t){
 // ═══════════════════════════════════════════════════════════
 // FETCH
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// FETCH ENGINE — sequential proxies, no simultaneous races
+// ═══════════════════════════════════════════════════════════
+
+// Concurrency pool
 async function pool(tasks, n=6){
   let i=0;
-  const run = async () => { while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} };
-  await Promise.all(Array.from({length:Math.min(n,tasks.length)}, run));
+  const run = async()=>{ while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} };
+  await Promise.all(Array.from({length:Math.min(n,tasks.length)},run));
 }
 
+// Fetch a single RSS — tries Worker first, then direct, then proxies
+// No simultaneous race: sequential so we don't hammer proxies needlessly
 async function fetchRSS(url){
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 7000);
-  const ok = async r => { if(!r.ok) throw 0; const x=await r.text(); if(x.includes('<item')||x.includes('<entry')) return x; throw 0; };
+  const TIMEOUT = 6000;
+  const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
+
+  // 1. Worker (cached, best)
   try{
-    const res = await Promise.any([
-      fetch(WORKER+'/rss?url='+encodeURIComponent(url), {signal:ctrl.signal}).then(ok),
-      fetch(url, {signal:ctrl.signal}).then(ok),
-      fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url), {signal:ctrl.signal})
-        .then(async r=>{ if(!r.ok) throw 0; const j=await r.json(); if(j.contents?.length>200) return j.contents; throw 0; }),
-      fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:ctrl.signal})
-        .then(async r=>{ if(!r.ok) throw 0; const x=await r.text(); if(x.length>200) return x; throw 0; }),
-    ]);
-    clearTimeout(t); ctrl.abort(); return res;
-  }catch(e){ clearTimeout(t); return null; }
+    const r = await fetch(WORKER+'/rss?url='+encodeURIComponent(url), {signal:AbortSignal.timeout(TIMEOUT)});
+    if(r.ok){ const x=await r.text(); if(isRSS(x)) return x; }
+  }catch(e){}
+
+  // 2. Direct (works for CORS-open sources)
+  try{
+    const r = await fetch(url, {signal:AbortSignal.timeout(TIMEOUT)});
+    if(r.ok){ const x=await r.text(); if(isRSS(x)) return x; }
+  }catch(e){}
+
+  // 3. allorigins
+  try{
+    const r = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url), {signal:AbortSignal.timeout(TIMEOUT)});
+    if(r.ok){ const j=await r.json(); if(isRSS(j.contents)) return j.contents; }
+  }catch(e){}
+
+  // 4. corsproxy
+  try{
+    const r = await fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:AbortSignal.timeout(TIMEOUT)});
+    if(r.ok){ const x=await r.text(); if(isRSS(x)) return x; }
+  }catch(e){}
+
+  return null;
 }
 
 async function fetchTG(ch){
@@ -1020,127 +1053,190 @@ function prependNew(items, feedId){
 // ═══════════════════════════════════════════════════════════
 // LOAD MEDIA
 // ═══════════════════════════════════════════════════════════
-async function loadMedia(){
-  const isFirst = !mediaCache.data.length;
-  const all = [];
-  await pool([...MEDIA_SOURCES,...customSources].map(src => async () => {
-    const xml = await fetchRSS(src.url); if(!xml) return;
-    parseRSS(xml, src.n, src.cat).forEach(i => all.push(i));
-    if(isFirst && all.length && all.length%20===0)
-      renderFeed(sortByDate([...all]), 'feed-media');
-  }), 6);
-  sortByDate(all);
-  if(isFirst){
-    mediaCache = {ts:Date.now(), data:all};
-    renderFeed(all, 'feed-media');
-  } else {
-    const {merged, newCount} = merge(mediaCache.data, all);
-    mediaCache = {ts:Date.now(), data:merged};
-    if(newCount) prependNew(merged.slice(0,newCount), 'feed-media');
-    else renderFeed(merged, 'feed-media'); // re-render to keep sort
+// ═══════════════════════════════════════════════════════════
+// PROGRESS + STATUS HELPERS
+// ═══════════════════════════════════════════════════════════
+function progSet(pct){
+  const f=document.getElementById('prog-fill');
+  const b=document.getElementById('prog-bar');
+  if(!f||!b) return;
+  b.classList.remove('idle');
+  f.style.width=pct+'%';
+  if(pct>=100){
+    setTimeout(()=>{b.classList.add('idle');setTimeout(()=>{b.classList.remove('idle');f.style.width='0%';},700);},200);
   }
-  const e = document.getElementById('ft-media'); if(e) e.textContent = mediaCache.data.length;
+}
+function colStatus(id,state,text=''){
+  const el=document.getElementById('cs-'+id); if(!el) return;
+  if(state==='loading') el.innerHTML='<span class="cs-spin"></span>';
+  else if(state==='ok')  el.innerHTML='<span class="cs-ok">✓</span>'+(text?' <span>'+text+'</span>':'');
+  else if(state==='err') el.innerHTML='<span class="cs-err">✗</span>';
+  else el.innerHTML='';
+}
+function setLastUpdated(){
+  const el=document.getElementById('last-updated'); if(!el) return;
+  const n=new Date();
+  el.textContent='Actualizado '+String(n.getUTCHours()).padStart(2,'0')+':'+String(n.getUTCMinutes()).padStart(2,'0')+' UTC';
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOAD MEDIA
+// ═══════════════════════════════════════════════════════════
+async function loadMedia(){
+  colStatus('media','loading');
+  const srcs=[...MEDIA_SOURCES,...customSources];
+  let done=0;
+  const all=[];
+  const isFirst=!mediaCache.data.length;
+  await pool(srcs.map(src=>async()=>{
+    const xml=await fetchRSS(src.url);
+    if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
+    done++;
+    progSet(Math.round((done/srcs.length)*50));
+  }),5);
+  sortByDate(all);
+  if(!all.length){
+    if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
+    colStatus('media','err'); return;
+  }
+  if(isFirst){
+    mediaCache={ts:Date.now(),data:all};
+    renderFeed(all,'feed-media');
+  } else {
+    const {merged,newCount}=merge(mediaCache.data,all);
+    mediaCache={ts:Date.now(),data:merged};
+    if(newCount) prependNew(merged.slice(0,newCount),'feed-media');
+    else renderFeed(merged,'feed-media');
+  }
+  const e=document.getElementById('ft-media'); if(e) e.textContent=mediaCache.data.length;
+  colStatus('media','ok',mediaCache.data.length+' items');
 }
 
 // ═══════════════════════════════════════════════════════════
 // LOAD OSINT
 // ═══════════════════════════════════════════════════════════
 async function loadOSINT(){
-  const isFirst = !osintCache.data.length;
-  const all = [];
-  await pool(OSINT_SOURCES.map(src => async () => {
-    const xml = await fetchRSS(src.url); if(!xml) return;
-    parseRSS(xml, src.n, src.cat).forEach(i => { i.type='osint'; all.push(i); });
-    if(isFirst && all.length && all.length%10===0)
-      renderFeed(sortByDate([...all]), 'feed-osint');
-  }), 5);
+  colStatus('osint','loading');
+  let done=0;
+  const all=[];
+  const isFirst=!osintCache.data.length;
+  await pool(OSINT_SOURCES.map(src=>async()=>{
+    const xml=await fetchRSS(src.url);
+    if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>{i.type='osint';all.push(i);});
+    done++;
+    progSet(50+Math.round((done/OSINT_SOURCES.length)*50));
+  }),5);
   sortByDate(all);
-  if(!all.length && isFirst){
-    document.getElementById('feed-osint').innerHTML =
-      `<div class="fstatus">Sin datos OSINT disponibles.</div>`;
-    return;
+  if(!all.length&&isFirst){
+    document.getElementById('feed-osint').innerHTML='<div class="fstatus">Sin datos OSINT disponibles.</div>';
+    colStatus('osint','err'); return;
   }
   if(isFirst){
-    osintCache = {ts:Date.now(), data:all};
-    renderFeed(all, 'feed-osint');
+    osintCache={ts:Date.now(),data:all};
+    renderFeed(all,'feed-osint');
   } else {
-    const {merged, newCount} = merge(osintCache.data, all);
-    osintCache = {ts:Date.now(), data:merged};
-    if(newCount) prependNew(merged.slice(0,newCount), 'feed-osint');
-    else renderFeed(merged, 'feed-osint');
+    const {merged,newCount}=merge(osintCache.data,all);
+    osintCache={ts:Date.now(),data:merged};
+    if(newCount) prependNew(merged.slice(0,newCount),'feed-osint');
+    else renderFeed(merged,'feed-osint');
   }
-  const e = document.getElementById('ft-osint'); if(e) e.textContent = osintCache.data.length;
+  const e=document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
+  colStatus('osint','ok',osintCache.data.length+' items');
+  progSet(100);
 }
 
-// Load Twitter/X via RSSHub (runs alongside OSINT)
+// Load Twitter/X via RSSHub — silently merges into OSINT
 async function loadTwitterOSINT(){
-  const all = [];
-  await pool(TWITTER_SOURCES.map(src => async () => {
-    const xml = await fetchRSS(src.url); if(!xml) return;
-    parseRSS(xml, src.n, src.cat).forEach(i => { i.type='twitter'; all.push(i); });
-  }), 3);
+  const all=[];
+  await pool(TWITTER_SOURCES.map(src=>async()=>{
+    const xml=await fetchRSS(src.url); if(!xml) return;
+    parseRSS(xml,src.n,src.cat).forEach(i=>{i.type='twitter';all.push(i);});
+  }),3);
   if(!all.length) return;
   sortByDate(all);
-  const combined = sortByDate([...osintCache.data, ...all]).slice(0,400);
-  const seen = new Set(osintCache.data.map(i=>i.link||i.title));
-  const fresh = all.filter(i=>!seen.has(i.link||i.title));
+  const seen=new Set(osintCache.data.map(i=>i.link||i.title));
+  const fresh=all.filter(i=>!seen.has(i.link||i.title));
   fresh.forEach(i=>i._new=true);
-  osintCache = {ts:Date.now(), data:combined};
-  if(fresh.length) prependNew(fresh.slice(0,fresh.length), 'feed-osint');
-  const e = document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
+  osintCache={ts:Date.now(),data:sortByDate([...fresh,...osintCache.data]).slice(0,400)};
+  if(fresh.length) prependNew(fresh,'feed-osint');
+  const e=document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
 }
 
 // ═══════════════════════════════════════════════════════════
-// REFRESH ALL — clears cache, shows spinner, reloads
-// ═══════════════════════════════════════════════════════════
-function refreshAll(){
-  mediaCache = {ts:0, data:[]};
-  osintCache  = {ts:0, data:[]};
-  gdeltCache  = {ts:0, data:[]};
-  brkLoaded   = false;
-  document.getElementById('feed-media').innerHTML = '<div class="fstatus"><span class="spin"></span>Actualizando...</div>';
-  document.getElementById('feed-osint').innerHTML = '<div class="fstatus"><span class="spin"></span>Actualizando...</div>';
-  const btn = document.getElementById('refresh-btn');
-  if(btn){ btn.classList.add('active'); setTimeout(()=>btn.classList.remove('active'),2000); }
-  loadMedia();
-  loadOSINT();
-}
-
-// ═══════════════════════════════════════════════════════════
-// BREAKING BAR — bottom ticker
+// BREAKING BAR
 // ═══════════════════════════════════════════════════════════
 async function loadBreakingBar(){
-  const all = [];
-  await pool(BREAKING_RSS.map(url => async () => {
-    const xml = await fetchRSS(url); if(!xml) return;
-    parseRSS(xml, '', 'general').slice(0,8).forEach(i => all.push(i));
-  }), 3);
+  // Reuse media cache if available — no extra fetches
+  if(brkLoaded&&mediaCache.data.length){ _renderBreakingBar(mediaCache.data); return; }
+  const all=[];
+  await pool(BREAKING_RSS.map(url=>async()=>{
+    const xml=await fetchRSS(url); if(!xml) return;
+    parseRSS(xml,'','general').slice(0,10).forEach(i=>all.push(i));
+  }),3);
   sortByDate(all);
-  if(!all.length) return;
-  const inner = document.getElementById('brk-inner'); if(!inner) return;
-  const items = all.slice(0,30).map(i => {
-    const href = (i.link||'').replace(/'/g,"\\'");
+  if(all.length){ brkLoaded=true; _renderBreakingBar(all); }
+}
+function _renderBreakingBar(items){
+  const inner=document.getElementById('brk-inner'); if(!inner) return;
+  const kw=/war|conflict|attack|killed|missile|strike|troops|offensive|bomb|crisis|explosion/i;
+  const filtered=items.filter(i=>kw.test(i.title));
+  const display=(filtered.length>=5?filtered:items).slice(0,40);
+  const html=display.map(i=>{
+    const href=(i.link||'').replace(/'/g,"\\'");
     return `<span class="brk-item" onclick="window.open('${href}','_blank')">${i.title}</span><span class="brk-sep">◆</span>`;
   }).join('');
-  inner.innerHTML = items + items; // duplicate for seamless loop
-  const w = inner.scrollWidth / 2;
-  inner.style.animationDuration = Math.max(40, w/120)+'s';
+  inner.innerHTML=html+html;
+  requestAnimationFrame(()=>{
+    inner.style.animationDuration=Math.max(40,inner.scrollWidth/2/110)+'s';
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
-// COUNTDOWN
+// REFRESH ALL — debounced, single entry point
 // ═══════════════════════════════════════════════════════════
-function startCountdown(){
-  const el = document.getElementById('refresh-countdown');
-  let s = 60;
-  document.addEventListener('visibilitychange', () => { if(!document.hidden) s=3; });
-  setInterval(() => {
-    s--;
-    if(s<=0){ s = document.hidden ? 300 : 60; if(!document.hidden) refreshAll(); }
-    const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0');
-    if(el) el.textContent = m+':'+ss;
-  }, 1000);
+let _refreshing=false;
+async function refreshAll(){
+  if(_refreshing) return;
+  _refreshing=true;
+  const btn=document.getElementById('refresh-btn');
+  if(btn){btn.classList.add('active');btn.disabled=true;}
+  progSet(2);
+  mediaCache={ts:0,data:[]};
+  osintCache={ts:0,data:[]};
+  gdeltCache={ts:0,data:[]};
+  brkLoaded=false;
+  document.getElementById('feed-media').innerHTML='';
+  document.getElementById('feed-osint').innerHTML='';
+  try{
+    await Promise.all([loadMedia(),loadOSINT()]);
+    setLastUpdated();
+    loadBreakingBar();
+    loadGDELT();
+  }finally{
+    _refreshing=false;
+    if(btn){btn.classList.remove('active');btn.disabled=false;}
+  }
 }
+
+// ═══════════════════════════════════════════════════════════
+// AUTO-REFRESH — tab-aware, 5min interval, no countdown
+// ═══════════════════════════════════════════════════════════
+function startAutoRefresh(){
+  const INTERVAL=5*60*1000;
+  let lastRun=Date.now();
+  function schedule(){
+    const wait=Math.max(0,INTERVAL-(Date.now()-lastRun));
+    setTimeout(async()=>{
+      if(!document.hidden){lastRun=Date.now();await refreshAll();}
+      schedule();
+    },wait);
+  }
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&Date.now()-lastRun>INTERVAL){lastRun=Date.now();refreshAll();}
+  });
+  schedule();
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // ITEM ACTIONS
@@ -1209,68 +1305,44 @@ function initTwitter(){
   panel.dataset.loaded = '1';
   const theme = document.body.classList.contains('light') ? 'light' : 'dark';
 
-  // Use iframe embed directly — most reliable method
-  const iframe = document.createElement('iframe');
-  iframe.src = `https://syndication.twitter.com/srv/timeline-profile/screen-name/i/lists/1579547289395265542?creatorScreenName=&dnt=true&embedId=twitter-widget-0&features=eyJ0ZndfdHdlZXRfZWRpdF9iYWNrZW5kIjp7ImJ1Y2tldCI6Im9uIiwidmVyc2lvbiI6bnVsbH19&frame=false&hideBorder=false&hideFooter=false&hideHeader=false&hideScrollBar=false&lang=en&maxHeight=100%25&origin=https%3A%2F%2Fwww.pizzint.watch%2F&sessionId=x&showHeader=true&showReplies=false&theme=${theme}&transparent=false&widgetsVersion=2615f7e52b7e0%3A1702314776716`;
-  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;';
-  iframe.setAttribute('scrolling', 'yes');
-  iframe.setAttribute('allowfullscreen', 'true');
-  iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation');
-
-  // Fallback if iframe blocks
-  iframe.onerror = () => showTwitterFallback(panel, theme);
-
-  // Also try official widget as primary, iframe as backup
-  panel.innerHTML = '';
-  panel.style.cssText = 'flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;';
-
-  // Method 1: official widgets.js (best quality)
+  // Inject twitter timeline widget properly
   const anchor = document.createElement('a');
   anchor.className = 'twitter-timeline';
   anchor.href = 'https://twitter.com/i/lists/1579547289395265542';
   anchor.setAttribute('data-theme', theme);
-  anchor.setAttribute('data-chrome', 'noheader nofooter noborders');
-  anchor.setAttribute('data-height', '9999');
+  anchor.setAttribute('data-chrome', 'noheader nofooter noborders transparent');
   anchor.setAttribute('data-dnt', 'true');
-  anchor.textContent = 'Lista Geopolítica X';
-  anchor.style.cssText = 'width:100%;flex:1;';
+  anchor.style.cssText = 'display:block;width:100%;height:100%;';
+
+  panel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;';
+  panel.innerHTML = '';
   panel.appendChild(anchor);
 
-  // Load widgets.js properly as a real script element
-  const existing = document.getElementById('twitter-wjs');
-  if(existing) {
-    // Already loaded — just re-render
-    if(window.twttr?.widgets) window.twttr.widgets.load(panel);
+  // Load widgets.js as real script element
+  if(window.twttr?.widgets){
+    window.twttr.widgets.load(panel);
   } else {
-    const script = document.createElement('script');
-    script.id  = 'twitter-wjs';
-    script.src = 'https://platform.twitter.com/widgets.js';
-    script.async = true;
-    script.onload = () => { if(window.twttr?.widgets) window.twttr.widgets.load(panel); };
-    // Timeout fallback — if widgets.js doesn't render in 8s, use iframe
-    const to = setTimeout(() => {
-      const rendered = panel.querySelector('iframe');
-      if(!rendered) showTwitterFallback(panel, theme);
-    }, 8000);
-    script.onload = () => {
-      clearTimeout(to);
-      if(window.twttr?.widgets) window.twttr.widgets.load(panel);
-    };
-    document.head.appendChild(script);
+    const s = document.createElement('script');
+    s.src = 'https://platform.twitter.com/widgets.js';
+    s.async = true;
+    s.onload = ()=> window.twttr?.widgets?.load(panel);
+    // 10s fallback: if widget didn't render, show direct link
+    setTimeout(()=>{
+      if(!panel.querySelector('iframe')){
+        panel.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;padding:20px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--t2)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span style="font-size:12px;color:var(--t2);text-align:center;">El widget de X requiere cookies de terceros o está bloqueado por tu navegador.</span>
+          <a href="https://twitter.com/i/lists/1579547289395265542" target="_blank"
+             style="padding:8px 20px;background:#1d9bf0;color:#fff;border-radius:20px;font-size:12px;font-weight:500;text-decoration:none;">
+            Abrir lista en X →
+          </a>
+        </div>`;
+      }
+    }, 10000);
+    document.head.appendChild(s);
   }
 }
 
-function showTwitterFallback(panel, theme){
-  // Direct syndication iframe — same as what Twitter embeds resolve to
-  panel.innerHTML = '';
-  const iframe = document.createElement('iframe');
-  iframe.src = `https://syndication.twitter.com/srv/timeline-list/id/1579547289395265542?dnt=true&theme=${theme||'dark'}&lang=en`;
-  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;display:block;';
-  iframe.setAttribute('scrolling', 'yes');
-  iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms');
-  panel.style.display = 'flex';
-  panel.appendChild(iframe);
-}
 
 
 function filterFeed(f, btn, which){
@@ -1423,20 +1495,25 @@ function startClock(){
 function init(){
   loadPrefs();
   startClock();
-  startCountdown();
   renderSaved();
   renderCustomList();
-  setTimeout(loadMedia,    200);
-  setTimeout(loadOSINT,    800);
-  setTimeout(loadOREF,    1400);
-  setTimeout(initTwitter,  600);
-  setTimeout(loadBreakingBar, 1800);
-  setTimeout(loadTwitterOSINT, 3000);
-  setTimeout(loadGDELT, 4000);
-  setInterval(loadBreakingBar,  5*60*1000);
-  setInterval(loadTwitterOSINT,10*60*1000);
-  setInterval(loadGDELT,       15*60*1000);
-  setInterval(loadOREF, 15000);
+
+  // Initial load
+  progSet(2);
+  setTimeout(async ()=>{
+    await Promise.all([loadMedia(), loadOSINT()]);
+    setLastUpdated();
+    setTimeout(loadBreakingBar, 300);
+    setTimeout(loadGDELT,       800);
+    setTimeout(initTwitter,     500);
+    setTimeout(loadOREF,       1200);
+  }, 300);
+
+  // Background refresh — tab-aware, no countdown
+  startAutoRefresh();
+  setInterval(loadOREF,       15000);
+  setInterval(loadGDELT, 15*60*1000);
+  setInterval(loadTwitterOSINT, 10*60*1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
