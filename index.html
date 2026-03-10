@@ -36,6 +36,18 @@ button{font-family:inherit;cursor:pointer;}
 .topbtn{padding:3px 9px;background:transparent;border:1px solid var(--border2);border-radius:2px;color:var(--text2);font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;transition:all .12s;}
 .topbtn:hover{border-color:var(--text1);color:var(--text0);}
 #refresh-countdown{font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;min-width:36px;}
+#pizza-chip{
+  display:flex;align-items:center;gap:5px;
+  padding:2px 8px;border:1px solid var(--border2);border-radius:2px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);
+  cursor:pointer;text-decoration:none;transition:all .15s;
+  background:transparent;
+}
+#pizza-chip:hover{border-color:var(--text1);color:var(--text0);}
+#pizza-chip.level-1{border-color:rgba(224,48,48,.6);color:#e03030;background:rgba(224,48,48,.06);}
+#pizza-chip.level-2{border-color:rgba(232,160,32,.6);color:var(--amber);background:rgba(232,160,32,.06);}
+#pizza-chip.level-3{border-color:rgba(232,160,32,.3);color:var(--amber);}
+#pizza-num{font-weight:700;font-size:11px;}
 
 /* ── OREF BANNER ── */
 #oref-banner{display:none;height:26px;flex-shrink:0;background:rgba(220,30,30,.95);color:#fff;font-size:11px;font-family:'JetBrains Mono',monospace;align-items:center;justify-content:center;gap:8px;letter-spacing:.5px;}
@@ -263,6 +275,10 @@ body.light{--bg0:#f4f5f8;--bg1:#fff;--bg2:#f0f1f5;--border:#e0e2e8;--border2:#d0
     <span id="clock">--:-- UTC</span>
     <div class="top-sep"></div>
     <span id="refresh-countdown" title="Próxima actualización">1:00</span>
+    <div class="top-sep"></div>
+    <a id="pizza-chip" href="https://www.pizzint.watch/" target="_blank" title="Pentagon Pizza Index — indicador OSINT de actividad militar">
+      🍕 <span>PIZZINT</span> <span id="pizza-num">—</span>
+    </a>
     <div style="margin-left:auto;display:flex;gap:5px;align-items:center;">
       <button class="topbtn" id="theme-btn" onclick="toggleTheme()">☀</button>
       <button class="topbtn" onclick="refreshAll()">↻ Actualizar</button>
@@ -709,6 +725,7 @@ async function loadMedia(){
     renderFeed(all,'feed-media');
   }else{
     const{merged,newCount}=merge(mediaCache.data,all);
+    merged.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
     mediaCache={ts:Date.now(),data:merged};
     if(newCount) prependNew(merged.slice(0,newCount),'feed-media');
   }
@@ -739,6 +756,7 @@ async function loadOSINT(){
     if(w&&all.length) w.style.display='block';
   }else{
     const{merged,newCount}=merge(osintCache.data,all);
+    merged.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
     osintCache={ts:Date.now(),data:merged};
     if(newCount) prependNew(merged.slice(0,newCount),'feed-osint');
   }
@@ -746,7 +764,15 @@ async function loadOSINT(){
   if(el) el.textContent=osintCache.data.length;
 }
 
-function refreshAll(){loadMedia();loadOSINT();loadEnergy();}
+function refreshAll(){
+  // Force re-fetch treating as fresh load so feed re-sorts properly
+  mediaCache={ts:0,data:[]};
+  osintCache={ts:0,data:[]};
+  document.getElementById('feed-media').innerHTML='<div class="fstatus"><div class="spin"></div><br>Actualizando...</div>';
+  document.getElementById('feed-osint').innerHTML='<div class="fstatus"><div class="spin"></div><br>Actualizando...</div>';
+  loadMedia();
+  loadOSINT();
+}
 
 // ═══════════════════════════════════════════════════════════
 // SMARTPOLL
@@ -958,8 +984,37 @@ function init(){
   setTimeout(loadOSINT,600);
   setTimeout(loadEnergy,1000);
   setTimeout(loadOREF,1200);
+  setTimeout(loadPizzaIndex, 800);
+  setInterval(loadPizzaIndex, 5 * 60 * 1000); // every 5min
   setInterval(loadEnergy, 120000); // refresh every 2min
   setInterval(loadOREF,15000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PIZZA INDEX
+// ═══════════════════════════════════════════════════════════
+async function loadPizzaIndex(){
+  const chip = document.getElementById('pizza-chip');
+  const num  = document.getElementById('pizza-num');
+  if(!chip || !num) return;
+  try{
+    const r = await fetch('https://www.pizzint.watch/api/dashboard-data', {signal: AbortSignal.timeout(6000)});
+    if(!r.ok) throw 0;
+    const d = await r.json();
+    // API returns defcon_level (1-5) and optionally index_value / status
+    const level = d.defcon_level ?? d.pizza_defcon ?? d.level ?? d.defconLevel ?? null;
+    if(level === null) throw 0;
+    num.textContent = level;
+    chip.className = '';
+    chip.id = 'pizza-chip';
+    if(level <= 2) chip.classList.add('level-1');
+    else if(level === 3) chip.classList.add('level-2');
+    else if(level === 4) chip.classList.add('level-3');
+    chip.title = 'Pizza DEFCON ' + level + ' — ' + (['','Guerra inminente','Estado peligroso','Alerta elevada','Alerta mejorada','Estado normal'][level] || '');
+  }catch(e){
+    // Fallback: just show link without data
+    num.textContent = '?';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
