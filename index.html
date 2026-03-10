@@ -508,6 +508,7 @@ select.sp-input{cursor:pointer;}
   .fbtn{font-size:10px;padding:2px 8px;}
 }
 </style>
+<script async src="https://platform.twitter.com/widgets.js" id="twitter-wjs"></script>
 </head>
 <body>
 
@@ -604,19 +605,19 @@ select.sp-input{cursor:pointer;}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:#1d9bf0;flex-shrink:0;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             𝕏 / Twitter
           </span>
-          <span class="col-badge" id="ft-twitter" style="margin-left:auto;"></span>
-          <span class="col-status" id="cs-twitter"></span>
         </div>
-        <div class="filters" id="filters-twitter">
-          <button class="fbtn on" onclick="filterFeedTw('all',this)">Todo</button>
-          <button class="fbtn"    onclick="filterFeedTw('ukraine',this)">Ucrania</button>
-          <button class="fbtn"    onclick="filterFeedTw('mideast',this)">M.Este</button>
-          <button class="fbtn"    onclick="filterFeedTw('africa',this)">África</button>
-          <button class="fbtn"    onclick="filterFeedTw('general',this)">OSINT</button>
+        <div id="twitter-panel" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;">
+          <a class="twitter-timeline"
+             href="https://twitter.com/i/lists/1579547289395265542"
+             data-theme="dark"
+             data-chrome="noheader nofooter noborders"
+             data-dnt="true"
+             data-height="10000"
+             style="display:block;width:100%;">
+            Cargando lista X...
+          </a>
         </div>
-        <div class="feed" id="feed-twitter"><div class="fstatus"><span class="spin"></span>Cargando feeds X...</div></div>
       </div>
-
     </div><!-- /columns -->
 
   </div><!-- /main -->
@@ -714,57 +715,37 @@ const WORKER = 'https://conflicttracker.itugil-xabi.workers.dev';
 // DATA
 // ═══════════════════════════════════════════════════════════
 const MEDIA_SOURCES = [
-  // ── Think tanks & análisis ──────────────────────────────
-  {url:'https://www.understandingwar.org/feed',                              n:'ISW',              cat:'ukraine'},
-  {url:'https://www.crisisgroup.org/rss.xml',                                n:'Crisis Group',     cat:'general'},
-  {url:'https://warontherocks.com/feed/',                                    n:'War on the Rocks', cat:'general'},
-  {url:'https://foreignpolicy.com/feed/',                                    n:'Foreign Policy',   cat:'general'},
-  {url:'https://www.rand.org/pubs/rss/all.xml',                              n:'RAND',             cat:'general'},
-  {url:'https://www.csis.org/analysis/feed',                                 n:'CSIS',             cat:'general'},
-  {url:'https://www.iiss.org/rss/news',                                      n:'IISS',             cat:'general'},
-  {url:'https://www.chathamhouse.org/rss.xml',                               n:'Chatham House',    cat:'general'},
-  {url:'https://carnegieendowment.org/rss/solr/articles',                    n:'Carnegie',         cat:'general'},
-  // ── Defensa / militar ───────────────────────────────────
-  {url:'https://www.defensenews.com/rss/',                                   n:'Defense News',     cat:'general'},
-  {url:'https://breakingdefense.com/feed/',                                  n:'Breaking Defense', cat:'general'},
-  {url:'https://thewarzone.com/feed/',                                       n:'The War Zone',     cat:'general'},
-  {url:'https://taskandpurpose.com/feed/',                                   n:'Task & Purpose',   cat:'general'},
-  {url:'https://www.janes.com/feeds/news',                                   n:'Janes',            cat:'general'},
-  {url:'https://www.bellingcat.com/feed/',                                   n:'Bellingcat',       cat:'general'},
-  // ── Ucrania ─────────────────────────────────────────────
-  {url:'https://kyivindependent.com/rss/',                                   n:'Kyiv Independent', cat:'ukraine'},
-  {url:'https://meduza.io/rss/en/all',                                       n:'Meduza',           cat:'ukraine'},
-  {url:'https://euromaidanpress.com/feed/',                                  n:'Euromaidan Press', cat:'ukraine'},
-  {url:'https://mil.in.ua/en/feed/',                                         n:'Militarnyi',       cat:'ukraine'},
-  {url:'https://www.38north.org/feed/',                                      n:'38 North',         cat:'asia'},
-  // ── Oriente Medio ───────────────────────────────────────
-  {url:'https://www.timesofisrael.com/feed/',                                n:'Times of Israel',  cat:'mideast'},
-  {url:'https://www.middleeasteye.net/rss',                                  n:'Middle East Eye',  cat:'mideast'},
-  {url:'https://www.al-monitor.com/rss',                                     n:'Al-Monitor',       cat:'mideast'},
-  {url:'https://english.alarabiya.net/Tools/rss.aspx',                       n:'Al Arabiya',       cat:'mideast'},
-  {url:'https://www.i24news.tv/en/rss',                                      n:'i24 News',         cat:'mideast'},
-  // ── África ──────────────────────────────────────────────
-  {url:'https://www.theafricareport.com/feed/',                              n:'Africa Report',    cat:'africa'},
-  {url:'https://feeds.bbci.co.uk/news/world/africa/rss.xml',                n:'BBC Africa',       cat:'africa'},
-  {url:'https://www.africanews.com/feed/',                                   n:'Africanews',       cat:'africa'},
-  // ── Asia ────────────────────────────────────────────────
-  {url:'https://thediplomat.com/feed/',                                      n:'The Diplomat',     cat:'asia'},
-  {url:'https://www.scmp.com/rss/91/feed',                                   n:'SCMP',             cat:'asia'},
-  {url:'https://www.rfa.org/english/rss2.xml',                               n:'Radio Free Asia',  cat:'asia'},
-  // ── Agencias globales ───────────────────────────────────
-  {url:'https://feeds.reuters.com/reuters/worldNews',                        n:'Reuters',          cat:'general'},
-  {url:'https://www.aljazeera.com/xml/rss/all.xml',                          n:'Al Jazeera',       cat:'general'},
-  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',                       n:'BBC World',        cat:'general'},
-  {url:'https://rss.dw.com/rdf/rss-en-world',                               n:'DW',               cat:'general'},
-  {url:'https://www.france24.com/en/rss',                                    n:'France 24',        cat:'general'},
-  {url:'https://www.voanews.com/api/epiqq',                                  n:'VOA',              cat:'general'},
-  // ── Humanitario & OSINT ─────────────────────────────────
-  {url:'https://reliefweb.int/updates/rss.xml',                              n:'ReliefWeb',        cat:'general'},
+  // ── Think tanks ────────────────────────────────────
+  {url:'https://www.understandingwar.org/feed',                 n:'ISW',              cat:'ukraine'},
+  {url:'https://www.crisisgroup.org/rss.xml',                   n:'Crisis Group',     cat:'general'},
+  {url:'https://warontherocks.com/feed/',                       n:'War on the Rocks', cat:'general'},
+  {url:'https://foreignpolicy.com/feed/',                       n:'Foreign Policy',   cat:'general'},
+  {url:'https://www.chathamhouse.org/rss.xml',                  n:'Chatham House',    cat:'general'},
+  {url:'https://www.rand.org/pubs/rss/all.xml',                 n:'RAND',             cat:'general'},
+  // ── Defensa ─────────────────────────────────────────
+  {url:'https://breakingdefense.com/feed/',                     n:'Breaking Defense', cat:'general'},
+  {url:'https://thewarzone.com/feed/',                          n:'The War Zone',     cat:'general'},
+  {url:'https://www.defensenews.com/rss/',                      n:'Defense News',     cat:'general'},
+  // ── Ucrania ─────────────────────────────────────────
+  {url:'https://kyivindependent.com/rss/',                      n:'Kyiv Independent', cat:'ukraine'},
+  {url:'https://meduza.io/rss/en/all',                          n:'Meduza',           cat:'ukraine'},
+  {url:'https://euromaidanpress.com/feed/',                     n:'Euromaidan Press', cat:'ukraine'},
+  // ── Oriente Medio ───────────────────────────────────
+  {url:'https://www.timesofisrael.com/feed/',                   n:'Times of Israel',  cat:'mideast'},
+  {url:'https://www.middleeasteye.net/rss',                     n:'Middle East Eye',  cat:'mideast'},
+  {url:'https://www.al-monitor.com/rss',                        n:'Al-Monitor',       cat:'mideast'},
+  // ── África / Asia ───────────────────────────────────
+  {url:'https://www.theafricareport.com/feed/',                 n:'Africa Report',    cat:'africa'},
+  {url:'https://thediplomat.com/feed/',                         n:'The Diplomat',     cat:'asia'},
+  {url:'https://www.rfa.org/english/rss2.xml',                  n:'Radio Free Asia',  cat:'asia'},
+  // ── Agencias ────────────────────────────────────────
+  {url:'https://feeds.reuters.com/reuters/worldNews',           n:'Reuters',          cat:'general'},
+  {url:'https://www.aljazeera.com/xml/rss/all.xml',             n:'Al Jazeera',       cat:'general'},
+  {url:'https://feeds.bbci.co.uk/news/world/rss.xml',           n:'BBC World',        cat:'general'},
+  {url:'https://www.france24.com/en/rss',                       n:'France 24',        cat:'general'},
+  // ── Humanitario ─────────────────────────────────────
+  {url:'https://reliefweb.int/updates/rss.xml',                 n:'ReliefWeb',        cat:'general'},
   {url:'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml', n:'UN Peace', cat:'general'},
-  {url:'https://acleddata.com/feed/',                                        n:'ACLED',            cat:'general'},
-  // ── En español ──────────────────────────────────────────
-  {url:'https://infodefensa.com/feed/',                                      n:'Infodefensa',      cat:'general'},
-  {url:'https://elordenmundial.com/feed/',                                   n:'El Orden Mundial', cat:'general'},
 ];
 
 // OSINT — feeds especializados distintos de MEDIA_SOURCES
@@ -781,7 +762,6 @@ const OSINT_SOURCES = [
   // ── Ucrania OSINT ────────────────────────────────────────
   {url:'https://ukraine.liveuamap.com/rss',                          n:'LiveUAMap',          cat:'ukraine'},
   {url:'https://ukrainetoday.org/feed/',                             n:'Ukraine Today',      cat:'ukraine'},
-  {url:'https://armyinform.com.ua/feed/',                            n:'Army Inform',        cat:'ukraine'},
   // ── Oriente Medio OSINT ──────────────────────────────────
   {url:'https://www.jpost.com/Rss/RssFeedsHeadlines.aspx',          n:'Jerusalem Post',     cat:'mideast'},
   {url:'https://www.haaretz.com/cmlink/1.628765',                    n:'Haaretz',            cat:'mideast'},
@@ -813,17 +793,6 @@ const GDELT_QUERIES = [
 
 // ── Twitter/X via rsshub.app (free, no login) ───────────────────────────
 // rsshub mirrors public Twitter timelines as RSS (rate-limited but functional)
-const TWITTER_SOURCES = [
-  {url:'https://rsshub.app/twitter/list/1579547289395265542', n:'Lista Geopolítica X', cat:'general'},
-  {url:'https://rsshub.app/twitter/user/Tomi_Oladipo',        n:'Tomi Oladipo (BBC)', cat:'africa'},
-  {url:'https://rsshub.app/twitter/user/RALee85',             n:'Rob Lee (ISW)',       cat:'ukraine'},
-  {url:'https://rsshub.app/twitter/user/oryxspioenkop',       n:'Oryx (equip.)',      cat:'ukraine'},
-  {url:'https://rsshub.app/twitter/user/OsintUkraine',        n:'Osint Ukraine',      cat:'ukraine'},
-  {url:'https://rsshub.app/twitter/user/Terror_Monitor',      n:'Terror Monitor',     cat:'mideast'},
-  {url:'https://rsshub.app/twitter/user/GeoConfirmed',        n:'GeoConfirmed',       cat:'general'},
-  {url:'https://rsshub.app/twitter/user/IntelCrab',           n:'Intel Crab',         cat:'general'},
-];
-
 
 // ─── GDELT DOC API loader ────────────────────────────────────────────────
 let gdeltCache = {ts:0, data:[]};
@@ -916,34 +885,37 @@ async function pool(tasks, n=6){
 // Fetch a single RSS — tries Worker first, then direct, then proxies
 // No simultaneous race: sequential so we don't hammer proxies needlessly
 async function fetchRSS(url){
-  const TIMEOUT = 6000;
+  const TO = 4000;
   const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
+  const ctrl = new AbortController();
+  const sig  = ctrl.signal;
+  const kill = setTimeout(() => ctrl.abort(), TO + 500);
 
-  // 1. Worker (cached, best)
-  try{
-    const r = await fetch(WORKER+'/rss?url='+encodeURIComponent(url), {signal:AbortSignal.timeout(TIMEOUT)});
-    if(r.ok){ const x=await r.text(); if(isRSS(x)) return x; }
-  }catch(e){}
-
-  // 2. Direct (works for CORS-open sources)
-  try{
-    const r = await fetch(url, {signal:AbortSignal.timeout(TIMEOUT)});
-    if(r.ok){ const x=await r.text(); if(isRSS(x)) return x; }
-  }catch(e){}
-
-  // 3. allorigins
-  try{
-    const r = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url), {signal:AbortSignal.timeout(TIMEOUT)});
-    if(r.ok){ const j=await r.json(); if(isRSS(j.contents)) return j.contents; }
-  }catch(e){}
-
-  // 4. corsproxy
-  try{
-    const r = await fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:AbortSignal.timeout(TIMEOUT)});
-    if(r.ok){ const x=await r.text(); if(isRSS(x)) return x; }
-  }catch(e){}
-
-  return null;
+  try {
+    const txt = await Promise.any([
+      // 1. Worker (best — cached, no CORS)
+      fetch(WORKER+'/rss?url='+encodeURIComponent(url), {signal:sig})
+        .then(r => { if(!r.ok) throw 0; return r.text(); })
+        .then(x => { if(!isRSS(x)) throw 0; return x; }),
+      // 2. Direct (fast for CORS-open feeds)
+      fetch(url, {signal:sig})
+        .then(r => { if(!r.ok) throw 0; return r.text(); })
+        .then(x => { if(!isRSS(x)) throw 0; return x; }),
+      // 3. allorigins proxy
+      fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url), {signal:sig})
+        .then(r => { if(!r.ok) throw 0; return r.json(); })
+        .then(j => { if(!isRSS(j.contents)) throw 0; return j.contents; }),
+      // 4. corsproxy.io
+      fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:sig})
+        .then(r => { if(!r.ok) throw 0; return r.text(); })
+        .then(x => { if(!isRSS(x)) throw 0; return x; }),
+    ]);
+    clearTimeout(kill); ctrl.abort();
+    return txt;
+  } catch(e) {
+    clearTimeout(kill);
+    return null;
+  }
 }
 
 async function fetchTG(ch){
@@ -1116,7 +1088,7 @@ async function loadMedia(){
     if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
     done++;
     progSet(Math.round((done/srcs.length)*50));
-  }),5);
+  }),10);
   sortByDate(all);
   if(!all.length){
     if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
@@ -1148,7 +1120,7 @@ async function loadOSINT(){
     if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>{i.type='osint';all.push(i);});
     done++;
     progSet(50+Math.round((done/OSINT_SOURCES.length)*50));
-  }),5);
+  }),10);
   sortByDate(all);
   if(!all.length&&isFirst){
     document.getElementById('feed-osint').innerHTML='<div class="fstatus">Sin datos OSINT disponibles.</div>';
@@ -1169,21 +1141,6 @@ async function loadOSINT(){
 }
 
 // Load Twitter/X via RSSHub — silently merges into OSINT
-async function loadTwitterOSINT(){
-  const all=[];
-  await pool(TWITTER_SOURCES.map(src=>async()=>{
-    const xml=await fetchRSS(src.url); if(!xml) return;
-    parseRSS(xml,src.n,src.cat).forEach(i=>{i.type='twitter';all.push(i);});
-  }),3);
-  if(!all.length) return;
-  sortByDate(all);
-  const seen=new Set(osintCache.data.map(i=>i.link||i.title));
-  const fresh=all.filter(i=>!seen.has(i.link||i.title));
-  fresh.forEach(i=>i._new=true);
-  osintCache={ts:Date.now(),data:sortByDate([...fresh,...osintCache.data]).slice(0,400)};
-  if(fresh.length) prependNew(fresh,'feed-osint');
-  const e=document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
-}
 
 // ═══════════════════════════════════════════════════════════
 // BREAKING BAR
@@ -1227,13 +1184,12 @@ async function refreshAll(){
   mediaCache={ts:0,data:[]};
   osintCache={ts:0,data:[]};
   gdeltCache={ts:0,data:[]};
-  twitterCache={ts:0,data:[]};
   brkLoaded=false;
   const _fm=document.getElementById('feed-media');
   const _fo=document.getElementById('feed-osint');
   // Keep existing items visible during refresh — no blanking, no flash
   try{
-    await Promise.all([loadMedia(),loadOSINT(),loadTwitterFeed()]);
+    await Promise.all([loadMedia(),loadOSINT()]);
     setLastUpdated();
     // feeds already updated in place by loadMedia/loadOSINT
     loadBreakingBar();
@@ -1328,78 +1284,10 @@ function renderSaved(){
 // ═══════════════════════════════════════════════════════════
 // TWITTER — RSSHub feed (same engine as OSINT)
 // ═══════════════════════════════════════════════════════════
-let twitterCache = {ts:0, data:[]};
-let activeCatTwitter = 'all';
 
-async function loadTwitterFeed(){
-  colStatus('twitter','loading');
-  const all = [];
-  const isFirst = !twitterCache.data.length;
-  await pool(TWITTER_SOURCES.map(src => async () => {
-    const xml = await fetchRSS(src.url); if(!xml) return;
-    parseRSS(xml, src.n, src.cat).forEach(i => { i.type='twitter'; all.push(i); });
-  }), 4);
-  sortByDate(all);
-  if(!all.length){
-    if(isFirst) document.getElementById('feed-twitter').innerHTML =
-      '<div class="fstatus">RSSHub no responde. Intenta de nuevo más tarde.</div>';
-    colStatus('twitter','err'); return;
-  }
-  if(isFirst){
-    twitterCache = {ts:Date.now(), data:all};
-    renderFeedTw(all);
-  } else {
-    const {merged, newCount} = merge(twitterCache.data, all);
-    twitterCache = {ts:Date.now(), data:merged};
-    if(newCount) prependNewTw(merged.slice(0, newCount));
-    else renderFeedTw(merged);
-  }
-  const e = document.getElementById('ft-twitter'); if(e) e.textContent = twitterCache.data.length;
-  colStatus('twitter','ok', twitterCache.data.length+' tweets');
-}
 
-function renderFeedTw(items){
-  const el = document.getElementById('feed-twitter'); if(!el) return;
-  let filtered = items;
-  if(activeCatTwitter !== 'all')
-    filtered = items.filter(i => (i.cat||'')==activeCatTwitter || (KEYWORDS[activeCatTwitter]&&KEYWORDS[activeCatTwitter].test(i.title)));
-  if(!filtered.length){ el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return; }
-  const scrollTop = el.scrollTop;
-  const frag = document.createDocumentFragment();
-  filtered.forEach(item => {
-    const d = document.createElement('div');
-    d.innerHTML = itemHTML(item);
-    if(d.firstChild) frag.appendChild(d.firstChild);
-  });
-  el.innerHTML = '';
-  el.appendChild(frag);
-  el.scrollTop = scrollTop;
-}
 
-function prependNewTw(items){
-  const el = document.getElementById('feed-twitter'); if(!el||!items.length) return;
-  const ob = el.querySelector('.nbadge'); if(ob) ob.remove();
-  const badge = document.createElement('div');
-  badge.className = 'nbadge';
-  badge.innerHTML = `<span class="npip"></span>+${items.length} nuevos`;
-  badge.onclick = ()=>badge.remove();
-  setTimeout(()=>{ if(badge.parentNode) badge.remove(); }, 8000);
-  el.insertBefore(badge, el.firstChild);
-  const frag = document.createDocumentFragment();
-  items.forEach((item,ix)=>{
-    const d = document.createElement('div'); d.innerHTML=itemHTML(item);
-    const node=d.firstChild; if(!node) return;
-    node.style.animationDelay=(ix*.04)+'s'; frag.appendChild(node);
-  });
-  el.insertBefore(frag, badge.nextSibling);
-}
 
-function filterFeedTw(f, btn){
-  activeCatTwitter = f;
-  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderFeedTw(twitterCache.data);
-}
 
 
 function filterFeed(f, btn, which){
@@ -1471,6 +1359,13 @@ function applyAccent(v, dot){
   if(dot) dot.classList.add('on');
 }
 function toggleTheme(){
+  // Update Twitter embed theme
+  const twa = document.querySelector('.twitter-timeline');
+  if(twa && window.twttr?.widgets){
+    const newTheme = document.body.classList.contains('light') ? 'dark' : 'light';
+    twa.setAttribute('data-theme', newTheme);
+    window.twttr.widgets.load(twa.parentElement);
+  }
   document.body.classList.toggle('light');
   const isLight = document.body.classList.contains('light');
   const btn = document.getElementById('theme-btn');
@@ -1562,7 +1457,6 @@ function init(){
     setLastUpdated();
     setTimeout(loadBreakingBar, 300);
     setTimeout(loadGDELT,       800);
-    setTimeout(loadTwitterFeed, 600);
     setTimeout(loadOREF,       1200);
   }, 300);
 
@@ -1570,7 +1464,6 @@ function init(){
   startAutoRefresh();
   setInterval(loadOREF,       15000);
   setInterval(loadGDELT, 15*60*1000);
-  setInterval(loadTwitterFeed,  10*60*1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
