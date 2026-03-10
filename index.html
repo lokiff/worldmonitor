@@ -508,7 +508,6 @@ select.sp-input{cursor:pointer;}
   .fbtn{font-size:10px;padding:2px 8px;}
 }
 </style>
-<script async src="https://platform.twitter.com/widgets.js" id="twitter-wjs"></script>
 </head>
 <body>
 
@@ -932,22 +931,43 @@ async function fetchTG(ch){
 // ═══════════════════════════════════════════════════════════
 function parseRSS(xml, src, cat){
   const items = [];
-  const get = (b,tag) => { const m=b.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`,'i')); return m?m[1].replace(/<[^>]+>/g,'').trim():''; };
+
+  // Extract text from a tag — strips all HTML, CDATA, entities
+  const get = (b, tag) => {
+    const m = b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+    if(!m) return '';
+    return m[1]
+      .replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '') // CDATA
+      .replace(/<[^>]+>/g, ' ')                            // strip tags
+      .replace(/&lt;[^&]*&gt;/g, '')                       // encoded tags
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
+      .replace(/\s+/g, ' ').trim();
+  };
+
+  // Clean desc — remove any remaining html-like junk, truncate cleanly
+  const cleanDesc = raw => {
+    if(!raw) return '';
+    // Strip anything that looks like html attribute junk
+    let s = raw.replace(/\w+=["'][^"']*["']/g, '').replace(/\s+/g,' ').trim();
+    if(s.length < 20) return ''; // too short to be useful
+    return s.slice(0, 160);
+  };
+
   let re = /<item[^>]*>([\s\S]*?)<\/item>/gi, m;
   while((m=re.exec(xml))!==null){
-    const b=m[1], title=get(b,'title').slice(0,200); if(!title) continue;
+    const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
     const link=get(b,'link')||get(b,'guid');
     const pubDate=get(b,'pubDate')||get(b,'dc:date')||new Date().toUTCString();
-    const desc=get(b,'description').replace(/\s+/g,' ').slice(0,200);
+    const desc=cleanDesc(get(b,'description'));
     items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
   }
   if(!items.length){
     re = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
     while((m=re.exec(xml))!==null){
-      const b=m[1], title=get(b,'title').slice(0,200); if(!title) continue;
+      const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
       const link=(b.match(/<link[^>]+href="([^"]+)"/)||[])[1]||'';
       const pubDate=get(b,'published')||get(b,'updated')||new Date().toUTCString();
-      const desc=get(b,'summary').replace(/\s+/g,' ').slice(0,200);
+      const desc=cleanDesc(get(b,'summary')||get(b,'content'));
       items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
     }
   }
@@ -997,8 +1017,8 @@ function itemHTML(item){
       ${href?`<button class="ibtn" onclick="event.stopPropagation();saveItem(${si})" title="Guardar">🔖</button>`:''}
     </div>
   </div>
-  <div class="ftitle">${item.title}</div>
-  ${item.desc&&item.desc!==item.title?`<div class="fdesc">${item.desc}</div>`:''}
+  <div class="ftitle">${item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  ${item.desc?`<div class="fdesc">${item.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
   </div>`;
 }
 
@@ -1359,13 +1379,6 @@ function applyAccent(v, dot){
   if(dot) dot.classList.add('on');
 }
 function toggleTheme(){
-  // Update Twitter embed theme
-  const twa = document.querySelector('.twitter-timeline');
-  if(twa && window.twttr?.widgets){
-    const newTheme = document.body.classList.contains('light') ? 'dark' : 'light';
-    twa.setAttribute('data-theme', newTheme);
-    window.twttr.widgets.load(twa.parentElement);
-  }
   document.body.classList.toggle('light');
   const isLight = document.body.classList.contains('light');
   const btn = document.getElementById('theme-btn');
@@ -1444,9 +1457,30 @@ function startClock(){
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
+function _loadTwitterWidget(){
+  // Apply correct theme to the static <a> before widgets.js runs
+  const a = document.querySelector('a.twitter-timeline');
+  if(a){
+    const theme = localStorage.getItem('ct_theme')==='light' ? 'light' : 'dark';
+    a.setAttribute('data-theme', theme);
+  }
+  // Load widgets.js AFTER the <a> is confirmed in DOM
+  const s = document.createElement('script');
+  s.src = 'https://platform.twitter.com/widgets.js';
+  s.async = true;
+  s.charset = 'utf-8';
+  s.onload = () => {
+    if(window.twttr && window.twttr.widgets){
+      window.twttr.widgets.load();
+    }
+  };
+  document.body.appendChild(s);
+}
+
 function init(){
   loadPrefs();
   startClock();
+  _loadTwitterWidget();
   renderSaved();
   renderCustomList();
 
