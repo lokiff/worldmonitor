@@ -602,10 +602,19 @@ select.sp-input{cursor:pointer;}
         <div class="col-hdr">
           <span class="col-title" style="display:flex;align-items:center;gap:6px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:#1d9bf0;flex-shrink:0;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            Lista Geopolítica
+            𝕏 / Twitter
           </span>
+          <span class="col-badge" id="ft-twitter" style="margin-left:auto;"></span>
+          <span class="col-status" id="cs-twitter"></span>
         </div>
-        <div id="twitter-panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;"></div>
+        <div class="filters" id="filters-twitter">
+          <button class="fbtn on" onclick="filterFeedTw('all',this)">Todo</button>
+          <button class="fbtn"    onclick="filterFeedTw('ukraine',this)">Ucrania</button>
+          <button class="fbtn"    onclick="filterFeedTw('mideast',this)">M.Este</button>
+          <button class="fbtn"    onclick="filterFeedTw('africa',this)">África</button>
+          <button class="fbtn"    onclick="filterFeedTw('general',this)">OSINT</button>
+        </div>
+        <div class="feed" id="feed-twitter"><div class="fstatus"><span class="spin"></span>Cargando feeds X...</div></div>
       </div>
 
     </div><!-- /columns -->
@@ -1218,12 +1227,13 @@ async function refreshAll(){
   mediaCache={ts:0,data:[]};
   osintCache={ts:0,data:[]};
   gdeltCache={ts:0,data:[]};
+  twitterCache={ts:0,data:[]};
   brkLoaded=false;
   const _fm=document.getElementById('feed-media');
   const _fo=document.getElementById('feed-osint');
   // Keep existing items visible during refresh — no blanking, no flash
   try{
-    await Promise.all([loadMedia(),loadOSINT()]);
+    await Promise.all([loadMedia(),loadOSINT(),loadTwitterFeed()]);
     setLastUpdated();
     // feeds already updated in place by loadMedia/loadOSINT
     loadBreakingBar();
@@ -1315,68 +1325,81 @@ function renderSaved(){
 // FILTER FEEDS
 // ═══════════════════════════════════════════════════════════
 
-function initTwitter(){
-  const panel = document.getElementById('twitter-panel');
-  if(!panel || panel.dataset.loaded) return;
-  panel.dataset.loaded = '1';
-  const theme = document.body.classList.contains('light') ? 'light' : 'dark';
+// ═══════════════════════════════════════════════════════════
+// TWITTER — RSSHub feed (same engine as OSINT)
+// ═══════════════════════════════════════════════════════════
+let twitterCache = {ts:0, data:[]};
+let activeCatTwitter = 'all';
 
-  panel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;';
-  panel.innerHTML = '';
-
-  // Use the exact iframe URL that Twitter's publish.twitter.com tool generates.
-  // This is what every embedded Twitter list actually resolves to — it works even
-  // without widgets.js and without third-party cookies in most browsers.
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://platform.twitter.com/embed/index.html'
-    + '?dnt=false'
-    + '&embedId=twitter-widget-0'
-    + '&frame=false'
-    + '&hideCard=false'
-    + '&hideThread=false'
-    + '&id=1579547289395265542'
-    + '&lang=en'
-    + '&origin=' + encodeURIComponent(location.href)
-    + '&theme=' + theme
-    + '&widgetsVersion=2615f7e52b7e0%3A1702314776716'
-    + '&width=520px';
-  iframe.setAttribute('allowfullscreen', 'true');
-  iframe.setAttribute('scrolling', 'yes');
-  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;display:block;';
-  iframe.title = 'Lista Geopolítica X';
-
-  // Try the proper embed URL — same origin as what widgets.js creates
-  // Fallback if it errors: show the syndication timeline
-  iframe.onerror = () => tryFallbackTwitter(panel, theme);
-
-  panel.appendChild(iframe);
-
-  // If no content after 8s, try fallback syndication URL
-  setTimeout(() => {
-    try {
-      if(!iframe.contentDocument?.body?.children?.length){
-        tryFallbackTwitter(panel, theme);
-      }
-    } catch(e) {
-      // cross-origin — means it loaded fine (can't access cross-origin body)
-    }
-  }, 8000);
+async function loadTwitterFeed(){
+  colStatus('twitter','loading');
+  const all = [];
+  const isFirst = !twitterCache.data.length;
+  await pool(TWITTER_SOURCES.map(src => async () => {
+    const xml = await fetchRSS(src.url); if(!xml) return;
+    parseRSS(xml, src.n, src.cat).forEach(i => { i.type='twitter'; all.push(i); });
+  }), 4);
+  sortByDate(all);
+  if(!all.length){
+    if(isFirst) document.getElementById('feed-twitter').innerHTML =
+      '<div class="fstatus">RSSHub no responde. Intenta de nuevo más tarde.</div>';
+    colStatus('twitter','err'); return;
+  }
+  if(isFirst){
+    twitterCache = {ts:Date.now(), data:all};
+    renderFeedTw(all);
+  } else {
+    const {merged, newCount} = merge(twitterCache.data, all);
+    twitterCache = {ts:Date.now(), data:merged};
+    if(newCount) prependNewTw(merged.slice(0, newCount));
+    else renderFeedTw(merged);
+  }
+  const e = document.getElementById('ft-twitter'); if(e) e.textContent = twitterCache.data.length;
+  colStatus('twitter','ok', twitterCache.data.length+' tweets');
 }
 
-function tryFallbackTwitter(panel, theme){
-  panel.innerHTML = '';
-  // Syndication URL — the actual iframe src that publish.twitter.com resolves to
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://syndication.twitter.com/srv/timeline-list/id/1579547289395265542'
-    + '?dnt=true'
-    + '&theme=' + theme
-    + '&lang=en';
-  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;display:block;';
-  iframe.setAttribute('scrolling', 'yes');
-  iframe.title = 'Lista Geopolítica X';
-  panel.appendChild(iframe);
+function renderFeedTw(items){
+  const el = document.getElementById('feed-twitter'); if(!el) return;
+  let filtered = items;
+  if(activeCatTwitter !== 'all')
+    filtered = items.filter(i => (i.cat||'')==activeCatTwitter || (KEYWORDS[activeCatTwitter]&&KEYWORDS[activeCatTwitter].test(i.title)));
+  if(!filtered.length){ el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return; }
+  const scrollTop = el.scrollTop;
+  const frag = document.createDocumentFragment();
+  filtered.forEach(item => {
+    const d = document.createElement('div');
+    d.innerHTML = itemHTML(item);
+    if(d.firstChild) frag.appendChild(d.firstChild);
+  });
+  el.innerHTML = '';
+  el.appendChild(frag);
+  el.scrollTop = scrollTop;
 }
 
+function prependNewTw(items){
+  const el = document.getElementById('feed-twitter'); if(!el||!items.length) return;
+  const ob = el.querySelector('.nbadge'); if(ob) ob.remove();
+  const badge = document.createElement('div');
+  badge.className = 'nbadge';
+  badge.innerHTML = `<span class="npip"></span>+${items.length} nuevos`;
+  badge.onclick = ()=>badge.remove();
+  setTimeout(()=>{ if(badge.parentNode) badge.remove(); }, 8000);
+  el.insertBefore(badge, el.firstChild);
+  const frag = document.createDocumentFragment();
+  items.forEach((item,ix)=>{
+    const d = document.createElement('div'); d.innerHTML=itemHTML(item);
+    const node=d.firstChild; if(!node) return;
+    node.style.animationDelay=(ix*.04)+'s'; frag.appendChild(node);
+  });
+  el.insertBefore(frag, badge.nextSibling);
+}
+
+function filterFeedTw(f, btn){
+  activeCatTwitter = f;
+  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFeedTw(twitterCache.data);
+}
 
 
 function filterFeed(f, btn, which){
@@ -1539,7 +1562,7 @@ function init(){
     setLastUpdated();
     setTimeout(loadBreakingBar, 300);
     setTimeout(loadGDELT,       800);
-    setTimeout(initTwitter,     500);
+    setTimeout(loadTwitterFeed, 600);
     setTimeout(loadOREF,       1200);
   }, 300);
 
@@ -1547,7 +1570,7 @@ function init(){
   startAutoRefresh();
   setInterval(loadOREF,       15000);
   setInterval(loadGDELT, 15*60*1000);
-  setInterval(loadTwitterOSINT, 10*60*1000);
+  setInterval(loadTwitterFeed,  10*60*1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
