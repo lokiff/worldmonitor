@@ -581,10 +581,23 @@ select.sp-input{cursor:pointer;}
           <button class="fbtn"    onclick="filterFeed('mideast',this,'osint')">M.Este</button>
           <button class="fbtn"    onclick="filterFeed('africa',this,'osint')">África</button>
           <button class="fbtn"    onclick="filterFeed('asia',this,'osint')">Asia</button>
-          <button class="fbtn"    onclick="showPoly(this)" id="fbtn-poly">📈 Markets</button>
         </div>
         <div class="feed" id="feed-osint"><div class="fstatus"><span class="spin"></span>Conectando canales...</div></div>
-        <div class="feed" id="poly-feed" style="display:none;"></div>
+      </div>
+
+      <!-- TWITTER / X -->
+      <div class="col" id="col-twitter">
+        <div class="col-hdr">
+          <span class="col-title" style="display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:#1d9bf0;flex-shrink:0;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            Lista Geopolítica
+          </span>
+        </div>
+        <div id="twitter-panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+          <div class="fstatus" id="tw-placeholder">
+            <span class="spin"></span>Cargando feed X...
+          </div>
+        </div>
       </div>
 
     </div><!-- /columns -->
@@ -794,48 +807,6 @@ const TWITTER_SOURCES = [
   {url:'https://rsshub.app/twitter/user/IntelCrab',           n:'Intel Crab',         cat:'general'},
 ];
 
-// ─── Polymarket markets (geopolitical) ──────────────────────────────────
-// Direct browser fetch bypasses Cloudflare JA3 blocking
-const POLY_TAGS  = ['ukraine','iran','taiwan','russia','china','war','elections'];
-let   polyCache  = {ts:0, markets:[]};
-
-async function loadPolymarket(){
-  // Only refresh every 10 min
-  if(polyCache.ts && Date.now()-polyCache.ts < 10*60*1000) return renderPolymarket();
-  try{
-    // Browser-direct (bypasses Cloudflare)
-    const tag = POLY_TAGS[Math.floor(Math.random()*POLY_TAGS.length)];
-    const r = await fetch(
-      `https://gamma-api.polymarket.com/markets?tag=${tag}&closed=false&limit=20&order=volume24hr&ascending=false`,
-      {signal:AbortSignal.timeout(8000)}
-    );
-    if(!r.ok) throw 0;
-    const d = await r.json();
-    polyCache = {ts:Date.now(), markets:d.filter(m=>m.volume>10000).slice(0,10)};
-    renderPolymarket();
-  }catch(e){}
-}
-
-function renderPolymarket(){
-  const el = document.getElementById('poly-feed'); if(!el) return;
-  if(!polyCache.markets.length){
-    el.innerHTML='<div class="fstatus">Sin datos Polymarket.</div>'; return;
-  }
-  el.innerHTML = polyCache.markets.map(m => {
-    const yes = m.outcomePrices ? parseFloat(JSON.parse(m.outcomePrices)[0])*100 : null;
-    const pct = yes!==null ? yes.toFixed(0)+'%' : '—';
-    const col = yes>70?'var(--red)':yes>40?'var(--amber)':'var(--green)';
-    const href = 'https://polymarket.com/event/'+(m.slug||m.id||'');
-    return `<div class="fitem" onclick="window.open('${href}','_blank')">
-      <div class="ftop">
-        <span class="ftag tag-p">POLY</span>
-        <span class="fsrc">Vol: $${Math.round((m.volume||0)/1000)}K</span>
-        <span class="ftime" style="color:${col};font-weight:600;">${pct} SÍ</span>
-      </div>
-      <div class="ftitle">${m.question}</div>
-    </div>`;
-  }).join('');
-}
 
 // ─── GDELT DOC API loader ────────────────────────────────────────────────
 let gdeltCache = {ts:0, data:[]};
@@ -1235,17 +1206,27 @@ function renderSaved(){
 // ═══════════════════════════════════════════════════════════
 // FILTER FEEDS
 // ═══════════════════════════════════════════════════════════
-function showPoly(btn){
-  document.getElementById('feed-osint').style.display='none';
-  document.getElementById('poly-feed').style.display='';
-  document.querySelectorAll('#filters-osint .fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  loadPolymarket();
+
+function initTwitter(){
+  const panel = document.getElementById('twitter-panel');
+  if(!panel || panel.dataset.loaded) return;
+  panel.dataset.loaded = '1';
+  const theme = document.body.classList.contains('light') ? 'light' : 'dark';
+  panel.innerHTML = `
+    <a class="twitter-timeline"
+       href="https://twitter.com/i/lists/1579547289395265542"
+       data-theme="${theme}"
+       data-chrome="noheader nofooter transparent noborders"
+       data-tweet-limit="50"
+       style="width:100%;height:100%;">
+    </a>
+    <script async src="https://platform.twitter.com/widgets.js"><\/script>`;
 }
+
+
 function filterFeed(f, btn, which){
-  // Hide poly if switching back to feeds
-  const pf=document.getElementById('poly-feed'); if(pf) pf.style.display='none';
-  const fo=document.getElementById('feed-osint'); if(fo) fo.style.display='';
+
+
   if(which==='media') activeCatMedia=f; else activeCatOsint=f;
   btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
@@ -1399,14 +1380,13 @@ function init(){
   setTimeout(loadMedia,    200);
   setTimeout(loadOSINT,    800);
   setTimeout(loadOREF,    1400);
+  setTimeout(initTwitter,  600);
   setTimeout(loadBreakingBar, 1800);
   setTimeout(loadTwitterOSINT, 3000);
   setTimeout(loadGDELT, 4000);
-  setTimeout(loadPolymarket, 5000);
   setInterval(loadBreakingBar,  5*60*1000);
   setInterval(loadTwitterOSINT,10*60*1000);
   setInterval(loadGDELT,       15*60*1000);
-  setInterval(loadPolymarket,  10*60*1000);
   setInterval(loadOREF, 15000);
 }
 
