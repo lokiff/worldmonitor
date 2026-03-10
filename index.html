@@ -593,11 +593,7 @@ select.sp-input{cursor:pointer;}
             Lista Geopolítica
           </span>
         </div>
-        <div id="twitter-panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
-          <div class="fstatus" id="tw-placeholder">
-            <span class="spin"></span>Cargando feed X...
-          </div>
-        </div>
+        <div id="twitter-panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;"></div>
       </div>
 
     </div><!-- /columns -->
@@ -1212,15 +1208,68 @@ function initTwitter(){
   if(!panel || panel.dataset.loaded) return;
   panel.dataset.loaded = '1';
   const theme = document.body.classList.contains('light') ? 'light' : 'dark';
-  panel.innerHTML = `
-    <a class="twitter-timeline"
-       href="https://twitter.com/i/lists/1579547289395265542"
-       data-theme="${theme}"
-       data-chrome="noheader nofooter transparent noborders"
-       data-tweet-limit="50"
-       style="width:100%;height:100%;">
-    </a>
-    <script async src="https://platform.twitter.com/widgets.js"><\/script>`;
+
+  // Use iframe embed directly — most reliable method
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://syndication.twitter.com/srv/timeline-profile/screen-name/i/lists/1579547289395265542?creatorScreenName=&dnt=true&embedId=twitter-widget-0&features=eyJ0ZndfdHdlZXRfZWRpdF9iYWNrZW5kIjp7ImJ1Y2tldCI6Im9uIiwidmVyc2lvbiI6bnVsbH19&frame=false&hideBorder=false&hideFooter=false&hideHeader=false&hideScrollBar=false&lang=en&maxHeight=100%25&origin=https%3A%2F%2Fwww.pizzint.watch%2F&sessionId=x&showHeader=true&showReplies=false&theme=${theme}&transparent=false&widgetsVersion=2615f7e52b7e0%3A1702314776716`;
+  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;';
+  iframe.setAttribute('scrolling', 'yes');
+  iframe.setAttribute('allowfullscreen', 'true');
+  iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation');
+
+  // Fallback if iframe blocks
+  iframe.onerror = () => showTwitterFallback(panel, theme);
+
+  // Also try official widget as primary, iframe as backup
+  panel.innerHTML = '';
+  panel.style.cssText = 'flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;';
+
+  // Method 1: official widgets.js (best quality)
+  const anchor = document.createElement('a');
+  anchor.className = 'twitter-timeline';
+  anchor.href = 'https://twitter.com/i/lists/1579547289395265542';
+  anchor.setAttribute('data-theme', theme);
+  anchor.setAttribute('data-chrome', 'noheader nofooter noborders');
+  anchor.setAttribute('data-height', '9999');
+  anchor.setAttribute('data-dnt', 'true');
+  anchor.textContent = 'Lista Geopolítica X';
+  anchor.style.cssText = 'width:100%;flex:1;';
+  panel.appendChild(anchor);
+
+  // Load widgets.js properly as a real script element
+  const existing = document.getElementById('twitter-wjs');
+  if(existing) {
+    // Already loaded — just re-render
+    if(window.twttr?.widgets) window.twttr.widgets.load(panel);
+  } else {
+    const script = document.createElement('script');
+    script.id  = 'twitter-wjs';
+    script.src = 'https://platform.twitter.com/widgets.js';
+    script.async = true;
+    script.onload = () => { if(window.twttr?.widgets) window.twttr.widgets.load(panel); };
+    // Timeout fallback — if widgets.js doesn't render in 8s, use iframe
+    const to = setTimeout(() => {
+      const rendered = panel.querySelector('iframe');
+      if(!rendered) showTwitterFallback(panel, theme);
+    }, 8000);
+    script.onload = () => {
+      clearTimeout(to);
+      if(window.twttr?.widgets) window.twttr.widgets.load(panel);
+    };
+    document.head.appendChild(script);
+  }
+}
+
+function showTwitterFallback(panel, theme){
+  // Direct syndication iframe — same as what Twitter embeds resolve to
+  panel.innerHTML = '';
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://syndication.twitter.com/srv/timeline-list/id/1579547289395265542?dnt=true&theme=${theme||'dark'}&lang=en`;
+  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;display:block;';
+  iframe.setAttribute('scrolling', 'yes');
+  iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms');
+  panel.style.display = 'flex';
+  panel.appendChild(iframe);
 }
 
 
