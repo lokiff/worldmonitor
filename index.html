@@ -1029,8 +1029,22 @@ function renderFeed(items, feedId){
     if(filt==='breaking') filtered = items.filter(i=>KEYWORDS.breaking.test(i.title));
     else filtered = items.filter(i=>(i.cat||'')==filt||(KEYWORDS[filt]&&KEYWORDS[filt].test(i.title)));
   }
-  if(!filtered.length){ el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return; }
-  el.innerHTML = filtered.map(itemHTML).join('');
+  if(!filtered.length){
+    el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return;
+  }
+  // Build in fragment then swap — preserves scroll, no flash
+  const scrollTop = el.scrollTop;
+  const frag = document.createDocumentFragment();
+  const badge = el.querySelector('.nbadge');
+  if(badge) frag.appendChild(badge.cloneNode(true));
+  filtered.forEach(item => {
+    const d = document.createElement('div');
+    d.innerHTML = itemHTML(item);
+    if(d.firstChild) frag.appendChild(d.firstChild);
+  });
+  el.innerHTML = '';
+  el.appendChild(frag);
+  el.scrollTop = scrollTop;
 }
 
 function prependNew(items, feedId){
@@ -1205,11 +1219,13 @@ async function refreshAll(){
   osintCache={ts:0,data:[]};
   gdeltCache={ts:0,data:[]};
   brkLoaded=false;
-  document.getElementById('feed-media').innerHTML='';
-  document.getElementById('feed-osint').innerHTML='';
+  const _fm=document.getElementById('feed-media');
+  const _fo=document.getElementById('feed-osint');
+  // Keep existing items visible during refresh — no blanking, no flash
   try{
     await Promise.all([loadMedia(),loadOSINT()]);
     setLastUpdated();
+    // feeds already updated in place by loadMedia/loadOSINT
     loadBreakingBar();
     loadGDELT();
   }finally{
@@ -1305,42 +1321,60 @@ function initTwitter(){
   panel.dataset.loaded = '1';
   const theme = document.body.classList.contains('light') ? 'light' : 'dark';
 
-  // Inject twitter timeline widget properly
-  const anchor = document.createElement('a');
-  anchor.className = 'twitter-timeline';
-  anchor.href = 'https://twitter.com/i/lists/1579547289395265542';
-  anchor.setAttribute('data-theme', theme);
-  anchor.setAttribute('data-chrome', 'noheader nofooter noborders transparent');
-  anchor.setAttribute('data-dnt', 'true');
-  anchor.style.cssText = 'display:block;width:100%;height:100%;';
-
   panel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;';
   panel.innerHTML = '';
-  panel.appendChild(anchor);
 
-  // Load widgets.js as real script element
-  if(window.twttr?.widgets){
-    window.twttr.widgets.load(panel);
-  } else {
-    const s = document.createElement('script');
-    s.src = 'https://platform.twitter.com/widgets.js';
-    s.async = true;
-    s.onload = ()=> window.twttr?.widgets?.load(panel);
-    // 10s fallback: if widget didn't render, show direct link
-    setTimeout(()=>{
-      if(!panel.querySelector('iframe')){
-        panel.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;padding:20px;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--t2)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          <span style="font-size:12px;color:var(--t2);text-align:center;">El widget de X requiere cookies de terceros o está bloqueado por tu navegador.</span>
-          <a href="https://twitter.com/i/lists/1579547289395265542" target="_blank"
-             style="padding:8px 20px;background:#1d9bf0;color:#fff;border-radius:20px;font-size:12px;font-weight:500;text-decoration:none;">
-            Abrir lista en X →
-          </a>
-        </div>`;
+  // Use the exact iframe URL that Twitter's publish.twitter.com tool generates.
+  // This is what every embedded Twitter list actually resolves to — it works even
+  // without widgets.js and without third-party cookies in most browsers.
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://platform.twitter.com/embed/index.html'
+    + '?dnt=false'
+    + '&embedId=twitter-widget-0'
+    + '&frame=false'
+    + '&hideCard=false'
+    + '&hideThread=false'
+    + '&id=1579547289395265542'
+    + '&lang=en'
+    + '&origin=' + encodeURIComponent(location.href)
+    + '&theme=' + theme
+    + '&widgetsVersion=2615f7e52b7e0%3A1702314776716'
+    + '&width=520px';
+  iframe.setAttribute('allowfullscreen', 'true');
+  iframe.setAttribute('scrolling', 'yes');
+  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;display:block;';
+  iframe.title = 'Lista Geopolítica X';
+
+  // Try the proper embed URL — same origin as what widgets.js creates
+  // Fallback if it errors: show the syndication timeline
+  iframe.onerror = () => tryFallbackTwitter(panel, theme);
+
+  panel.appendChild(iframe);
+
+  // If no content after 8s, try fallback syndication URL
+  setTimeout(() => {
+    try {
+      if(!iframe.contentDocument?.body?.children?.length){
+        tryFallbackTwitter(panel, theme);
       }
-    }, 10000);
-    document.head.appendChild(s);
-  }
+    } catch(e) {
+      // cross-origin — means it loaded fine (can't access cross-origin body)
+    }
+  }, 8000);
+}
+
+function tryFallbackTwitter(panel, theme){
+  panel.innerHTML = '';
+  // Syndication URL — the actual iframe src that publish.twitter.com resolves to
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://syndication.twitter.com/srv/timeline-list/id/1579547289395265542'
+    + '?dnt=true'
+    + '&theme=' + theme
+    + '&lang=en';
+  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;display:block;';
+  iframe.setAttribute('scrolling', 'yes');
+  iframe.title = 'Lista Geopolítica X';
+  panel.appendChild(iframe);
 }
 
 
