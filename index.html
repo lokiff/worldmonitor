@@ -474,6 +474,15 @@ select.sp-input{cursor:pointer;}
 
 
 /* ══ MAP ════════════════════════════════════════════ */
+/* Stable circle colors via CSS — survives Leaflet SVG re-renders */
+.cm-high   path { stroke:#e8445a!important; fill:#e8445a!important; fill-opacity:.85!important; stroke-width:2!important; }
+.cm-medium path { stroke:#f0a832!important; fill:#f0a832!important; fill-opacity:.75!important; stroke-width:1.5!important; }
+.cm-low    path { stroke:#4d8cf5!important; fill:#4d8cf5!important; fill-opacity:.65!important; stroke-width:1.5!important; }
+.cm-gdelt  path { stroke:#2dd4a0!important; fill:#2dd4a0!important; fill-opacity:.70!important; stroke-width:1.5!important; }
+/* Pulse animation for active wars */
+.cm-high   path { animation: cmPulse 2.5s ease-in-out infinite; }
+@keyframes cmPulse { 0%,100%{fill-opacity:.85} 50%{fill-opacity:.4} }
+
 #col-map { position: relative; }
 #leaflet-map { width:100%; height:100%; background:#080c14; }
 
@@ -2119,10 +2128,15 @@ function _buildLeafletMap(){
   // Zoom control bottom-right
   _lmap.zoomControl.setPosition('bottomright');
 
-  _conflicts = _getConflicts();
-  _drawConflicts();
+  // Load shared conflicts first, then draw
+  (async () => {
+    _conflicts = await _getConflictsAsync();
+    _drawConflicts();
+    const drawings = await _loadDrawingsShared();
+    _drawLayers = drawings;
+    _renderDrawings(drawings);
+  })();
   _fetchGDELTGeo();
-  _loadDrawingsFromStorage();
 
   colStatus('map','ok', _conflicts.length+' conflictos');
   const e = document.getElementById('map-count');
@@ -2152,6 +2166,7 @@ function _drawConflicts(){
     const col = isGdelt ? '#2dd4a0' : ICOL[d.i] || ICOL[0];
     const rad = isGdelt ? 6 : IRAD[d.i] || IRAD[0];
 
+    const cls = isGdelt ? 'cm-gdelt' : ['cm-low','cm-medium','cm-high'][d.i] || 'cm-low';
     const circle = L.circleMarker([d.lat, d.lng], {
       radius:      rad,
       color:       col,
@@ -2159,6 +2174,7 @@ function _drawConflicts(){
       fillOpacity: d.i === 2 ? 0.85 : 0.70,
       weight:      d.i === 2 ? 2 : 1.5,
       opacity:     1,
+      className:   cls,
     });
 
     // Tooltip — hover only, no permanent labels
@@ -2550,11 +2566,11 @@ function adminSaveConflict(){
     data.push(entry);
   }
 
-  _saveConflicts(data);
+  _saveConflicts(data).then(()=>{}); // async shared storage
   _conflicts = data;
   _drawConflicts();
 
-  _showAEMsg('✓ Guardado', 'var(--green)');
+  _showAEMsg('✓ Guardado (compartido)', 'var(--green)');
   setTimeout(() => admTab('list', document.getElementById('atab-list')), 800);
 }
 
@@ -2563,7 +2579,7 @@ function adminDeleteConflict(){
   if(!_editingId) return;
   if(!confirm('¿Eliminar este conflicto?')) return;
   const data = _getConflicts().filter(x => x.id !== _editingId);
-  _saveConflicts(data);
+  _saveConflicts(data); // async
   _conflicts = data;
   _drawConflicts();
   _editingId = null;
@@ -2574,6 +2590,7 @@ function adminDeleteConflict(){
 function adminResetToDefault(){
   if(!confirm('¿Restaurar el dataset original? Se perderán todos los cambios.')) return;
   localStorage.removeItem(SK_CONFLICTS);
+  try{ window.storage.delete('map_conflicts', true); }catch(e){}
   _conflicts = CDATA.map(x => ({...x}));
   _drawConflicts();
   _renderAdminList();
@@ -2688,7 +2705,7 @@ function adminStopDraw(){
     }
 
     _drawLayers.push({type:_drawType, points:_drawPoints, color:_drawColor, label});
-    _saveDrawings();
+    _saveDrawings(); // async — fire and forget
     _tempLine = null;
     _drawPoints = [];
   }
@@ -2697,6 +2714,7 @@ function adminStopDraw(){
 function adminClearDrawings(){
   if(!confirm('¿Borrar todos los dibujos del mapa?')) return;
   localStorage.removeItem(SK_DRAWINGS);
+  try{ window.storage.delete('map_drawings', true); }catch(e){}
   _drawLayers = [];
   // Reload map to clear visual layers
   if(_lmap){ reinitLeafletMap(); }
@@ -2706,33 +2724,35 @@ function _saveDrawings(){
   localStorage.setItem(SK_DRAWINGS, JSON.stringify(_drawLayers));
 }
 
+function _renderDrawings(saved){
+  if(!_lmap || !saved?.length) return;
+  saved.forEach(d => {
+    let layer;
+    if(d.type==='polyline')
+      layer = L.polyline(d.points,{color:d.color,weight:3,opacity:.8});
+    else if(d.type==='polygon')
+      layer = L.polygon(d.points,{color:d.color,fillColor:d.color,fillOpacity:.15,weight:2});
+    else if(d.type==='circle' && d.points[0])
+      layer = L.circle(d.points[0],{radius:200000,color:d.color,fillColor:d.color,fillOpacity:.1,weight:2});
+    if(layer) layer.addTo(_lmap);
+    if(d.label && d.points.length){
+      const center = d.points[Math.floor(d.points.length/2)];
+      L.marker(center,{icon:L.divIcon({
+        className:'',
+        html:`<div style="font-size:10px;font-weight:600;color:${d.color};
+          text-shadow:0 0 6px #000;font-family:'JetBrains Mono',monospace;
+          pointer-events:none;white-space:nowrap;">${d.label}</div>`,
+        iconSize:[0,0],iconAnchor:[0,0],
+      }),interactive:false}).addTo(_lmap);
+    }
+  });
+}
+
 function _loadDrawingsFromStorage(){
-  if(!_lmap) return;
-  const raw = localStorage.getItem(SK_DRAWINGS);
-  if(!raw) return;
-  try{
-    const saved = JSON.parse(raw);
-    saved.forEach(d => {
-      let layer;
-      if(d.type==='polyline')
-        layer = L.polyline(d.points,{color:d.color,weight:3,opacity:.8});
-      else if(d.type==='polygon')
-        layer = L.polygon(d.points,{color:d.color,fillColor:d.color,fillOpacity:.15,weight:2});
-      else if(d.type==='circle' && d.points[0])
-        layer = L.circle(d.points[0],{radius:200000,color:d.color,fillColor:d.color,fillOpacity:.1,weight:2});
-      if(layer) layer.addTo(_lmap);
-      if(d.label && d.points.length){
-        const center = d.points[Math.floor(d.points.length/2)];
-        L.marker(center,{icon:L.divIcon({
-          className:'',
-          html:`<div style="font-size:10px;font-weight:600;color:${d.color};
-            text-shadow:0 0 6px #000;font-family:'JetBrains Mono',monospace;
-            pointer-events:none;white-space:nowrap;">${d.label}</div>`,
-          iconSize:[0,0],iconAnchor:[0,0],
-        }),interactive:false}).addTo(_lmap);
-      }
-    });
-  }catch(e){}
+  _loadDrawingsShared().then(saved => {
+    _drawLayers = saved;
+    _renderDrawings(saved);
+  });
 }
 
 // ── Storage helpers ───────────────────────────────────────
