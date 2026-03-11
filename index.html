@@ -1340,69 +1340,61 @@ async function fetchRSS(url){
   const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
   const enc   = encodeURIComponent(url);
 
-  // Sequential fallback — try each proxy in order, move to next on failure
-  const proxies = [
-    // 1. Direct (instant if CORS-open — RT, Al Jazeera, many others)
-    async () => {
-      const r = await fetch(url, {signal:AbortSignal.timeout(4000)});
-      if(!r.ok) throw 0;
-      const x = await r.text();
-      if(!isRSS(x)) throw 0;
-      return x;
-    },
-    // 2. Worker (Cloudflare — best reliability when up)
-    async () => {
-      const r = await fetch(WORKER+'/rss?url='+enc, {signal:AbortSignal.timeout(5000)});
-      if(!r.ok) throw 0;
-      const x = await r.text();
-      if(!isRSS(x)) throw 0;
-      return x;
-    },
-    // 3. rss2json — converts RSS to JSON, very reliable
-    async () => {
-      const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&api_key=&count=20', {signal:AbortSignal.timeout(6000)});
-      if(!r.ok) throw 0;
-      const j = await r.json();
-      if(!j.items?.length) throw 0;
-      // Convert JSON back to minimal RSS XML for our parser
-      const items = j.items.map(i => `<item>
-        <title><![CDATA[${i.title||''}]]></title>
-        <link>${i.link||''}</link>
-        <pubDate>${i.pubDate||''}</pubDate>
-        <description><![CDATA[${i.description||i.content||''}]]></description>
-      </item>`).join('');
-      return `<rss><channel><title>${j.feed?.title||''}</title>${items}</channel></rss>`;
-    },
-    // 4. allorigins
-    async () => {
-      const r = await fetch('https://api.allorigins.win/get?url='+enc, {signal:AbortSignal.timeout(8000)});
-      if(!r.ok) throw 0;
-      const j = await r.json();
-      if(!isRSS(j.contents)) throw 0;
-      return j.contents;
-    },
-    // 5. corsproxy.io
-    async () => {
-      const r = await fetch('https://corsproxy.io/?'+enc, {signal:AbortSignal.timeout(7000)});
-      if(!r.ok) throw 0;
-      const x = await r.text();
-      if(!isRSS(x)) throw 0;
-      return x;
-    },
-    // 6. codetabs
-    async () => {
-      const r = await fetch('https://api.codetabs.com/v1/proxy?quest='+enc, {signal:AbortSignal.timeout(7000)});
-      if(!r.ok) throw 0;
-      const x = await r.text();
-      if(!isRSS(x)) throw 0;
-      return x;
-    },
-  ];
+  // Race all proxies simultaneously — first valid response wins, rest cancelled
+  // Each proxy has its own tight timeout so nothing blocks the race
+  const ctrl = new AbortController();
+  const sig  = ctrl.signal;
 
-  for(const proxy of proxies){
-    try{ return await proxy(); }catch(e){}
+  const p = fn => fn().then(x => {
+    if(!isRSS(x)) throw 0;
+    ctrl.abort(); // cancel all others
+    return x;
+  });
+
+  const t = (ms, fn) => new Promise((res,rej) => {
+    const id = setTimeout(() => rej('timeout'), ms);
+    fn(sig).then(x => { clearTimeout(id); res(x); }).catch(e => { clearTimeout(id); rej(e); });
+  });
+
+  try {
+    return await Promise.any([
+      // Direct — 3s, works for CORS-open feeds (Al Jazeera, BBC, DW, etc.)
+      p(() => t(3000, s => fetch(url, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); }))),
+
+      // Worker — 4s
+      p(() => t(4000, s => fetch(WORKER+'/rss?url='+enc, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); }))),
+
+      // corsproxy.io — 5s, staggered 300ms so direct gets priority
+      p(() => new Promise(r => setTimeout(r, 300)).then(() =>
+        t(5000, s => fetch('https://corsproxy.io/?'+enc, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); }))
+      )),
+
+      // allorigins — 5s, staggered 600ms
+      p(() => new Promise(r => setTimeout(r, 600)).then(() =>
+        t(5000, s => fetch('https://api.allorigins.win/get?url='+enc, {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.json(); })
+          .then(j => j.contents))
+      )),
+
+      // rss2json — 6s, staggered 1s (slower API)
+      p(() => new Promise(r => setTimeout(r, 1000)).then(() =>
+        t(6000, s => fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&count=20', {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.json(); })
+          .then(j => {
+            if(!j.items?.length) throw 0;
+            const items = j.items.map(i =>
+              `<item><title><![CDATA[${i.title||''}]]></title><link>${i.link||''}</link>`+
+              `<pubDate>${i.pubDate||''}</pubDate>`+
+              `<description><![CDATA[${i.description||i.content||''}]]></description></item>`
+            ).join('');
+            return `<rss><channel><title>${j.feed?.title||''}</title>${items}</channel></rss>`;
+          })
+        )
+      )),
+    ]);
+  } catch(e) {
+    return null;
   }
-  return null;
 }
 
 async function fetchTG(ch){
@@ -1588,17 +1580,28 @@ function setLastUpdated(){
 async function loadMedia(){
   colStatus('media','loading');
   const srcs=[...MEDIA_SOURCES,...customSources];
-  let done=0;
+  let done=0, firstRender=false;
   const all=[];
   const isFirst=!mediaCache.data.length;
+
   await pool(srcs.map(src=>async()=>{
-    let xml = await fetchRSS(src.url);
-    // one retry after 1s if first attempt failed
-    if(!xml){ await new Promise(r=>setTimeout(r,1000)); xml=await fetchRSS(src.url); }
-    if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
+    const xml = await fetchRSS(src.url);
+    if(xml){
+      parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
+      // Show first results as soon as 5+ items arrive — don't wait for all sources
+      if(isFirst && !firstRender && all.length >= 5){
+        firstRender=true;
+        sortByDate(all);
+        mediaCache={ts:Date.now(),data:[...all]};
+        renderFeed(all,'feed-media');
+        colStatus('media','ok',all.length+' items');
+        const e=document.getElementById('ft-media'); if(e) e.textContent=all.length;
+      }
+    }
     done++;
     progSet(Math.round((done/srcs.length)*50));
-  }),8);
+  }),15);
+
   sortByDate(all);
   if(!all.length){
     if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
@@ -1615,6 +1618,8 @@ async function loadMedia(){
   }
   const e=document.getElementById('ft-media'); if(e) e.textContent=mediaCache.data.length;
   colStatus('media','ok',mediaCache.data.length+' items');
+  syncMobBadges();
+  updateMapFromFeeds();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1625,9 +1630,20 @@ async function loadOSINT(){
   let done=0;
   const all=[];
   const isFirst=!osintCache.data.length;
+  let firstRender=false;
   await pool(OSINT_SOURCES.map(src=>async()=>{
     const xml=await fetchRSS(src.url);
-    if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>{i.type='osint';all.push(i);});
+    if(xml){
+      const items = parseRSS(xml,src.n,src.cat);
+      items.forEach(i=>{i.type='osint';all.push(i);});
+      if(isFirst && !firstRender && all.length >= 3){
+        firstRender = true;
+        sortByDate(all);
+        osintCache={ts:Date.now(),data:[...all]};
+        renderFeed(all,'feed-osint');
+        colStatus('osint','ok', all.length+' items');
+      }
+    }
     done++;
     progSet(50+Math.round((done/OSINT_SOURCES.length)*50));
   }),10);
