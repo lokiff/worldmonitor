@@ -469,6 +469,107 @@ select.sp-input{cursor:pointer;}
 .sitem-t{font-size:12px;color:var(--t0);line-height:1.4;}
 .sitem-m{font-size:10px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:6px;}
 
+
+
+
+
+/* ══ MAP ════════════════════════════════════════════ */
+#col-map { position: relative; }
+#leaflet-map { width:100%; height:100%; background:#080c14; }
+
+/* Leaflet overrides */
+.leaflet-container { background: #080c14 !important; }
+.leaflet-control-zoom {
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 6px !important; overflow:hidden;
+}
+.leaflet-control-zoom a {
+  background: rgba(22,27,39,.9) !important;
+  color: var(--t1) !important;
+  border-color: rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(4px);
+  width:28px !important; height:28px !important;
+  line-height:28px !important; font-size:15px !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(255,255,255,.1) !important; color:#fff !important; }
+.leaflet-control-attribution {
+  background: rgba(8,12,20,.7) !important;
+  color: var(--t2) !important; font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: var(--t2) !important; }
+.leaflet-popup-content-wrapper {
+  background: rgba(15,17,23,.97) !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6) !important;
+  color: var(--t0) !important;
+  backdrop-filter: blur(12px);
+  max-width: 280px;
+}
+.leaflet-popup-tip { background: rgba(15,17,23,.97) !important; }
+.leaflet-popup-close-button {
+  color: var(--t2) !important; font-size: 18px !important;
+  top: 8px !important; right: 10px !important;
+}
+.leaflet-popup-close-button:hover { color: #fff !important; }
+.conflict-tip {
+  background: rgba(10,13,20,.92) !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 5px !important;
+  color: rgba(255,255,255,.85) !important;
+  font-size: 10px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  padding: 3px 7px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.6) !important;
+  white-space: nowrap !important;
+}
+.conflict-tip::before { display:none !important; }
+
+/* Conflict circle animation */
+@keyframes conflictPulse {
+  0%,100% { opacity:.9; }
+  50%      { opacity:.4; }
+}
+
+/* Map panel for AI + news */
+#map-panel {
+  position:absolute; bottom:0; left:0; right:0; z-index:1000;
+  background: rgba(10,13,20,.97);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,.09);
+  padding: 14px 16px 16px;
+  transform: translateY(101%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  max-height: 55%; overflow-y: auto;
+}
+#map-panel::-webkit-scrollbar { width:3px; }
+#map-panel::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+/* legend */
+#map-legend {
+  position:absolute; bottom:14px; left:14px; z-index:999;
+  pointer-events:none;
+  background: rgba(10,13,20,.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 7px; padding: 8px 11px;
+  display:flex; flex-direction:column; gap:5px;
+  font-size:10px; color:var(--t1);
+}
+.leg-row { display:flex; align-items:center; gap:7px; }
+.leg-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+@keyframes legPulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* timestamp */
+#map-ts {
+  position:absolute; bottom:14px; right:14px; z-index:999;
+  pointer-events:none; font-size:9px; font-family:var(--mono);
+  color:var(--t2); background:rgba(10,13,20,.7);
+  padding:3px 7px; border-radius:5px;
+}
+
 /* ── PROGRESS BAR ── */
 #prog-bar{height:2px;flex-shrink:0;background:transparent;overflow:hidden;}
 #prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),#93c5fd);box-shadow:0 0 6px var(--blue);transition:width .25s ease;border-radius:0 1px 1px 0;}
@@ -668,6 +769,46 @@ select.sp-input{cursor:pointer;}
         <div class="feed" id="feed-osint"><div class="fstatus"><span class="spin"></span>Conectando canales...</div></div>
       </div>
 
+
+
+      <!-- MAPA DE CONFLICTOS -->
+      <div class="col" id="col-map">
+        <div class="col-hdr">
+          <span class="col-title" style="display:flex;align-items:center;gap:6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/>
+              <path d="M9 4v13M15 7v13"/>
+            </svg>
+            Conflictos
+          </span>
+          <span id="map-count" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--t2);"></span>
+          <span id="cs-map" class="col-status"></span>
+        </div>
+        <div style="flex:1;position:relative;min-height:0;overflow:hidden;">
+          <div id="leaflet-map"></div>
+          <div id="map-legend">
+            <div class="leg-row"><div class="leg-dot" style="background:#e8445a;box-shadow:0 0 5px #e8445a;animation:legPulse 1.8s ease infinite;"></div>Guerra activa</div>
+            <div class="leg-row"><div class="leg-dot" style="background:#f0a832;"></div>Conflicto activo</div>
+            <div class="leg-row"><div class="leg-dot" style="background:#4d8cf5;"></div>Tensión latente</div>
+            <div class="leg-row"><div class="leg-dot" style="background:#2dd4a0;"></div>Evento GDELT 24h</div>
+          </div>
+          <div id="map-ts"></div>
+          <div id="map-panel">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+              <div style="flex:1;min-width:0;">
+                <div id="mp-title" style="font-size:13px;font-weight:600;color:#fff;line-height:1.3;"></div>
+                <div id="mp-badges" style="margin-top:5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+              </div>
+              <button onclick="closeMapPanel()" style="flex-shrink:0;margin-left:10px;background:rgba(255,255,255,.07);border:none;color:var(--t1);cursor:pointer;width:24px;height:24px;border-radius:50%;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
+            </div>
+            <div id="mp-parties" style="font-size:10px;color:var(--t2);font-family:var(--mono);margin-bottom:10px;"></div>
+            <div id="mp-summary" style="font-size:12px;color:var(--t1);line-height:1.7;"></div>
+            <div id="mp-news"    style="margin-top:11px;"></div>
+            <div id="mp-ai"     style="margin-top:11px;"></div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /columns -->
 
   </div><!-- /main -->
@@ -684,9 +825,13 @@ select.sp-input{cursor:pointer;}
       <span>OSINT</span>
       <span class="mob-badge" id="mbadge-osint">—</span>
     </button>
+    <button class="mob-tab" id="mtab-map" onclick="mobTab('map',this);setTimeout(initLeafletMap,80);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><path d="M9 4v13M15 7v13"/></svg>
+      <span>Mapa</span>
+    </button>
     <button class="mob-tab" id="mtab-refresh" onclick="refreshAll()">
       <svg viewBox="0 0 24 24"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-      <span>Actualizar</span>
+      <span>Refrescar</span>
     </button>
     <button class="mob-tab" id="mtab-settings" onclick="openPanel('settings')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -1276,6 +1421,7 @@ async function refreshAll(){
   mediaCache={ts:0,data:[]};
   osintCache={ts:0,data:[]};
   gdeltCache={ts:0,data:[]};
+  _gdeltTs=0;
   brkLoaded=false;
   const _fm=document.getElementById('feed-media');
   const _fo=document.getElementById('feed-osint');
@@ -1452,6 +1598,7 @@ function applyAccent(v, dot){
 }
 function toggleTheme(){
   document.body.classList.toggle('light');
+  reinitLeafletMap();
   const isLight = document.body.classList.contains('light');
   const btn = document.getElementById('theme-btn');
   const tog = document.getElementById('tog-dark');
@@ -1530,6 +1677,377 @@ function startClock(){
 // INIT
 // ═══════════════════════════════════════════════════════════
 
+
+
+
+// ═══════════════════════════════════════════════════════════
+// CONFLICT MAP — Leaflet (SVG layer, no DOM marker drift)
+// Data: hardcoded base + GDELT GEO API real-time overlay
+// ═══════════════════════════════════════════════════════════
+
+// ── Conflict dataset (2025-2026) ─────────────────────────
+const CDATA = [
+  {id:'ukraine',  name:'Guerra Rusia-Ucrania',        lat:49.0, lng:32.0, i:2,
+   since:'Feb 2022', parties:'Rusia vs Ucrania',  deaths:'500k+', cat:'ukraine',
+   summary:'Invasión rusa a gran escala. Combates activos en Donbás, Zaporiyia y la región de Kursk. Ucrania opera con armamento occidental. La guerra más mortífera en Europa desde 1945.'},
+  {id:'gaza',     name:'Guerra Gaza',                 lat:31.4, lng:34.3, i:2,
+   since:'Oct 2023', parties:'Israel vs Hamas',    deaths:'50k+', cat:'mideast',
+   summary:'Ofensiva israelí tras el ataque del 7-Oct. Crisis humanitaria grave. Más de 2M de desplazados. Riesgo de escalada regional con Hezbollah e Irán.'},
+  {id:'sudan',    name:'Guerra Civil Sudán',           lat:15.5, lng:32.5, i:2,
+   since:'Abr 2023', parties:'SAF vs RSF',         deaths:'150k+', cat:'africa',
+   summary:'Ejército vs paramilitares RSF. Jartum devastada, Darfur bajo ataque masivo. +10M desplazados. La crisis humanitaria más grave del mundo en 2024-25.'},
+  {id:'myanmar',  name:'Guerra Civil Myanmar',         lat:19.0, lng:96.5, i:2,
+   since:'Feb 2021', parties:'Junta vs PDF + EAO', deaths:'50k+', cat:'asia',
+   summary:'La junta ha perdido el control de gran parte del país. Alianza de los Tres Hermanos avanza. Ataques aéreos contra civiles documentados.'},
+  {id:'sahel',    name:'Insurgencia Sahel',            lat:14.0, lng:2.0,  i:2,
+   since:'2012',     parties:'JNIM/ISGS vs AES + Rusia', deaths:'10k+/año', cat:'africa',
+   summary:'Insurgencia yihadista en Mali, Burkina Faso y Níger. Tres golpes militares. Francia expulsada; Wagner activo. Miles de civiles muertos cada año.'},
+  {id:'drcongo',  name:'Este del Congo (RDC)',          lat:-1.5, lng:29.0, i:2,
+   since:'1996',     parties:'M23/Rwanda vs FARDC', deaths:'6M hist.', cat:'africa',
+   summary:'M23 tomó Goma en 2024. +7M de desplazados internos. Decenas de grupos armados en Kivu. Crisis humanitaria crónica ignorada por los medios.'},
+  {id:'yemen',    name:'Guerra Yemen',                 lat:15.5, lng:48.0, i:1,
+   since:'2015',     parties:'Hutíes vs Arabia Saudí', deaths:'377k+', cat:'mideast',
+   summary:'Hutíes controlan el norte. Ataques al Mar Rojo interrumpen el comercio global. Crisis humanitaria estructural con millones en riesgo de hambruna.'},
+  {id:'syria',    name:'Posguerra Siria',              lat:34.8, lng:38.5, i:1,
+   since:'2011',     parties:'HTS, SDF, Turquía, milicias', deaths:'600k+', cat:'mideast',
+   summary:'Assad cayó en Dic 2024 tras ofensiva de HTS. Múltiples facciones compiten por el poder. Israel ataca infraestructura militar heredada.'},
+  {id:'ethiopia', name:'Conflictos Etiopía',           lat:9.0,  lng:40.0, i:1,
+   since:'2020',     parties:'Gobierno vs OLA + Amhara', deaths:'500k+', cat:'africa',
+   summary:'Combates en Amhara y Oromía. Grupos armados étnicos con capacidad creciente. Acceso humanitario severamente restringido.'},
+  {id:'somalia',  name:'Conflicto Somalia',            lat:5.0,  lng:46.0, i:1,
+   since:'2006',     parties:'Gobierno + UA vs Al-Shabaab', deaths:'500k+ hist.', cat:'africa',
+   summary:'Al-Shabaab controla zonas rurales del sur y ataca Mogadiscio con frecuencia. EEUU mantiene programa de drones. Retirada progresiva de tropas africanas.'},
+  {id:'lebanon',  name:'Tensión Líbano-Israel',        lat:33.5, lng:35.5, i:1,
+   since:'2023',     parties:'Israel vs Hezbollah', deaths:'4k+', cat:'mideast',
+   summary:'Alto el fuego frágil tras campaña israelí de 2024. Hezbollah debilitado pero activo. Presencia militar israelí en el sur del Líbano.'},
+  {id:'iran',     name:'Tensión Irán / Eje regional',  lat:32.0, lng:53.0, i:1,
+   since:'2019',     parties:'Irán vs Israel + EEUU', deaths:'n/a', cat:'mideast',
+   summary:'Intercambio directo de misiles en 2024. Programa nuclear avanza. Hutíes, Hezbollah y milicias iraquíes como proxies. EEUU mantiene presencia naval en el Golfo.'},
+  {id:'sahara',   name:'Sáhara Occidental',            lat:24.0, lng:-13.0, i:1,
+   since:'2020',     parties:'Marruecos vs Polisario', deaths:'bajo', cat:'africa',
+   summary:'Polisario retomó la lucha en 2020. Ataques esporádicos. Marruecos controla ~80% del territorio. Tensión diplomática Argelia-Marruecos.'},
+  {id:'pakistan', name:'Insurgencia Pakistán',         lat:33.0, lng:69.5, i:1,
+   since:'2007',     parties:'TTP vs ejército pakistaní', deaths:'8k+/año', cat:'asia',
+   summary:'TTP intensifica ataques desde Afganistán. Operaciones en KPK y Baluchistán. Tensión con el gobierno talibán afgano.'},
+  {id:'taiwan',   name:'Tensión Estrecho Taiwán',      lat:23.5, lng:120.5, i:0,
+   since:'1949',     parties:'China vs Taiwán + EEUU', deaths:'potencial enorme', cat:'asia',
+   summary:'China realiza ejercicios militares crecientes. EEUU mantiene ambigüedad estratégica. Mayor riesgo potencial de guerra entre grandes potencias.'},
+  {id:'scs',      name:'Mar del Sur de China',         lat:11.5, lng:114.0, i:0,
+   since:'2009',     parties:'China vs Filipinas, Vietnam, Malasia', deaths:'bajo', cat:'asia',
+   summary:'China militariza islas artificiales. Incidentes regulares con guardacostas filipinos. EEUU realiza misiones de libertad de navegación.'},
+  {id:'armenia',  name:'Armenia-Azerbaiyán',           lat:40.2, lng:45.0, i:0,
+   since:'2023',     parties:'Armenia vs Azerbaiyán', deaths:'bajo', cat:'general',
+   summary:'Azerbaiyán tomó Nagorno-Karabaj (Sep 2023) expulsando a +100k armenios. Negociaciones de paz en curso pero frontera tensa.'},
+  {id:'northkorea',name:'Tensión Corea del Norte',     lat:39.0, lng:127.5, i:0,
+   since:'1953',     parties:'RPDC vs Corea del Sur + EEUU', deaths:'potencial enorme', cat:'asia',
+   summary:'Kim Jong-un acelera programa nuclear. Tropas norcoreanas confirmadas en Ucrania. Sin diálogo diplomático. Máxima tensión en la península.'},
+];
+
+// Keywords for dynamic intensity from feeds
+const CKW = {
+  ukraine:['ukraine','ucrania','kyiv','kharkiv','zaporizhzhia','donbas','russia','rusia','kursk'],
+  gaza:['gaza','hamas','israel','rafah','khan younis','cisjordania','west bank'],
+  sudan:['sudan','sudán','rsf','khartoum','jartum','darfur'],
+  myanmar:['myanmar','burma','birmania','junta','sagaing'],
+  sahel:['mali','burkina','niger','sahel','jnim','bamako'],
+  drcongo:['congo','drc','m23','goma','kivu','rdc'],
+  yemen:['yemen','houthi','huthi','ansarallah','red sea','mar rojo'],
+  syria:['syria','siria','hts','idlib','aleppo','damasco'],
+  ethiopia:['ethiopia','etiopía','tigray','amhara','oromia'],
+  somalia:['somalia','al-shabaab','mogadishu','mogadiscio'],
+  lebanon:['lebanon','líbano','libano','hezbollah','beirut'],
+  iran:['iran','irán','nuclear','irgc','hormuz'],
+  sahara:['sahara','polisario','western sahara'],
+  pakistan:['pakistan','ttp','peshawar','balochistan'],
+  taiwan:['taiwan','strait','pla','china threat'],
+  scs:['south china sea','spratly','scarborough','paracel'],
+  armenia:['armenia','azerbaiy','nagorno'],
+  northkorea:['north korea','corea del norte','kim jong','pyongyang'],
+};
+
+const ICOL = ['#4d8cf5','#f0a832','#e8445a'];   // 0=low 1=med 2=high
+const IRAD = [7, 10, 14];
+const ILBL = ['TENSIÓN','CONFLICTO ACTIVO','GUERRA ACTIVA'];
+
+let _lmap       = null;
+let _lmapInited = false;
+let _gdeltTs    = 0;
+let _gdeltPts   = [];
+let _mapAiCache = {};
+let _conflicts  = CDATA.map(x => ({...x})); // mutable copy
+let _cLayers    = []; // leaflet circle layers
+
+// ── Init ─────────────────────────────────────────────────
+function initLeafletMap(){
+  if(_lmapInited) return;
+  const el = document.getElementById('leaflet-map');
+  if(!el || el.offsetHeight < 10) return;
+  _lmapInited = true;
+  colStatus('map','loading');
+
+  const done = () => { _buildLeafletMap(); };
+
+  if(window.L){ done(); return; }
+
+  const lnk = document.createElement('link');
+  lnk.rel='stylesheet';
+  lnk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(lnk);
+
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  s.onload  = done;
+  s.onerror = () => { colStatus('map','err'); _lmapInited=false; };
+  document.head.appendChild(s);
+}
+
+function _buildLeafletMap(){
+  const isDark = !document.body.classList.contains('light');
+
+  _lmap = L.map('leaflet-map', {
+    center: [25, 20],
+    zoom: 2,
+    minZoom: 1,
+    maxZoom: 10,
+    zoomControl: true,
+    attributionControl: true,
+    worldCopyJump: false,
+  });
+
+  // CARTO tile — dark or light
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+  L.tileLayer(tileUrl, {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(_lmap);
+
+  // Zoom control bottom-right
+  _lmap.zoomControl.setPosition('bottomright');
+
+  _drawConflicts();
+  _fetchGDELTGeo();
+
+  colStatus('map','ok', _conflicts.length+' conflictos');
+  const e = document.getElementById('map-count');
+  if(e) e.textContent = _conflicts.length + ' activos';
+}
+
+// ── Draw conflict circles using L.circleMarker (SVG, no drift) ──
+function _drawConflicts(){
+  if(!_lmap) return;
+
+  // Remove old
+  _cLayers.forEach(l => _lmap.removeLayer(l));
+  _cLayers = [];
+
+  const all = [
+    ..._conflicts,
+    ..._gdeltPts.map(p => ({
+      id:'g_'+p.lat+'_'+p.lng, name:p.name, lat:p.lat, lng:p.lng,
+      i:-1, since:'Hoy', parties:'GDELT', deaths:'n/a', cat:'general',
+      summary:'Evento detectado por GDELT en las últimas 24h. Cobertura: '+p.hits+' fuentes.',
+      _gdelt:true,
+    })),
+  ];
+
+  all.forEach(d => {
+    const isGdelt = d._gdelt;
+    const col = isGdelt ? '#2dd4a0' : ICOL[d.i] || ICOL[0];
+    const rad = isGdelt ? 6 : IRAD[d.i] || IRAD[0];
+
+    const circle = L.circleMarker([d.lat, d.lng], {
+      radius:      rad,
+      color:       col,
+      fillColor:   col,
+      fillOpacity: d.i === 2 ? 0.85 : 0.70,
+      weight:      d.i === 2 ? 2 : 1.5,
+      opacity:     1,
+    });
+
+    // Tooltip (always visible name label for high/medium)
+    circle.bindTooltip(d.name, {
+      permanent:   d.i === 2,
+      direction:   'right',
+      offset:      [rad+2, 0],
+      className:   'conflict-tip',
+      opacity:     1,
+    });
+
+    circle.on('click', () => {
+      _lmap.flyTo([d.lat, d.lng], Math.max(_lmap.getZoom(), 4), {duration:0.8});
+      openMapPanel(d);
+    });
+
+    circle.addTo(_lmap);
+    _cLayers.push(circle);
+  });
+}
+
+// ── GDELT GEO API ─────────────────────────────────────────
+const GGEO = [
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=war+attack+military+killed+airstrike&format=geojson&timespan=1d&maxpoints=60',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=ukraine+russia+missile+bomb&format=geojson&timespan=1d&maxpoints=40',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=israel+hamas+strike+killed&format=geojson&timespan=1d&maxpoints=40',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=sudan+congo+sahel+rebel+killed&format=geojson&timespan=1d&maxpoints=40',
+];
+
+async function _fetchGDELTGeo(){
+  if(_gdeltTs && Date.now()-_gdeltTs < 15*60*1000) return;
+  const pts = [];
+  await pool(GGEO.map(url => async () => {
+    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+    try{
+      const r = await fetch(proxy,{signal:AbortSignal.timeout(12000)});
+      if(!r.ok) return;
+      const j = JSON.parse((await r.json()).contents);
+      (j.features||[]).forEach(f => {
+        const [lng,lat] = f.geometry?.coordinates||[];
+        if(!lat||!lng||isNaN(lat)||isNaN(lng)) return;
+        if(lat<-85||lat>85||lng<-180||lng>180) return;
+        pts.push({lat,lng,
+          name:(f.properties?.name||'Evento').slice(0,40),
+          hits:f.properties?.shareimage||1,
+        });
+      });
+    }catch(e){}
+  }),3);
+
+  _gdeltTs = Date.now();
+  _updateIntensities();
+
+  // Only hotspots far from known conflicts
+  _gdeltPts = pts
+    .filter(p => (p.hits||0)>=2 && !_conflicts.some(c => {
+      const d=Math.sqrt((c.lat-p.lat)**2+(c.lng-p.lng)**2);
+      return d<2.5;
+    }))
+    .slice(0,20);
+
+  _drawConflicts();
+
+  const total = _conflicts.length + _gdeltPts.length;
+  const e = document.getElementById('map-count');
+  if(e) e.textContent = _conflicts.length+' conflictos'+(_gdeltPts.length?' + '+_gdeltPts.length+' GDELT':'');
+  const ts = document.getElementById('map-ts');
+  if(ts) ts.textContent = 'GDELT '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+' UTC';
+}
+
+function _updateIntensities(){
+  const all = [...(mediaCache.data||[]),(osintCache.data||[])].flat();
+  const now = Date.now();
+  const r24 = all.filter(i => now-new Date(i.pubDate||0)<86400000);
+  _conflicts.forEach(c => {
+    const kw = CKW[c.id]||[];
+    const n  = r24.filter(i => kw.some(k=>(i.title||'').toLowerCase().includes(k))).length;
+    c._mentions = n;
+    const base = CDATA.find(b=>b.id===c.id)?.i ?? 0;
+    const dyn  = n>=12?2: n>=4?1: n>=1?0: base;
+    c.i = Math.max(base, dyn);
+  });
+}
+
+// ── Panel ─────────────────────────────────────────────────
+function openMapPanel(d){
+  const col = d._gdelt ? '#2dd4a0' : (ICOL[d.i]||ICOL[0]);
+  const lbl = d._gdelt ? 'ALERTA GDELT' : ILBL[d.i]||ILBL[0];
+
+  document.getElementById('mp-title').textContent = d.name;
+  document.getElementById('mp-badges').innerHTML = `
+    <span style="font-size:10px;font-weight:700;color:${col};">● ${lbl}</span>
+    ${d.since?`<span style="font-size:10px;color:var(--t2);font-family:var(--mono);">Desde ${d.since}</span>`:''}
+    ${d.deaths&&d.deaths!=='n/a'?`<span style="font-size:10px;color:var(--t2);font-family:var(--mono);">☠ ${d.deaths}</span>`:''}
+    ${d._mentions>0?`<span style="font-size:10px;color:var(--green);font-family:var(--mono);">↑${d._mentions}/24h</span>`:''}
+  `;
+  document.getElementById('mp-parties').textContent = d.parties?'⚔ '+d.parties:'';
+  document.getElementById('mp-summary').innerHTML = `<p style="margin:0;">${d.summary||''}</p>`;
+  document.getElementById('mp-news').innerHTML = '';
+  document.getElementById('mp-ai').innerHTML = '';
+
+  document.getElementById('map-panel').style.transform = 'translateY(0)';
+
+  if(!d._gdelt){
+    // Related news
+    const kw = CKW[d.id]||[];
+    const rel = [...(mediaCache.data||[]),...(osintCache.data||[])]
+      .filter(i => i.cat===d.cat||kw.some(k=>(i.title||'').toLowerCase().includes(k)))
+      .slice(0,4);
+    if(rel.length){
+      document.getElementById('mp-news').innerHTML = `
+        <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;">
+          <div style="font-size:9px;color:var(--t2);font-family:var(--mono);letter-spacing:.5px;margin-bottom:7px;">NOTICIAS RECIENTES</div>
+          ${rel.map(i=>`<div onclick="openItem('${(i.link||'').replace(/'/g,"\\'")}');closeMapPanel();"
+            style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;">
+            <div style="font-size:11px;color:var(--t0);line-height:1.4;">${i.title.slice(0,110)}</div>
+            <div style="font-size:9px;color:var(--t2);margin-top:2px;font-family:var(--mono);">${i.src} · ${timeAgo(i.pubDate)}</div>
+          </div>`).join('')}
+        </div>`;
+    }
+    // AI
+    if(_mapAiCache[d.id]) _showAI(d.id,_mapAiCache[d.id]);
+    else _fetchAI(d, rel);
+  }
+}
+
+function closeMapPanel(){
+  const p=document.getElementById('map-panel');
+  if(p) p.style.transform='translateY(101%)';
+}
+
+async function _fetchAI(d, rel){
+  const el=document.getElementById('mp-ai'); if(!el) return;
+  el.innerHTML=`<div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;">
+    <div style="font-size:9px;color:var(--blue);font-family:var(--mono);margin-bottom:6px;">⬡ ANÁLISIS IA</div>
+    <div style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:6px;">
+      <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border2);border-top-color:var(--blue);animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;"></span>
+      Generando análisis...
+    </div></div>`;
+  const headlines=rel.map(i=>`- ${i.title} (${i.src})`).join('\n')||'(sin titulares)';
+  const prompt=`Analista de conflictos armados. 3 frases concisas en español sobre el estado actual de "${d.name}".
+Contexto: ${d.summary}
+Titulares recientes:\n${headlines}
+Solo el análisis, sin markdown, máx 90 palabras.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,
+        messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw 0;
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'';
+    if(text){_mapAiCache[d.id]=text;_showAI(d.id,text);}
+    else {if(el)el.innerHTML='';}
+  }catch(e){if(el)el.innerHTML='';}
+}
+
+function _showAI(id,text){
+  const el=document.getElementById('mp-ai'); if(!el) return;
+  el.innerHTML=`<div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;">
+    <div style="font-size:9px;color:var(--blue);font-family:var(--mono);letter-spacing:.5px;margin-bottom:7px;">⬡ ANÁLISIS IA</div>
+    <p style="font-size:12px;color:var(--t0);line-height:1.7;margin:0;">${text}</p>
+  </div>`;
+}
+
+// ── Public hooks ──────────────────────────────────────────
+function updateMapFromFeeds(){
+  if(!_lmap||!_lmapInited) return;
+  _updateIntensities();
+  _drawConflicts();
+}
+
+function reinitLeafletMap(){
+  if(!_lmapInited) return;
+  _lmapInited=false;
+  if(_lmap){_lmap.remove();_lmap=null;}
+  document.getElementById('leaflet-map').innerHTML='';
+  setTimeout(initLeafletMap,150);
+}
+
+
 // ═══════════════════════════════════════════════════════════
 // MOBILE TAB NAVIGATION
 // ═══════════════════════════════════════════════════════════
@@ -1566,6 +2084,7 @@ function init(){
     await Promise.all([loadMedia(), loadOSINT()]);
     setLastUpdated();
     setTimeout(loadBreakingBar,  300);
+    setTimeout(initLeafletMap, 800);
     setTimeout(loadGDELT,       800);
     setTimeout(loadOREF,       1200);
   }, 300);
@@ -1574,6 +2093,7 @@ function init(){
   startAutoRefresh();
   setInterval(loadOREF,       15000);
   setInterval(loadGDELT,        15*60*1000);
+  setInterval(_fetchGDELTGeo,   15*60*1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
