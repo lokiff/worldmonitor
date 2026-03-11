@@ -513,18 +513,21 @@ select.sp-input{cursor:pointer;}
 }
 .leaflet-popup-close-button:hover { color: #fff !important; }
 .conflict-tip {
-  background: rgba(10,13,20,.92) !important;
-  border: 1px solid rgba(255,255,255,.1) !important;
+  background: rgba(10,13,20,.95) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
   border-radius: 5px !important;
-  color: rgba(255,255,255,.85) !important;
+  color: rgba(255,255,255,.9) !important;
   font-size: 10px !important;
   font-family: 'JetBrains Mono', monospace !important;
-  padding: 3px 7px !important;
-  font-weight: 500 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,.6) !important;
+  padding: 4px 8px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.7) !important;
   white-space: nowrap !important;
+  pointer-events: none !important;
 }
-.conflict-tip::before { display:none !important; }
+.conflict-tip::before,.conflict-tip::after { display:none !important; }
+/* Hide leaflet tooltip arrow */
+.leaflet-tooltip-top::before { display:none !important; }
 
 /* Conflict circle animation */
 @keyframes conflictPulse {
@@ -1766,7 +1769,7 @@ const CKW = {
 };
 
 const ICOL = ['#4d8cf5','#f0a832','#e8445a'];   // 0=low 1=med 2=high
-const IRAD = [7, 10, 14];
+const IRAD = [6, 9, 13];
 const ILBL = ['TENSIÓN','CONFLICTO ACTIVO','GUERRA ACTIVA'];
 
 let _lmap       = null;
@@ -1805,8 +1808,8 @@ function _buildLeafletMap(){
   const isDark = !document.body.classList.contains('light');
 
   _lmap = L.map('leaflet-map', {
-    center: [25, 20],
-    zoom: 2,
+    center: [20, 15],
+    zoom: 1.8,
     minZoom: 1,
     maxZoom: 10,
     zoomControl: true,
@@ -1868,13 +1871,13 @@ function _drawConflicts(){
       opacity:     1,
     });
 
-    // Tooltip (always visible name label for high/medium)
+    // Tooltip — hover only, no permanent labels
     circle.bindTooltip(d.name, {
-      permanent:   d.i === 2,
-      direction:   'right',
-      offset:      [rad+2, 0],
-      className:   'conflict-tip',
-      opacity:     1,
+      permanent:  false,
+      direction:  'top',
+      offset:     [0, -rad-2],
+      className:  'conflict-tip',
+      opacity:    1,
     });
 
     circle.on('click', () => {
@@ -1884,6 +1887,38 @@ function _drawConflicts(){
 
     circle.addTo(_lmap);
     _cLayers.push(circle);
+
+    // Small permanent label only for active wars (i===2), offset to avoid overlap
+    if(d.i === 2 && !d._gdelt){
+      const labelOffsets = {
+        ukraine:  [10, -8],
+        gaza:     [10, 4],
+        sudan:    [10, 4],
+        myanmar:  [10, -8],
+        sahel:    [-130, -8],
+        drcongo:  [10, 10],
+      };
+      const off = labelOffsets[d.id] || [10, -8];
+      const lbl = L.marker([d.lat, d.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="
+            white-space:nowrap;font-size:9px;font-weight:600;
+            color:rgba(255,255,255,.85);
+            text-shadow:0 0 4px #000,0 0 8px #000,0 0 12px #000;
+            font-family:'JetBrains Mono',monospace;
+            pointer-events:none;
+            transform:translate(${off[0]}px,${off[1]}px);
+          ">${d.name}</div>`,
+          iconSize: [0,0],
+          iconAnchor: [0,0],
+        }),
+        interactive: false,
+        zIndexOffset: -100,
+      });
+      lbl.addTo(_lmap);
+      _cLayers.push(lbl);
+    }
   });
 }
 
