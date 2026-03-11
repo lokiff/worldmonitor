@@ -922,7 +922,37 @@ select.sp-input{cursor:pointer;}
         </button>
       </div>
       <div id="admin-conflict-list"></div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+
+        <!-- Publish button -->
+        <button onclick="adminPublish()" id="admin-publish-btn" style="
+          width:100%;background:linear-gradient(135deg,rgba(45,212,160,.2),rgba(77,140,245,.2));
+          border:1px solid rgba(45,212,160,.4);
+          color:var(--green);padding:9px;border-radius:var(--radius-sm);
+          font-size:12px;font-weight:700;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;gap:7px;
+          transition:all .2s;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          Publicar cambios
+        </button>
+
+        <!-- Sync status -->
+        <div id="admin-sync-status" style="
+          font-size:10px;font-family:var(--mono);text-align:center;
+          color:var(--t2);min-height:14px;"></div>
+
+        <!-- JSONBin config (shown if not configured) -->
+        <div id="admin-jsonbin-setup" style="display:none;
+          background:rgba(240,168,50,.06);border:1px solid rgba(240,168,50,.2);
+          border-radius:var(--radius-sm);padding:10px;font-size:10px;color:var(--amber);
+          line-height:1.6;">
+          ⚠ Para sincronizar, añade tu GitHub Token:<br>
+          1. <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--blue);">github.com/settings/tokens</a><br>
+          2. Generate new token → Fine-grained<br>
+          3. Repo: <b>lokiff/worldmonitor</b> → Contents: <b>Read & Write</b><br>
+          4. Copia el token y pégalo en <code style="background:rgba(255,255,255,.05);padding:1px 4px;border-radius:3px;">GH_TOKEN</code> en el código
+        </div>
+
         <button onclick="adminResetToDefault()" style="
           width:100%;background:none;border:1px solid var(--border);
           color:var(--t2);padding:7px;border-radius:var(--radius-sm);
@@ -2128,19 +2158,16 @@ function _buildLeafletMap(){
   // Zoom control bottom-right
   _lmap.zoomControl.setPosition('bottomright');
 
-  // Load shared conflicts first, then draw
+  // Load conflicts (remote first, fallback to local/defaults) then draw
   (async () => {
     _conflicts = await _getConflictsAsync();
     _drawConflicts();
-    const drawings = await _loadDrawingsShared();
-    _drawLayers = drawings;
-    _renderDrawings(drawings);
+    _loadDrawingsFromStorage();
+    colStatus('map','ok', _conflicts.length+' conflictos');
+    const e = document.getElementById('map-count');
+    if(e) e.textContent = _conflicts.length + ' activos';
   })();
   _fetchGDELTGeo();
-
-  colStatus('map','ok', _conflicts.length+' conflictos');
-  const e = document.getElementById('map-count');
-  if(e) e.textContent = _conflicts.length + ' activos';
 }
 
 // ── Draw conflict circles using L.circleMarker (SVG, no drift) ──
@@ -2407,6 +2434,53 @@ let _drawPoints   = [];
 let _drawLayers   = []; // saved drawing layers
 let _tempLine     = null;
 let _editingId    = null;
+
+// ── Admin: Publish & Sync ─────────────────────────────────
+async function adminPublish(){
+  const btn = document.getElementById('admin-publish-btn');
+  if(btn){ btn.disabled=true; btn.innerHTML='<span style="opacity:.6">Publicando...</span>'; }
+
+  if(!JSONBIN_BIN || !JSONBIN_KEY){
+    document.getElementById('admin-jsonbin-setup').style.display = 'block';
+    _showSyncStatus('⚠ JSONBin no configurado — cambios solo locales', 'var(--amber)');
+    if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
+    return;
+  }
+
+  const data = _getConflicts();
+  const ok = await _saveConflicts(data);
+  _showSyncStatus(ok ? '✓ Publicado — '+data.length+' conflictos' : '✗ Error al publicar', ok ? 'var(--green)' : 'var(--red)');
+  if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
+}
+
+function _showSyncStatus(msg, col){
+  col = col || 'var(--green)';
+  const el = document.getElementById('admin-sync-status');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = col;
+  setTimeout(() => { if(el.textContent===msg) el.textContent=''; }, 5000);
+}
+
+async function _pollRemoteConflicts(){
+  if(_adminAuthed) return;
+  if(!GH_TOKEN) return;
+  try{
+    const r = await fetch(GH_RAW + '?t=' + Math.floor(Date.now()/60000), {
+      signal: AbortSignal.timeout(6000),
+    });
+    if(!r.ok) return;
+    const data = await r.json();
+    if(!Array.isArray(data) || !data.length) return;
+    const current = JSON.stringify(_conflicts);
+    if(JSON.stringify(data) !== current){
+      _conflicts = data;
+      localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
+      _drawConflicts();
+    }
+  }catch(e){}
+}
+
 
 // Storage keys
 const SK_CONFLICTS = 'ct_map_conflicts';
@@ -2755,15 +2829,85 @@ function _loadDrawingsFromStorage(){
   });
 }
 
-// ── Storage helpers ───────────────────────────────────────
+// ── GitHub — shared storage via repo file ─────────────────
+// Setup: github.com → Settings → Developer settings → Personal access tokens
+//        → Fine-grained token → repo: lokiff/worldmonitor → permisos: Contents (read+write)
+const GH_OWNER = 'lokiff';           // tu usuario GitHub
+const GH_REPO  = 'worldmonitor';     // tu repo
+const GH_FILE  = 'conflicts.json';   // archivo que se crea automáticamente
+const GH_TOKEN = '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';
+
+const GH_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
+// URL pública del archivo (sin autenticación, para todos los usuarios)
+const GH_RAW  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${GH_FILE}`;
+
+let _ghFileSha = ''; // SHA del archivo actual, necesario para actualizarlo
+
+async function _getConflictsAsync(){
+  // 1. Try GitHub raw — no auth needed, served by CDN
+  if(GH_OWNER && GH_REPO && GH_FILE){
+    try{
+      const r = await fetch(GH_RAW + '?t=' + Math.floor(Date.now()/60000),
+        { signal: AbortSignal.timeout(5000) });
+      if(r.ok){
+        const data = await r.json();
+        if(Array.isArray(data) && data.length){
+          localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
+          return data;
+        }
+      }
+    }catch(e){}
+  }
+  // 2. localStorage
+  const raw = localStorage.getItem(SK_CONFLICTS);
+  if(raw){ try{ const d=JSON.parse(raw); if(d.length) return d; }catch(e){} }
+  // 3. Hardcoded defaults — always works
+  return CDATA.map(x => ({...x}));
+}
+
 function _getConflicts(){
   const raw = localStorage.getItem(SK_CONFLICTS);
   if(raw) try{ return JSON.parse(raw); }catch(e){}
   return CDATA.map(x => ({...x}));
 }
 
-function _saveConflicts(data){
+async function _saveConflicts(data){
+  // Siempre guardar local
   localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
+  // Subir a GitHub solo si hay token configurado
+  if(!GH_TOKEN) return true;
+  try{
+    // Obtener SHA actual del archivo (necesario para PUT)
+    if(!_ghFileSha){
+      const r = await fetch(GH_API, {
+        headers:{ Authorization: 'token '+GH_TOKEN },
+        signal: AbortSignal.timeout(5000),
+      });
+      if(r.ok){ const j=await r.json(); _ghFileSha = j.sha||''; }
+    }
+    // Subir archivo
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+    const body = {
+      message: 'Update conflicts ' + new Date().toISOString(),
+      content,
+      ...(_ghFileSha ? {sha: _ghFileSha} : {}),
+    };
+    const res = await fetch(GH_API, {
+      method: 'PUT',
+      headers:{
+        'Authorization': 'token '+GH_TOKEN,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10000),
+    });
+    if(res.ok){
+      const j = await res.json();
+      _ghFileSha = j.content?.sha || '';
+      return true;
+    }
+    return false;
+  }catch(e){ return false; }
 }
 
 function _showAEMsg(msg, col){
@@ -2822,6 +2966,7 @@ function init(){
   setInterval(loadOREF,       15000);
   setInterval(loadGDELT,        15*60*1000);
   setInterval(_fetchGDELTGeo,   15*60*1000);
+  setInterval(_pollRemoteConflicts, 5*60*1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
