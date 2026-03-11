@@ -1396,6 +1396,7 @@ async function refreshAll(){
   mediaCache={ts:0,data:[]};
   osintCache={ts:0,data:[]};
   gdeltCache={ts:0,data:[]};
+  _gdeltGeoCache={ts:0,points:[]};
   brkLoaded=false;
   const _fm=document.getElementById('feed-media');
   const _fo=document.getElementById('feed-osint');
@@ -1656,7 +1657,7 @@ function startClock(){
 // Auto-rotation, HTML markers, AI conflict summaries
 // ═══════════════════════════════════════════════════════════
 
-const CONFLICTS = [
+let CONFLICTS = [
   // ── HIGH INTENSITY ──
   {id:'ukraine',     name:'Guerra Rusia-Ucrania',       lat:49.0,  lng:32.0,  i:'high',
    since:'Feb 2022', parties:'Rusia vs Ucrania + OTAN (suministros)',
@@ -1884,8 +1885,10 @@ function openConflictInfo(d){
   const label = d.i==='high'?'🔴 GUERRA ACTIVA':d.i==='medium'?'🟡 CONFLICTO ACTIVO':'🔵 TENSIÓN';
 
   title.textContent = d.name;
+  const mentionBadge = d._mentions > 0
+    ? `<span style="font-size:10px;color:var(--green);margin-left:10px;font-family:var(--mono);">↑${d._mentions} menciones/24h</span>` : '';
   badge.innerHTML = `<span style="font-size:10px;font-weight:600;color:${col};">${label}</span>
-    <span style="font-size:10px;color:var(--t2);margin-left:10px;font-family:var(--mono);">Desde ${d.since}</span>`;
+    <span style="font-size:10px;color:var(--t2);margin-left:10px;font-family:var(--mono);">Desde ${d.since}</span>${mentionBadge}`;
   parties.textContent = '⚔ ' + d.parties;
   summary.innerHTML = `<p style="margin:0;">${d.summary}</p>`;
   aiEl.innerHTML = '';
@@ -1977,6 +1980,148 @@ function _renderAI(id, text){
 }
 
 // Reinit globe on theme change
+// ═══════════════════════════════════════════════════════════
+// DYNAMIC CONFLICT DATA — GDELT GEO + Feed intelligence
+// ═══════════════════════════════════════════════════════════
+
+// GDELT Event API — returns geolocated conflict events (no key needed)
+// Updated every 15min by GDELT. Returns lat/lng + event type + country
+const GDELT_GEO_QUERIES = [
+  // CAMEO codes: 19=Fight, 18=Assault, 20=Use unconventional mass violence
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict+war+military+attack&format=geojson&timespan=1d&maxpoints=50',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=ukraine+russia+bomb+missile&format=geojson&timespan=1d&maxpoints=30',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=israel+hamas+strike+killed&format=geojson&timespan=1d&maxpoints=30',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=sudan+congo+sahel+armed+attack&format=geojson&timespan=1d&maxpoints=30',
+];
+
+let _gdeltGeoCache = {ts:0, points:[]};
+let _gdeltGeoMarkers = []; // extra markers from GDELT not in base CONFLICTS
+
+// Keyword → conflict id mapping for intensity updates
+const CONFLICT_KEYWORDS = {
+  ukraine:      ['ukraine','ucrania','kyiv','kharkiv','zaporizhzhia','kherson','donbas','russia'],
+  gaza:         ['gaza','hamas','israel','rafah','khan younis','west bank','cisjordania'],
+  sudan:        ['sudan','rsf','khartoum','darfur','jartum'],
+  myanmar:      ['myanmar','burma','junta','pdf','shan','sagaing'],
+  sahel:        ['mali','burkina','niger','jnim','sahel','bamako'],
+  drcongo:      ['congo','drc','m23','goma','kivu','rdc'],
+  yemen:        ['yemen','houthi','huthi','ansarallah','hodeidah'],
+  syria:        ['syria','siria','hts','idlib','aleppo','damasco'],
+  ethiopia:     ['ethiopia','etiopia','tigray','amhara','oromia'],
+  somalia:      ['somalia','al-shabaab','mogadishu','mogadiscio'],
+  lebanon:      ['lebanon','libano','hezbollah','beirut'],
+  iran:         ['iran','nuclear','irgc','strait of hormuz','hormuz'],
+  sahara:       ['western sahara','polisario','sahara occidental'],
+  taiwan:       ['taiwan','strait','pla exercise','china threat'],
+  southchinasea:['south china sea','mar del sur','scarborough','spratly','paracel'],
+  pakistan:     ['ttp','pakistan','peshawar','khyber','balochistan'],
+  northkorea:   ['north korea','corea del norte','kim jong','pyongyang','icbm'],
+};
+
+async function loadGDELTGeo(){
+  if(_gdeltGeoCache.ts && Date.now()-_gdeltGeoCache.ts < 15*60*1000) return;
+
+  const allPoints = [];
+  await pool(GDELT_GEO_QUERIES.map(url => async () => {
+    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+    try{
+      const r = await fetch(proxy, {signal:AbortSignal.timeout(12000)});
+      if(!r.ok) return;
+      const j = JSON.parse((await r.json()).contents);
+      (j.features||[]).forEach(f => {
+        const [lng,lat] = f.geometry?.coordinates || [];
+        if(!lat||!lng) return;
+        allPoints.push({
+          lat, lng,
+          name: f.properties?.name || f.properties?.title || 'Evento',
+          count: f.properties?.shareimage || 1,
+          url:   f.properties?.url || '',
+          date:  f.properties?.dateadded || '',
+        });
+      });
+    }catch(e){}
+  }), 3);
+
+  if(!allPoints.length) return;
+  _gdeltGeoCache = {ts:Date.now(), points:allPoints};
+  _applyDynamicData(allPoints);
+}
+
+function _applyDynamicData(points){
+  if(!_globe) return;
+
+  // ── 1. Update CONFLICT intensities from recent feed mentions ──
+  const allItems = [...(mediaCache.data||[]), ...(osintCache.data||[])];
+  const now = Date.now();
+  const recent24h = allItems.filter(i => now - new Date(i.pubDate||0) < 24*60*60*1000);
+
+  CONFLICTS.forEach(conflict => {
+    const kw = CONFLICT_KEYWORDS[conflict.id] || [];
+    const mentions = recent24h.filter(i => {
+      const t = (i.title||'').toLowerCase();
+      return kw.some(k => t.includes(k));
+    }).length;
+
+    // Store mention count for display
+    conflict._mentions = mentions;
+    conflict._lastUpdated = new Date().toISOString();
+
+    // Dynamically adjust intensity based on 24h feed activity
+    if(mentions >= 15)      conflict.i = 'high';
+    else if(mentions >= 5)  conflict.i = 'medium';
+    else if(mentions >= 1)  conflict.i = 'low';
+    // Don't downgrade below base level — only upgrade
+  });
+
+  // ── 2. Build GDELT hotspot markers (events NOT near existing conflicts) ──
+  const newHotspots = [];
+  points.forEach(pt => {
+    // Skip if within 300km of an existing conflict marker
+    const nearExisting = CONFLICTS.some(c => {
+      const dlat = c.lat - pt.lat, dlng = c.lng - pt.lng;
+      return Math.sqrt(dlat*dlat + dlng*dlng) < 3.0; // ~300km in deg
+    });
+    if(nearExisting) return;
+
+    // Only add if high event count (GDELT shareimage = coverage intensity)
+    if((pt.count||0) < 3) return;
+
+    newHotspots.push({
+      id:      'gdelt_' + Math.round(pt.lat*10) + '_' + Math.round(pt.lng*10),
+      name:    pt.name.slice(0,40),
+      lat:     pt.lat, lng: pt.lng,
+      i:       'low',
+      since:   'Detectado hoy',
+      parties: 'Fuente: GDELT',
+      cat:     'general',
+      summary: 'Evento detectado automáticamente por GDELT en las últimas 24h. Cobertura mediática: ' + pt.count + ' fuentes.',
+      _gdelt:  true,
+    });
+  });
+
+  // ── 3. Refresh globe markers ──
+  const allMarkers = [...CONFLICTS, ...newHotspots];
+  _globe.htmlElementsData(allMarkers);
+
+  // Update counter
+  const e = document.getElementById('map-conflict-count');
+  if(e) e.textContent = CONFLICTS.length + ' conflictos' + (newHotspots.length ? ' + ' + newHotspots.length + ' alertas GDELT' : '');
+
+  // Update status
+  colStatus('map','ok', allMarkers.length + ' marcadores');
+}
+
+// ── Called after feeds load to update intensities ──
+function updateGlobeFromFeeds(){
+  if(!_globe || !_globeInited) return;
+  if(_gdeltGeoCache.points.length){
+    _applyDynamicData(_gdeltGeoCache.points);
+  } else {
+    // Just update intensities from feed data without GDELT points
+    _applyDynamicData([]);
+  }
+}
+
 function _reinitGlobe(){
   if(!_globeInited) return;
   _globeInited = false;
@@ -2024,6 +2169,7 @@ function init(){
     setLastUpdated();
     setTimeout(loadBreakingBar,  300);
     setTimeout(initGlobe, 600);
+    setTimeout(loadGDELTGeo, 3000);
     setTimeout(loadGDELT,       800);
     setTimeout(loadOREF,       1200);
   }, 300);
@@ -2032,6 +2178,7 @@ function init(){
   startAutoRefresh();
   setInterval(loadOREF,       15000);
   setInterval(loadGDELT,        15*60*1000);
+  setInterval(loadGDELTGeo,     15*60*1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
