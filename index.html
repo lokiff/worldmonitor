@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>ConflictTracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════
@@ -471,56 +470,53 @@ select.sp-input{cursor:pointer;}
 .sitem-m{font-size:10px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:6px;}
 
 
-/* ── CONFLICT MAP ── */
+
+/* ══ GLOBE / MAP ══════════════════════════════════════════ */
 #col-map{position:relative;}
-#conflict-map{background:var(--bg);}
-.conflict-tooltip{
-  background:var(--surface) !important;
-  border:1px solid var(--border2) !important;
-  color:var(--t0) !important;
-  border-radius:4px !important;
-  padding:4px 8px !important;
-  font-family:var(--font);
-  box-shadow:0 4px 12px rgba(0,0,0,.3) !important;
-}
-.conflict-tooltip::before{display:none !important;}
-.leaflet-control-zoom{
-  border:1px solid var(--border) !important;
-  border-radius:var(--radius-sm) !important;
-  overflow:hidden;
-}
-.leaflet-control-zoom a{
-  background:var(--surface) !important;
-  color:var(--t1) !important;
-  border-color:var(--border) !important;
-  font-size:14px !important;
-}
-.leaflet-control-zoom a:hover{background:var(--surface2) !important;color:var(--t0) !important;}
-.leaflet-attribution-flag{display:none !important;}
-.leaflet-control-attribution{
-  background:rgba(15,17,23,.7) !important;
-  color:var(--t2) !important;
-  font-size:9px !important;
-  backdrop-filter:blur(4px);
-}
-.leaflet-control-attribution a{color:var(--t2) !important;}
-@keyframes mapPulse{0%,100%{transform:scale(1);opacity:.15}50%{transform:scale(1.8);opacity:0;}}
+#globe-wrap canvas{display:block;}
+@keyframes lgPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
 
-/* map legend */
-#map-legend{
-  position:absolute;bottom:12px;left:12px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-sm);
-  padding:8px 10px;
-  font-size:10px;color:var(--t1);
-  z-index:999;
-  display:flex;flex-direction:column;gap:4px;
+/* marker HTML elements rendered by globe.gl */
+.globe-marker{
+  position:relative;cursor:pointer;
+  transform:translate(-50%,-50%);
+  transition:transform .15s;
+}
+.globe-marker:hover{transform:translate(-50%,-50%) scale(1.3);}
+.gm-dot{
+  width:var(--sz);height:var(--sz);
+  border-radius:50%;
+  background:var(--col);
+  border:1.5px solid rgba(255,255,255,.25);
+  box-shadow:0 0 8px var(--col);
+}
+.gm-pulse{
+  position:absolute;inset:-5px;
+  border-radius:50%;
+  background:var(--col);
+  opacity:0;
+  animation:gmPulse 2.2s ease infinite;
+}
+@keyframes gmPulse{0%{transform:scale(.6);opacity:.5}100%{transform:scale(2.2);opacity:0}}
+.gm-label{
+  position:absolute;left:calc(var(--sz) + 4px);top:50%;
+  transform:translateY(-50%);
+  white-space:nowrap;
+  font-size:10px;font-weight:500;
+  color:rgba(255,255,255,.85);
+  text-shadow:0 1px 4px rgba(0,0,0,.9);
   pointer-events:none;
+  font-family: 'JetBrains Mono', monospace;
 }
-.map-leg-item{display:flex;align-items:center;gap:6px;}
-.map-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
+/* map info panel scrollbar */
+#map-info::-webkit-scrollbar{width:3px;}
+#map-info::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* mobile: map tab */
+@media(max-width:700px){
+  #globe-wrap{touch-action:none;}
+}
 
 /* ── PROGRESS BAR ── */
 #prog-bar{height:2px;flex-shrink:0;background:transparent;overflow:hidden;}
@@ -721,41 +717,69 @@ select.sp-input{cursor:pointer;}
         <div class="feed" id="feed-osint"><div class="fstatus"><span class="spin"></span>Conectando canales...</div></div>
       </div>
 
-      <!-- MAPA -->
+
+      <!-- MAPA 3D -->
       <div class="col" id="col-map">
         <div class="col-hdr">
           <span class="col-title" style="display:flex;align-items:center;gap:6px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-            Conflictos
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Mapa Global
           </span>
-          <span class="col-badge" id="ft-map" style="margin-left:auto;"></span>
-          <span class="col-status" id="cs-map"></span>
+          <span id="map-conflict-count" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--t2);"></span>
+          <span id="cs-map" class="col-status"></span>
         </div>
-        <div id="map-container" style="flex:1;position:relative;min-height:0;">
-          <div id="conflict-map" style="width:100%;height:100%;"></div>
-          <div id="map-legend">
-            <div class="map-leg-item"><div class="map-leg-dot" style="background:#e8445a;box-shadow:0 0 4px #e8445a;"></div>Conflicto activo</div>
-            <div class="map-leg-item"><div class="map-leg-dot" style="background:#f0a832;"></div>Conflicto medio</div>
-            <div class="map-leg-item"><div class="map-leg-dot" style="background:#4d8cf5;"></div>Tensión/latente</div>
+        <!-- Globe container -->
+        <div id="globe-wrap" style="flex:1;position:relative;min-height:0;overflow:hidden;background:#080c14;">
+          <div id="globe-el" style="width:100%;height:100%;"></div>
+
+          <!-- Legend -->
+          <div id="globe-legend" style="
+            position:absolute;bottom:14px;left:14px;
+            background:rgba(22,27,39,0.85);
+            backdrop-filter:blur(8px);
+            border:1px solid rgba(255,255,255,.08);
+            border-radius:8px;padding:8px 12px;
+            font-size:10px;color:var(--t1);
+            z-index:10;pointer-events:none;
+            display:flex;flex-direction:column;gap:5px;
+          ">
+            <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:50%;background:#e8445a;box-shadow:0 0 6px #e8445a;display:inline-block;animation:lgPulse 1.8s ease infinite;"></span>Guerra activa</div>
+            <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:50%;background:#f0a832;display:inline-block;"></span>Conflicto medio</div>
+            <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:50%;background:#4d8cf5;display:inline-block;"></span>Tensión latente</div>
           </div>
-          <!-- Conflict info panel — slides up on click -->
+
+          <!-- Auto-rotate hint -->
+          <div id="globe-hint" style="
+            position:absolute;top:10px;right:10px;
+            background:rgba(22,27,39,0.7);backdrop-filter:blur(6px);
+            border:1px solid rgba(255,255,255,.07);border-radius:6px;
+            padding:4px 8px;font-size:9px;font-family:var(--mono);
+            color:var(--t2);z-index:10;pointer-events:none;
+            transition:opacity .5s;
+          ">AUTO-ROTATE</div>
+
+          <!-- Conflict info panel -->
           <div id="map-info" style="
             position:absolute;bottom:0;left:0;right:0;
-            background:var(--surface);
-            border-top:1px solid var(--border2);
-            padding:14px 16px;
-            transform:translateY(100%);
-            transition:transform .25s ease;
-            z-index:1000;
-            max-height:55%;
-            overflow-y:auto;
+            background:rgba(22,27,39,0.96);
+            backdrop-filter:blur(16px);
+            border-top:1px solid rgba(255,255,255,.1);
+            padding:16px 18px 18px;
+            transform:translateY(101%);
+            transition:transform .3s cubic-bezier(.4,0,.2,1);
+            z-index:20;max-height:60%;overflow-y:auto;
           ">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <span id="map-info-title" style="font-size:13px;font-weight:600;color:var(--t0);"></span>
-              <button onclick="closeMapInfo()" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:16px;line-height:1;">×</button>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <div id="map-info-title" style="font-size:14px;font-weight:600;color:#fff;line-height:1.3;"></div>
+                <div id="map-info-badge" style="margin-top:4px;"></div>
+              </div>
+              <button onclick="closeMapInfo()" style="background:rgba(255,255,255,.08);border:none;color:var(--t1);cursor:pointer;font-size:18px;line-height:1;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:10px;">×</button>
             </div>
-            <div id="map-info-meta" style="font-size:10px;color:var(--t2);margin-bottom:10px;font-family:var(--mono);display:flex;gap:12px;flex-wrap:wrap;"></div>
-            <div id="map-info-body" style="font-size:12px;color:var(--t1);line-height:1.65;"></div>
+            <div id="map-info-parties" style="font-size:10px;color:var(--t2);font-family:var(--mono);margin-bottom:10px;"></div>
+            <div id="map-info-summary" style="font-size:12px;color:var(--t1);line-height:1.7;"></div>
+            <div id="map-info-ai" style="margin-top:12px;"></div>
+            <div id="map-info-news" style="margin-top:12px;"></div>
           </div>
         </div>
       </div>
@@ -776,8 +800,8 @@ select.sp-input{cursor:pointer;}
       <span>OSINT</span>
       <span class="mob-badge" id="mbadge-osint">—</span>
     </button>
-    <button class="mob-tab" id="mtab-map" onclick="mobTab('map',this);initMap();">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    <button class="mob-tab" id="mtab-map" onclick="mobTab('map',this);setTimeout(initGlobe,80);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       <span>Mapa</span>
     </button>
     <button class="mob-tab" id="mtab-refresh" onclick="refreshAll()">
@@ -1548,8 +1572,7 @@ function applyAccent(v, dot){
 }
 function toggleTheme(){
   document.body.classList.toggle('light');
-  // Rebuild map with correct tile theme
-  if(_map){ _map.remove(); _map=null; _mapInited=false; setTimeout(initMap,100); }
+  _reinitGlobe();
   const isLight = document.body.classList.contains('light');
   const btn = document.getElementById('theme-btn');
   const tog = document.getElementById('tog-dark');
@@ -1629,277 +1652,338 @@ function startClock(){
 // ═══════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════
-// CONFLICT MAP — Leaflet + AI summaries via Claude API
+// 3D GLOBE — globe.gl + Three.js
+// Auto-rotation, HTML markers, AI conflict summaries
 // ═══════════════════════════════════════════════════════════
 
-// Active conflicts dataset — updated periodically via ACLED/GDELT signals
-// Base data is hardcoded and enriched dynamically from feed keywords
 const CONFLICTS = [
-  // ── Europe ──
-  { id:'ukraine',    name:'Guerra Rusia-Ucrania',      lat:49.0,  lng:31.0,   intensity:'high',   region:'ukraine',
-    since:'Feb 2022', parties:'Rusia vs Ucrania + apoyo OTAN',
-    summary:'Invasión rusa a gran escala. Combates activos en el Donbás, Zaporiyia y Jersón. Ucrania lanza contraofensivas con armamento occidental.' },
-  // ── Middle East ──
-  { id:'gaza',       name:'Guerra Gaza',               lat:31.35, lng:34.3,   intensity:'high',   region:'mideast',
-    since:'Oct 2023', parties:'Israel vs Hamas / grupos armados Gaza',
-    summary:'Conflicto iniciado tras ataque de Hamas el 7-Oct-2023. Israel lleva a cabo operación terrestre en Gaza. Crisis humanitaria severa. Riesgo de escalada regional con Hezbollah e Irán.' },
-  { id:'lebanon',    name:'Conflicto Líbano',          lat:33.8,  lng:35.9,   intensity:'medium', region:'mideast',
-    since:'Oct 2023', parties:'Israel vs Hezbollah',
-    summary:'Intercambios de fuego entre Israel y Hezbollah en la frontera norte. Riesgo de escalada hacia guerra abierta. Desplazados en ambos lados de la frontera.' },
-  { id:'syria',      name:'Guerra Civil Siria',        lat:35.0,  lng:38.0,   intensity:'medium', region:'mideast',
-    since:'Mar 2011', parties:'Gobierno sirio, milicias, SDF, Turquía, HTS',
-    summary:'Conflicto prolongado en fase de baja intensidad. HTS controla Idlib. Fuerzas turcas en el norte. Ataques israelíes periódicos contra posiciones iraníes.' },
-  { id:'iran-us',    name:'Tensión Irán-EEUU/Israel',  lat:32.0,  lng:53.0,   intensity:'medium', region:'mideast',
-    since:'2019',     parties:'Irán vs EEUU, Israel',
-    summary:'Tensión persistente por programa nuclear iraní. Ataques con drones y misiles entre Irán e Israel en 2024. Presencia militar naval de EEUU en el Golfo.' },
-  { id:'yemen',      name:'Guerra Yemen',              lat:15.5,  lng:48.0,   intensity:'medium', region:'mideast',
-    since:'Mar 2015', parties:'Hutíes vs Arabia Saudí / coalición',
-    summary:'Los hutíes (Ansarallah) controlan el norte incluyendo Saná. Ataques con drones y misiles a Arabia Saudí y buques en el Mar Rojo. Crisis humanitaria grave.' },
-  { id:'sudan',      name:'Guerra Sudan',              lat:15.5,  lng:32.5,   intensity:'high',   region:'africa',
-    since:'Abr 2023', parties:'SAF (ejército) vs RSF (paramilitares)',
-    summary:'Conflicto entre el ejército sudanés y las Fuerzas de Apoyo Rápido. Jartum en ruinas. Más de 8 millones de desplazados. Crisis humanitaria de las peores del mundo.' },
-  { id:'ethiopia',   name:'Conflictos Etiopía',        lat:9.0,   lng:40.0,   intensity:'medium', region:'africa',
-    since:'2020',     parties:'Gobierno vs TPLF, OLA, otros',
-    summary:'Tras el acuerdo de paz del Tigré en 2022, combates activos en Amhara y Oromía. Grupos armados étnicos siguen operando. Crisis humanitaria en regiones del norte.' },
-  { id:'sahel',      name:'Crisis Sahel',              lat:14.0,  lng:2.0,    intensity:'high',   region:'africa',
-    since:'2012',     parties:'Yihadistas (JNIM, ISGS) vs Estados del AES + Wagner',
-    summary:'Insurgencia yihadista en Mali, Burkina Faso y Níger. Los tres países sufrieron golpes militares. Francia retirada. Wagner/África Corps presente. Miles de civiles muertos anualmente.' },
-  { id:'drcongo',    name:'Este del Congo (RDC)',       lat:-1.5,  lng:29.0,   intensity:'high',   region:'africa',
-    since:'1996',     parties:'M23/Rwanda vs FARDC, FDLR, milicias locales',
-    summary:'El M23 (apoyado por Rwanda) controla Goma. Más de 7 millones de desplazados. Múltiples grupos armados operan en Kivu Norte y Sur. Crisis humanitaria crónica.' },
-  { id:'somalia',    name:'Conflicto Somalia',         lat:5.0,   lng:46.0,   intensity:'medium', region:'africa',
-    since:'2006',     parties:'Gobierno somalí + ATMIS vs Al-Shabaab',
-    summary:'Al-Shabaab controla amplias zonas rurales del sur. Ataques frecuentes en Mogadiscio. EEUU lleva a cabo strikes con drones. Retirada progresiva de tropas de la UA.' },
-  { id:'myanmar',    name:'Guerra Civil Myanmar',      lat:19.0,  lng:96.5,   intensity:'high',   region:'asia',
-    since:'Feb 2021', parties:'Junta militar vs PDF, EAO, alianza 3BHA',
-    summary:'Tras el golpe de 2021, la junta ha perdido el control de gran parte del país. La Alianza de los Tres Hermanos tomó el noreste. El PDF opera en todo el territorio. La junta usa aviación contra civiles.' },
-  { id:'china-taiwan',name:'Tensión China-Taiwán',     lat:23.5,  lng:121.0,  intensity:'low',    region:'asia',
-    since:'1949',     parties:'China (RPC) vs Taiwán (ROC)',
-    summary:'China realiza ejercicios militares regulares alrededor de Taiwán. EEUU mantiene ambigüedad estratégica. Ventas de armas a Taiwán causan tensiones diplomáticas. Sin combates activos.' },
-  { id:'southchinasea',name:'Mar del Sur de China',   lat:12.0,  lng:115.0,  intensity:'low',    region:'asia',
-    since:'2009',     parties:'China vs Filipinas, Vietnam, Malasia',
-    summary:'China construye y militariza islas artificiales. Incidentes frecuentes con guardacostas filipinos en el Arrecife de Scarborough y Segunda Thomas. Tensiones sin conflicto armado abierto.' },
-  { id:'nagorno',    name:'Nagorno-Karabaj (post)',    lat:40.0,  lng:46.5,   intensity:'low',    region:'general',
-    since:'Sep 2023', parties:'Azerbaiyán vs Armenia (resuelto militarmente)',
-    summary:'Azerbaiyán tomó el control total del enclave en Sep 2023. Más de 100.000 armenios huyeron. Tensión residual en la frontera Armenia-Azerbaiyán. Negociaciones de paz en curso.' },
-  { id:'sahara',     name:'Conflicto Sahara Occidental',lat:24.0, lng:-13.0,  intensity:'low',    region:'africa',
-    since:'Nov 2020', parties:'Marruecos vs Polisario (apoyado por Argelia)',
-    summary:'El Frente Polisario retomó las armas en 2020. Ataques esporádicos de baja intensidad. Marruecos controla ~80% del territorio. Sin solución política a la vista.' },
+  // ── HIGH INTENSITY ──
+  {id:'ukraine',     name:'Guerra Rusia-Ucrania',       lat:49.0,  lng:32.0,  i:'high',
+   since:'Feb 2022', parties:'Rusia vs Ucrania + OTAN (suministros)',
+   cat:'ukraine',
+   summary:'Invasión rusa a gran escala. Combates activos en el Donbás, Zaporiyia y Jersón. Ucrania contraataca con armamento occidental. Línea del frente relativamente estática desde finales de 2022.'},
+
+  {id:'gaza',        name:'Guerra Gaza',                lat:31.35, lng:34.3,  i:'high',
+   since:'Oct 2023', parties:'Israel vs Hamas / Yihad Islámica Palestina',
+   cat:'mideast',
+   summary:'Operación terrestre israelí tras ataque de Hamas del 7-Oct. Más de 35.000 muertos en Gaza. Crisis humanitaria grave. Riesgo de escalada con Hezbollah e Irán.'},
+
+  {id:'sudan',       name:'Guerra Civil Sudán',         lat:15.5,  lng:32.5,  i:'high',
+   since:'Abr 2023', parties:'SAF (ejército) vs RSF (paramilitares)',
+   cat:'africa',
+   summary:'Conflicto entre el ejército y las Fuerzas de Apoyo Rápido. Jartum devastada. +8 millones de desplazados. Una de las peores crisis humanitarias del mundo.'},
+
+  {id:'myanmar',     name:'Guerra Civil Myanmar',       lat:19.0,  lng:96.5,  i:'high',
+   since:'Feb 2021', parties:'Junta militar vs PDF + EAO (Alianza 3BHA)',
+   cat:'asia',
+   summary:'Tras el golpe de 2021, la junta ha perdido el control de gran parte del país. La Alianza de los Tres Hermanos tomó el noreste. PDF opera en todo el territorio. Aviación junta ataca civiles.'},
+
+  {id:'sahel',       name:'Crisis Sahel',               lat:14.0,  lng:2.0,   i:'high',
+   since:'2012',     parties:'JNIM / ISGS vs gobiernos AES + Wagner/África Corps',
+   cat:'africa',
+   summary:'Insurgencia yihadista devastadora en Mali, Burkina Faso y Níger. Tres golpes militares. Francia expulsada. Presencia rusa (Wagner). Miles de civiles muertos anualmente.'},
+
+  {id:'drcongo',     name:'Este del Congo (RDC)',        lat:-1.5,  lng:29.0,  i:'high',
+   since:'1996',     parties:'M23/Rwanda vs FARDC, FDLR y milicias',
+   cat:'africa',
+   summary:'El M23 (apoyado por Rwanda) tomó Goma en 2024. +7 millones de desplazados. Decenas de grupos armados en Kivu Norte y Sur. Crisis humanitaria crónica e ignorada.'},
+
+  // ── MEDIUM INTENSITY ──
+  {id:'yemen',       name:'Guerra Yemen',               lat:15.5,  lng:48.0,  i:'medium',
+   since:'Mar 2015', parties:'Hutíes (Ansarallah) vs Arabia Saudí + coalición',
+   cat:'mideast',
+   summary:'Hutíes controlan el norte incluyendo Saná. Ataques con drones al Mar Rojo bloqueando tráfico marítimo. Crisis humanitaria con millones en riesgo de hambruna.'},
+
+  {id:'syria',       name:'Guerra Civil Siria',         lat:35.0,  lng:38.0,  i:'medium',
+   since:'Mar 2011', parties:'HTS, SDF, Turquía, milicias pro-Irán, gobierno',
+   cat:'mideast',
+   summary:'HTS tomó el poder en Dic 2024 tras colapso del régimen de Assad. Múltiples actores compiten por territorio. Israel bombardea infraestructura militar. Incertidumbre total sobre el futuro.'},
+
+  {id:'ethiopia',    name:'Conflictos Etiopía',         lat:9.0,   lng:40.0,  i:'medium',
+   since:'2020',     parties:'Gobierno vs OLA (Oromía), milicias Amhara',
+   cat:'africa',
+   summary:'Tras acuerdo de paz del Tigré (2022), combates en Amhara y Oromía. Grupos armados étnicos siguen activos. Acceso humanitario severamente limitado.'},
+
+  {id:'somalia',     name:'Conflicto Somalia',          lat:5.0,   lng:46.0,  i:'medium',
+   since:'2006',     parties:'Gobierno somalí + UA vs Al-Shabaab',
+   cat:'africa',
+   summary:'Al-Shabaab controla amplias zonas rurales del sur. Ataques frecuentes en Mogadiscio. Drones de EEUU activos. Retirada gradual de tropas de la Unión Africana.'},
+
+  {id:'lebanon',     name:'Conflicto Líbano-Israel',    lat:33.5,  lng:35.5,  i:'medium',
+   since:'Oct 2023', parties:'Israel vs Hezbollah',
+   cat:'mideast',
+   summary:'Intercambios de fuego en la frontera norte. Israel atacó infraestructura de Hezbollah en 2024. Acuerdo de alto el fuego frágil. Riesgo persistente de escalada.'},
+
+  {id:'iran',        name:'Tensión Irán-Israel/EEUU',   lat:32.0,  lng:53.0,  i:'medium',
+   since:'2019',     parties:'Irán vs Israel, EEUU, monarquías del Golfo',
+   cat:'mideast',
+   summary:'Intercambio directo de misiles y drones entre Irán e Israel en Abr y Oct 2024. Programa nuclear iraní avanza. EEUU mantiene presencia naval en el Golfo.'},
+
+  {id:'sahara',      name:'Sáhara Occidental',          lat:24.0,  lng:-13.0, i:'medium',
+   since:'Nov 2020', parties:'Marruecos vs Frente Polisario (apoyo argelia)',
+   cat:'africa',
+   summary:'Polisario retomó las armas en 2020. Ataques de baja intensidad. Marruecos controla ~80% del territorio. Sin solución política. Tensión diplomática Argelia-Marruecos.'},
+
+  // ── LOW INTENSITY / TENSION ──
+  {id:'taiwan',      name:'Tensión China-Taiwán',       lat:23.5,  lng:121.0, i:'low',
+   since:'1949',     parties:'China (RPC) vs Taiwán (ROC) + EEUU',
+   cat:'asia',
+   summary:'Ejercicios militares chinos regulares alrededor de Taiwán. EEUU vende armas y mantiene ambigüedad estratégica. Sin combates activos pero tensión estructural alta.'},
+
+  {id:'southchinasea',name:'Mar del Sur de China',      lat:12.0,  lng:115.0, i:'low',
+   since:'2009',     parties:'China vs Filipinas, Vietnam, Malasia',
+   cat:'asia',
+   summary:'China militariza islas artificiales. Incidentes frecuentes con guardacostas filipinos. EEUU realiza misiones de libertad de navegación. Tensión sin conflicto armado abierto.'},
+
+  {id:'ukraine-border',name:'Tensión Armenia-Azerbaiyán',lat:40.5, lng:45.5, i:'low',
+   since:'2023',     parties:'Armenia vs Azerbaiyán',
+   cat:'general',
+   summary:'Azerbaiyán tomó Nagorno-Karabaj en Sep 2023. +100.000 armenios expulsados. Negociaciones de paz en curso. Escaramuzas fronterizas ocasionales. Armenia reorienta política exterior.'},
+
+  {id:'pakistan',    name:'Insurgencia Pakistán-Afg',   lat:33.0,  lng:69.0,  i:'low',
+   since:'2007',     parties:'TTP vs ejército pakistaní, tensión con Afganistán',
+   cat:'asia',
+   summary:'TTP (Tehrik-i-Taliban Pakistán) intensifica ataques desde Afganistán. Ejército paquistaní realiza operaciones en KPK y Baluchistán. Relaciones tensas con el gobierno talibán afgano.'},
+
+  {id:'northkorea',  name:'Tensión Corea del Norte',    lat:39.0,  lng:127.5, i:'low',
+   since:'1953',     parties:'Corea del Norte vs Corea del Sur, EEUU, Japón',
+   cat:'asia',
+   summary:'Kim Jong-un acelera programa nuclear y de misiles. Tropas norcoreanas desplegadas en apoyo a Rusia en Ucrania. Tensión creciente en la península. Sin diálogo diplomático.'},
 ];
 
-const INTENSITY_STYLE = {
-  high:   { color:'#e8445a', radius:14, pulse:true  },
-  medium: { color:'#f0a832', radius:10, pulse:false },
-  low:    { color:'#4d8cf5', radius:7,  pulse:false },
-};
+const G_COL = {high:'#e8445a', medium:'#f0a832', low:'#4d8cf5'};
+const G_SZ  = {high:16, medium:12, low:9};
 
-let _map = null;
-let _mapInited = false;
-let _aiCache = {};  // conflict id → AI summary
+let _globe      = null;
+let _globeInited= false;
+let _autoRotate = true;
+let _rotTimer   = null;
+let _aiCache    = {};
 
-function initMap(){
-  if(_mapInited) return;
-  _mapInited = true;
+function initGlobe(){
+  if(_globeInited) return;
+  const wrap = document.getElementById('globe-el');
+  if(!wrap) return;
+  _globeInited = true;
+  colStatus('map','loading');
 
-  // Load Leaflet JS dynamically
-  if(!window.L){
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    s.onload = _buildMap;
-    document.head.appendChild(s);
-  } else {
-    _buildMap();
-  }
+  // Load globe.gl bundle (includes Three.js)
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/globe.gl@2.30.0/dist/globe.gl.min.js';
+  s.onload = _buildGlobe;
+  s.onerror = () => { colStatus('map','err'); _globeInited=false; };
+  document.head.appendChild(s);
 }
 
-function _buildMap(){
+function _buildGlobe(){
+  const wrap = document.getElementById('globe-el');
+  if(!wrap || !window.Globe) return;
+
   const isDark = !document.body.classList.contains('light');
 
-  _map = L.map('conflict-map', {
-    center: [20, 15],
-    zoom: 2,
-    zoomControl: true,
-    attributionControl: false,
-    minZoom: 1,
-    maxZoom: 8,
+  _globe = Globe({ animateIn: false })(wrap);
+
+  _globe
+    // ── Earth textures ──
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+    .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+    .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+    .atmosphereColor(isDark ? '#1a3a5c' : '#4a90d9')
+    .atmosphereAltitude(0.18)
+    .showAtmosphere(true)
+
+    // ── HTML markers ──
+    .htmlElementsData(CONFLICTS)
+    .htmlElement(d => _makeMarker(d))
+    .htmlLat(d => d.lat)
+    .htmlLng(d => d.lng)
+    .htmlAltitude(0.01)
+
+    // ── Camera ──
+    .pointOfView({lat:20, lng:15, altitude:2.2}, 0);
+
+  // Resize observer
+  const ro = new ResizeObserver(() => {
+    if(_globe && wrap.offsetWidth > 0){
+      _globe.width(wrap.offsetWidth).height(wrap.offsetHeight);
+    }
   });
+  ro.observe(wrap);
+  _globe.width(wrap.offsetWidth).height(wrap.offsetHeight);
 
-  // Dark/light tile layer
-  const tileUrl = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  // Auto-rotate
+  _startAutoRotate();
 
-  L.tileLayer(tileUrl, { subdomains:'abcd', maxZoom:19 }).addTo(_map);
+  // Pause rotate on user interaction
+  wrap.addEventListener('mousedown', _pauseRotate);
+  wrap.addEventListener('touchstart', _pauseRotate, {passive:true});
 
-  // Attribution minimal
-  L.control.attribution({prefix:false})
-    .addAttribution('© <a href="https://carto.com">CARTO</a>')
-    .addTo(_map);
-
-  _renderConflictMarkers();
-
-  // Auto-update conflict intensities from feed cache every 5min
-  setInterval(_updateConflictFromFeeds, 5 * 60 * 1000);
-  _updateConflictFromFeeds();
-
-  const e = document.getElementById('ft-map');
-  if(e) e.textContent = CONFLICTS.length;
+  colStatus('map','ok', CONFLICTS.length + ' conflictos');
+  const e = document.getElementById('map-conflict-count');
+  if(e) e.textContent = CONFLICTS.length + ' activos';
 }
 
-function _renderConflictMarkers(){
-  if(!_map) return;
-  CONFLICTS.forEach(conflict => {
-    const st = INTENSITY_STYLE[conflict.intensity] || INTENSITY_STYLE.low;
-
-    // Custom pulsing marker using divIcon
-    const pulseHTML = st.pulse
-      ? `<div style="
-          position:absolute;inset:-6px;border-radius:50%;
-          background:${st.color};opacity:.15;
-          animation:mapPulse 2s ease infinite;
-        "></div>` : '';
-
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="position:relative;width:${st.radius*2}px;height:${st.radius*2}px;">
-        ${pulseHTML}
-        <div style="
-          position:absolute;inset:0;border-radius:50%;
-          background:${st.color};opacity:.9;
-          border:2px solid rgba(255,255,255,.3);
-          box-shadow:0 0 8px ${st.color}60;
-          cursor:pointer;
-        "></div>
-      </div>`,
-      iconSize:   [st.radius*2, st.radius*2],
-      iconAnchor: [st.radius,   st.radius],
-    });
-
-    const marker = L.marker([conflict.lat, conflict.lng], { icon })
-      .addTo(_map)
-      .on('click', () => openConflictInfo(conflict));
-
-    // Tooltip on hover
-    marker.bindTooltip(`<div style="font-size:11px;font-weight:500;">${conflict.name}</div>`, {
-      direction:'top', offset:[0,-4],
-      className:'conflict-tooltip',
-    });
-  });
-}
-
-function openConflictInfo(conflict){
-  const panel  = document.getElementById('map-info');
-  const title  = document.getElementById('map-info-title');
-  const meta   = document.getElementById('map-info-meta');
-  const body   = document.getElementById('map-info-body');
-  if(!panel||!title||!body) return;
-
-  // Show panel immediately with base data
-  title.textContent = conflict.name;
-  const st = INTENSITY_STYLE[conflict.intensity];
-  meta.innerHTML = `
-    <span style="color:${st.color};font-weight:600;">${
-      conflict.intensity==='high'?'🔴 ACTIVO':conflict.intensity==='medium'?'🟡 ACTIVO':'🔵 TENSIÓN'
-    }</span>
-    <span>Desde ${conflict.since}</span>
-    <span style="color:var(--t1);">${conflict.parties}</span>
+function _makeMarker(d){
+  const col = G_COL[d.i] || G_COL.low;
+  const sz  = G_SZ[d.i]  || G_SZ.low;
+  const el  = document.createElement('div');
+  el.className = 'globe-marker';
+  el.style.cssText = `--col:${col};--sz:${sz}px;`;
+  el.innerHTML = `
+    ${d.i==='high' ? '<div class="gm-pulse"></div>' : ''}
+    <div class="gm-dot"></div>
+    <div class="gm-label">${d.name}</div>
   `;
-  body.innerHTML = `<p style="color:var(--t1);">${conflict.summary}</p>
-    <div id="ai-summary-${conflict.id}" style="margin-top:10px;"></div>`;
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    // Fly to conflict
+    _globe.pointOfView({lat:d.lat, lng:d.lng, altitude:1.2}, 800);
+    _pauseRotate();
+    openConflictInfo(d);
+  });
+  return el;
+}
 
-  // Slide up
+function _startAutoRotate(){
+  _autoRotate = true;
+  const hint = document.getElementById('globe-hint');
+  if(hint) hint.style.opacity = '1';
+  _tick();
+}
+
+function _tick(){
+  if(!_autoRotate || !_globe) return;
+  const pov = _globe.pointOfView();
+  _globe.pointOfView({lat: pov.lat, lng: pov.lng + 0.12, altitude: pov.altitude}, 0);
+  requestAnimationFrame(_tick);
+}
+
+function _pauseRotate(){
+  _autoRotate = false;
+  const hint = document.getElementById('globe-hint');
+  if(hint) hint.style.opacity = '0';
+  clearTimeout(_rotTimer);
+  // Resume after 60s of inactivity
+  _rotTimer = setTimeout(() => {
+    _startAutoRotate();
+  }, 60000);
+}
+
+// ── Conflict info panel ────────────────────────────────────
+function openConflictInfo(d){
+  const panel = document.getElementById('map-info');
+  const title = document.getElementById('map-info-title');
+  const badge = document.getElementById('map-info-badge');
+  const parties= document.getElementById('map-info-parties');
+  const summary= document.getElementById('map-info-summary');
+  const aiEl  = document.getElementById('map-info-ai');
+  const newsEl= document.getElementById('map-info-news');
+  if(!panel) return;
+
+  const col = G_COL[d.i];
+  const label = d.i==='high'?'🔴 GUERRA ACTIVA':d.i==='medium'?'🟡 CONFLICTO ACTIVO':'🔵 TENSIÓN';
+
+  title.textContent = d.name;
+  badge.innerHTML = `<span style="font-size:10px;font-weight:600;color:${col};">${label}</span>
+    <span style="font-size:10px;color:var(--t2);margin-left:10px;font-family:var(--mono);">Desde ${d.since}</span>`;
+  parties.textContent = '⚔ ' + d.parties;
+  summary.innerHTML = `<p style="margin:0;">${d.summary}</p>`;
+  aiEl.innerHTML = '';
+  newsEl.innerHTML = '';
+
+  // Show panel
   panel.style.transform = 'translateY(0)';
 
-  // Request AI summary if not cached
-  if(!_aiCache[conflict.id]){
-    _fetchAISummary(conflict);
+  // Related news from feeds
+  const kw = d.name.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+  const all = [...(mediaCache.data||[]), ...(osintCache.data||[])];
+  const related = all
+    .filter(i => i.cat===d.cat || kw.some(k=>(i.title||'').toLowerCase().includes(k)))
+    .slice(0,4);
+
+  if(related.length){
+    newsEl.innerHTML = `
+      <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:4px;">
+        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);margin-bottom:7px;letter-spacing:.5px;">NOTICIAS RECIENTES</div>
+        ${related.map(i=>`
+          <div onclick="openItem('${(i.link||'').replace(/'/g,"\\'")}');closeMapInfo();"
+               style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;">
+            <div style="font-size:11px;color:var(--t0);line-height:1.4;">${i.title.slice(0,100)}</div>
+            <div style="font-size:9px;color:var(--t2);margin-top:2px;font-family:var(--mono);">${i.src} · ${timeAgo(i.pubDate)}</div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // AI summary
+  if(_aiCache[d.id]){
+    _renderAI(d.id, _aiCache[d.id]);
   } else {
-    _renderAISummary(conflict.id, _aiCache[conflict.id]);
+    _fetchAI(d, related);
   }
 }
 
 function closeMapInfo(){
-  const panel = document.getElementById('map-info');
-  if(panel) panel.style.transform = 'translateY(100%)';
+  const p = document.getElementById('map-info');
+  if(p) p.style.transform = 'translateY(101%)';
 }
 
-async function _fetchAISummary(conflict){
-  const el = document.getElementById(`ai-summary-${conflict.id}`);
+async function _fetchAI(d, related){
+  const el = document.getElementById('map-info-ai');
   if(!el) return;
-  el.innerHTML = '<span style="font-size:11px;color:var(--t2);"><span class="spin" style="display:inline-block;width:8px;height:8px;border:1.5px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;"></span> Generando resumen IA...</span>';
+  el.innerHTML = `<div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:4px;">
+    <div style="font-size:9px;color:var(--blue);font-family:var(--mono);margin-bottom:6px;">⬡ ANÁLISIS IA</div>
+    <div style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:6px;">
+      <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border2);border-top-color:var(--blue);animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;"></span>
+      Generando análisis...
+    </div>
+  </div>`;
 
-  // Gather recent headlines from feed cache related to this conflict
-  const region = conflict.region;
-  const keywords = conflict.name.toLowerCase().split(' ').filter(w=>w.length>3);
-  const allItems = [...(mediaCache.data||[]), ...(osintCache.data||[])];
-  const related = allItems
-    .filter(i => {
-      const t = (i.title||'').toLowerCase();
-      return i.cat===region || keywords.some(k=>t.includes(k));
-    })
-    .slice(0, 8)
-    .map(i => `- ${i.title} (${i.src}, ${timeAgo(i.pubDate)})`)
-    .join('\n');
-
-  const prompt = `Eres un analista de conflictos armados. Resume brevemente el estado actual del conflicto "${conflict.name}" en 3-4 frases concisas en español.
-Datos base: ${conflict.summary}
-Noticias recientes relacionadas:
-${related || '(sin noticias recientes disponibles)'}
-Responde solo con el resumen, sin titulares ni formato markdown. Máximo 100 palabras.`;
+  const headlines = related.map(i=>`- ${i.title} (${i.src})`).join('\n') || '(sin noticias recientes)';
+  const prompt = `Eres un analista de conflictos. En 3 frases concisas en español, describe el estado actual del conflicto "${d.name}" y su evolución reciente.
+Contexto base: ${d.summary}
+Titulares recientes relacionados:
+${headlines}
+Responde solo con el análisis, sin formato, máximo 80 palabras.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+        model:'claude-sonnet-4-20250514',
+        max_tokens:180,
+        messages:[{role:'user',content:prompt}]
+      })
     });
     if(!res.ok) throw new Error(res.status);
-    const d = await res.json();
-    const text = d.content?.[0]?.text || '';
-    if(text){
-      _aiCache[conflict.id] = text;
-      _renderAISummary(conflict.id, text);
-    }
-  } catch(e){
-    if(el) el.innerHTML = '';  // fail silently — base summary still shows
-  }
+    const data = await res.json();
+    const text = data.content?.[0]?.text||'';
+    if(text){ _aiCache[d.id]=text; _renderAI(d.id,text); }
+    else { if(el) el.innerHTML=''; }
+  } catch(e){ if(el) el.innerHTML=''; }
 }
 
-function _renderAISummary(id, text){
-  const el = document.getElementById(`ai-summary-${id}`);
+function _renderAI(id, text){
+  const el = document.getElementById('map-info-ai');
   if(!el) return;
   el.innerHTML = `
-    <div style="
-      border-top:1px solid var(--border);
-      padding-top:10px;margin-top:4px;
-    ">
-      <div style="font-size:9px;color:var(--blue);font-family:var(--mono);margin-bottom:6px;
-        display:flex;align-items:center;gap:4px;">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-        RESUMEN IA
+    <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:4px;">
+      <div style="font-size:9px;color:var(--blue);font-family:var(--mono);margin-bottom:7px;letter-spacing:.5px;display:flex;align-items:center;gap:5px;">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+        ANÁLISIS IA
       </div>
-      <p style="font-size:12px;color:var(--t0);line-height:1.65;margin:0;">${text}</p>
+      <p style="font-size:12px;color:var(--t0);line-height:1.7;margin:0;">${text}</p>
     </div>`;
 }
 
-// Update conflict intensities based on recent feed mentions
-function _updateConflictFromFeeds(){
-  if(!mediaCache.data.length && !osintCache.data.length) return;
-  const allItems = [...mediaCache.data, ...osintCache.data];
-  const now = Date.now();
-  const recent = allItems.filter(i => now - new Date(i.pubDate) < 24*60*60*1000);
-
-  CONFLICTS.forEach(conflict => {
-    const kw = conflict.name.toLowerCase().split(/\s+/).filter(w=>w.length>3);
-    const mentions = recent.filter(i => kw.some(k=>(i.title||'').toLowerCase().includes(k))).length;
-    // Bump intensity indicator if high mention count
-    if(mentions > 5 && conflict.intensity === 'low')   conflict.intensity = 'medium';
-    if(mentions > 10 && conflict.intensity === 'medium') conflict.intensity = 'high';
-  });
+// Reinit globe on theme change
+function _reinitGlobe(){
+  if(!_globeInited) return;
+  _globeInited = false;
+  _globe = null;
+  const el = document.getElementById('globe-el');
+  if(el) el.innerHTML = '';
+  setTimeout(initGlobe, 150);
 }
 
 
@@ -1939,7 +2023,7 @@ function init(){
     await Promise.all([loadMedia(), loadOSINT()]);
     setLastUpdated();
     setTimeout(loadBreakingBar,  300);
-    setTimeout(initMap, 1000); // init map after feeds
+    setTimeout(initGlobe, 600);
     setTimeout(loadGDELT,       800);
     setTimeout(loadOREF,       1200);
   }, 300);
