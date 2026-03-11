@@ -842,6 +842,236 @@ select.sp-input{cursor:pointer;}
     </button>
   </nav>
 
+<!-- ADMIN MAP PANEL -->
+<div class="side-panel" id="panel-admin" style="width:360px;">
+  <div class="sp-hdr">
+    <span class="sp-title" style="display:flex;align-items:center;gap:8px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Admin — Mapa
+    </span>
+    <button class="sp-close" onclick="closePanel()">✕</button>
+  </div>
+
+  <!-- Login wall -->
+  <div id="admin-login" class="sp-body">
+    <div style="padding:20px 0 10px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:12px;">🔐</div>
+      <div style="font-size:12px;color:var(--t1);margin-bottom:20px;">Acceso restringido</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input id="admin-pwd" type="password" placeholder="Contraseña admin"
+        class="sp-input" style="width:100%;box-sizing:border-box;"
+        onkeydown="if(event.key==='Enter')adminLogin()"/>
+      <button onclick="adminLogin()" style="
+        background:var(--blue);border:none;color:#fff;
+        padding:9px;border-radius:var(--radius-sm);
+        font-size:12px;font-weight:600;cursor:pointer;
+        transition:opacity .15s;">Entrar</button>
+      <div id="admin-err" style="font-size:11px;color:var(--red);text-align:center;display:none;">
+        Contraseña incorrecta
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin workspace (hidden until login) -->
+  <div id="admin-workspace" style="display:none;flex:1;min-height:0;flex-direction:column;">
+
+    <!-- Tab bar -->
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <button class="adm-tab on" id="atab-list"  onclick="admTab('list',this)"
+        style="flex:1;padding:10px 6px;background:none;border:none;
+        color:var(--t1);font-size:11px;cursor:pointer;border-bottom:2px solid var(--blue);">
+        📋 Conflictos
+      </button>
+      <button class="adm-tab" id="atab-add" onclick="admTab('add',this)"
+        style="flex:1;padding:10px 6px;background:none;border:none;
+        color:var(--t2);font-size:11px;cursor:pointer;border-bottom:2px solid transparent;">
+        ➕ Añadir
+      </button>
+      <button class="adm-tab" id="atab-draw" onclick="admTab('draw',this)"
+        style="flex:1;padding:10px 6px;background:none;border:none;
+        color:var(--t2);font-size:11px;cursor:pointer;border-bottom:2px solid transparent;">
+        ✏️ Dibujar
+      </button>
+    </div>
+
+    <!-- LIST tab -->
+    <div id="adm-list" class="sp-body" style="flex:1;overflow-y:auto;padding:10px 14px;">
+      <div style="font-size:10px;color:var(--t2);margin-bottom:10px;font-family:var(--mono);">
+        Haz clic en un conflicto para editarlo
+      </div>
+      <div style="margin-bottom:10px;">
+        <button onclick="adminNewConflict()" style="
+          width:100%;background:rgba(77,140,245,.12);
+          border:1px solid rgba(77,140,245,.3);
+          color:var(--blue);padding:8px;border-radius:var(--radius-sm);
+          font-size:11px;font-weight:600;cursor:pointer;">
+          ➕ Añadir nuevo conflicto
+        </button>
+      </div>
+      <div id="admin-conflict-list"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <button onclick="adminResetToDefault()" style="
+          width:100%;background:none;border:1px solid var(--border);
+          color:var(--t2);padding:7px;border-radius:var(--radius-sm);
+          font-size:11px;cursor:pointer;">
+          ↺ Restaurar datos originales
+        </button>
+      </div>
+    </div>
+
+    <!-- ADD / EDIT tab -->
+    <div id="adm-add" class="sp-body" style="flex:1;overflow-y:auto;padding:14px;display:none;">
+      <input type="hidden" id="ae-id"/>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">NOMBRE</label>
+          <input id="ae-name" type="text" class="sp-input" placeholder="Nombre del conflicto"
+            style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">LATITUD</label>
+            <input id="ae-lat" type="number" step="0.01" class="sp-input" placeholder="ej. 49.0"
+              style="width:100%;box-sizing:border-box;"/>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">LONGITUD</label>
+            <input id="ae-lng" type="number" step="0.01" class="sp-input" placeholder="ej. 32.0"
+              style="width:100%;box-sizing:border-box;"/>
+          </div>
+        </div>
+
+        <div style="font-size:10px;color:var(--blue);cursor:pointer;text-align:center;
+          padding:6px;border:1px dashed var(--border);border-radius:var(--radius-sm);"
+          onclick="adminPickOnMap()" id="pick-map-btn">
+          📍 Clicar en el mapa para seleccionar coordenadas
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">INTENSIDAD</label>
+          <select id="ae-intensity" class="sp-input" style="width:100%;box-sizing:border-box;">
+            <option value="2">🔴 Guerra activa</option>
+            <option value="1">🟡 Conflicto activo</option>
+            <option value="0">🔵 Tensión latente</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">DESDE</label>
+          <input id="ae-since" type="text" class="sp-input" placeholder="ej. Feb 2022"
+            style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">PARTES</label>
+          <input id="ae-parties" type="text" class="sp-input" placeholder="ej. Rusia vs Ucrania"
+            style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">BAJAS</label>
+          <input id="ae-deaths" type="text" class="sp-input" placeholder="ej. 50k+"
+            style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">RESUMEN</label>
+          <textarea id="ae-summary" class="sp-input" rows="4" placeholder="Descripción del conflicto..."
+            style="width:100%;box-sizing:border-box;resize:vertical;font-family:var(--font);"></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button onclick="adminSaveConflict()" style="
+            flex:1;background:var(--blue);border:none;color:#fff;
+            padding:9px;border-radius:var(--radius-sm);
+            font-size:12px;font-weight:600;cursor:pointer;">
+            💾 Guardar
+          </button>
+          <button id="ae-delete-btn" onclick="adminDeleteConflict()" style="
+            background:rgba(232,68,90,.15);border:1px solid rgba(232,68,90,.3);
+            color:var(--red);padding:9px 12px;border-radius:var(--radius-sm);
+            font-size:12px;cursor:pointer;display:none;">
+            🗑
+          </button>
+        </div>
+
+        <div id="ae-msg" style="font-size:11px;text-align:center;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- DRAW tab -->
+    <div id="adm-draw" class="sp-body" style="flex:1;overflow-y:auto;padding:14px;display:none;">
+      <div style="font-size:11px;color:var(--t1);line-height:1.7;margin-bottom:14px;">
+        Dibuja zonas en el mapa para marcar frentes, zonas de control o áreas de conflicto.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">COLOR</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="draw-colors">
+            <div class="draw-col-btn on" data-col="#e8445a" onclick="setDrawColor(this,'#e8445a')"
+              style="width:24px;height:24px;border-radius:50%;background:#e8445a;cursor:pointer;
+              border:2px solid #fff;"></div>
+            <div class="draw-col-btn" data-col="#f0a832" onclick="setDrawColor(this,'#f0a832')"
+              style="width:24px;height:24px;border-radius:50%;background:#f0a832;cursor:pointer;
+              border:2px solid transparent;"></div>
+            <div class="draw-col-btn" data-col="#4d8cf5" onclick="setDrawColor(this,'#4d8cf5')"
+              style="width:24px;height:24px;border-radius:50%;background:#4d8cf5;cursor:pointer;
+              border:2px solid transparent;"></div>
+            <div class="draw-col-btn" data-col="#2dd4a0" onclick="setDrawColor(this,'#2dd4a0')"
+              style="width:24px;height:24px;border-radius:50%;background:#2dd4a0;cursor:pointer;
+              border:2px solid transparent;"></div>
+            <div class="draw-col-btn" data-col="#ff9f43" onclick="setDrawColor(this,'#ff9f43')"
+              style="width:24px;height:24px;border-radius:50%;background:#ff9f43;cursor:pointer;
+              border:2px solid transparent;"></div>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">TIPO</label>
+          <select id="draw-type" class="sp-input" style="width:100%;box-sizing:border-box;">
+            <option value="polygon">Zona / Polígono</option>
+            <option value="polyline">Frente / Línea</option>
+            <option value="circle">Radio de impacto</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px;">ETIQUETA (opcional)</label>
+          <input id="draw-label" type="text" class="sp-input" placeholder="ej. Frente este"
+            style="width:100%;box-sizing:border-box;"/>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button id="draw-start-btn" onclick="adminStartDraw()" style="
+            flex:1;background:var(--green);border:none;color:#000;
+            padding:9px;border-radius:var(--radius-sm);font-size:11px;
+            font-weight:600;cursor:pointer;">
+            ✏️ Iniciar dibujo
+          </button>
+          <button id="draw-stop-btn" onclick="adminStopDraw()" style="
+            flex:1;background:var(--surface2);border:1px solid var(--border);
+            color:var(--t1);padding:9px;border-radius:var(--radius-sm);
+            font-size:11px;cursor:pointer;display:none;">
+            ⏹ Finalizar
+          </button>
+        </div>
+
+        <button onclick="adminClearDrawings()" style="
+          width:100%;background:none;border:1px solid var(--border);
+          color:var(--t2);padding:7px;border-radius:var(--radius-sm);
+          font-size:11px;cursor:pointer;">
+          🗑 Borrar todos los dibujos
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /admin-workspace -->
+</div><!-- /panel-admin -->
+
+
   <!-- ═══ BREAKING BAR ═══ -->
   <div id="breaking-bar">
     <span class="brk-label">BREAKING</span>
@@ -1831,8 +2061,10 @@ function _buildLeafletMap(){
   // Zoom control bottom-right
   _lmap.zoomControl.setPosition('bottomright');
 
+  _conflicts = _getConflicts();
   _drawConflicts();
   _fetchGDELTGeo();
+  _loadDrawingsFromStorage();
 
   colStatus('map','ok', _conflicts.length+' conflictos');
   const e = document.getElementById('map-count');
@@ -2080,6 +2312,390 @@ function reinitLeafletMap(){
   if(_lmap){_lmap.remove();_lmap=null;}
   document.getElementById('leaflet-map').innerHTML='';
   setTimeout(initLeafletMap,150);
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — Map editor (password protected)
+// ═══════════════════════════════════════════════════════════
+
+// Admin password — stored as SHA-256 hash
+// Default password: "conflicttracker2025"
+// To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
+const ADMIN_PWD_HASH = 'b1ee26e50b7c432d72ad7e20e0ea64c5c76e04a6c0fdf2b4c8c29dd79a2a2f3e';
+
+let _adminAuthed  = false;
+let _pickingCoord = false;
+let _drawMode     = false;
+let _drawColor    = '#e8445a';
+let _drawType     = 'polygon';
+let _drawPoints   = [];
+let _drawLayers   = []; // saved drawing layers
+let _tempLine     = null;
+let _editingId    = null;
+
+// Storage keys
+const SK_CONFLICTS = 'ct_map_conflicts';
+const SK_DRAWINGS  = 'ct_map_drawings';
+
+// ── Open admin panel ──────────────────────────────────────
+function openAdminPanel(){
+  openPanel('admin');
+  if(_adminAuthed){
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-workspace').style.display = 'flex';
+    _renderAdminList();
+    _loadDrawingsFromStorage();
+  }
+}
+
+// ── Login ─────────────────────────────────────────────────
+async function adminLogin(){
+  const pwd = document.getElementById('admin-pwd').value;
+  const err = document.getElementById('admin-err');
+  if(!pwd){ err.style.display='block'; return; }
+
+  // Hash the input and compare
+  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+
+  if(hash === ADMIN_PWD_HASH){
+    _adminAuthed = true;
+    err.style.display = 'none';
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-workspace').style.display = 'flex';
+    _renderAdminList();
+    _loadDrawingsFromStorage();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('admin-pwd').value = '';
+  }
+}
+
+// ── Admin tabs ────────────────────────────────────────────
+function admTab(tab, btn){
+  document.querySelectorAll('.adm-tab').forEach(b => {
+    b.style.borderBottomColor = 'transparent';
+    b.style.color = 'var(--t2)';
+    b.classList.remove('on');
+  });
+  btn.style.borderBottomColor = 'var(--blue)';
+  btn.style.color = 'var(--t1)';
+  btn.classList.add('on');
+
+  ['list','add','draw'].forEach(t => {
+    const el = document.getElementById('adm-'+t);
+    if(el) el.style.display = t===tab ? 'block' : 'none';
+  });
+
+  if(tab==='list') _renderAdminList();
+  if(tab==='draw') _loadDrawingsFromStorage();
+}
+
+// ── Conflict list ─────────────────────────────────────────
+function _renderAdminList(){
+  const el = document.getElementById('admin-conflict-list');
+  if(!el) return;
+  const data = _getConflicts();
+  el.innerHTML = data.map(d => {
+    const col = ['#4d8cf5','#f0a832','#e8445a'][d.i] || '#4d8cf5';
+    return `<div onclick="adminEditConflict('${d.id}')" style="
+      display:flex;align-items:center;gap:10px;
+      padding:9px 10px;border-radius:var(--radius-sm);
+      cursor:pointer;margin-bottom:4px;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      transition:border-color .15s;
+    " onmouseover="this.style.borderColor='var(--border2)'"
+       onmouseout="this.style.borderColor='var(--border)'">
+      <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;
+        box-shadow:0 0 4px ${col};"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:500;color:var(--t0);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
+        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);">
+          ${d.lat.toFixed(1)}, ${d.lng.toFixed(1)} · ${d.since||''}
+        </div>
+      </div>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    </div>`;
+  }).join('');
+}
+
+// ── Edit conflict ─────────────────────────────────────────
+function adminEditConflict(id){
+  const data = _getConflicts();
+  const d = data.find(x => x.id === id);
+  if(!d) return;
+
+  _editingId = id;
+  document.getElementById('ae-id').value      = id;
+  document.getElementById('ae-name').value    = d.name;
+  document.getElementById('ae-lat').value     = d.lat;
+  document.getElementById('ae-lng').value     = d.lng;
+  document.getElementById('ae-intensity').value = d.i;
+  document.getElementById('ae-since').value   = d.since || '';
+  document.getElementById('ae-parties').value = d.parties || '';
+  document.getElementById('ae-deaths').value  = d.deaths || '';
+  document.getElementById('ae-summary').value = d.summary || '';
+  document.getElementById('ae-delete-btn').style.display = 'block';
+
+  // Fly to conflict on map
+  if(_lmap) _lmap.flyTo([d.lat, d.lng], 4, {duration:0.6});
+
+  // Switch to add/edit tab
+  admTab('add', document.getElementById('atab-add'));
+}
+
+// ── New conflict ──────────────────────────────────────────
+function adminNewConflict(){
+  _editingId = null;
+  ['ae-id','ae-name','ae-lat','ae-lng','ae-since','ae-parties','ae-deaths','ae-summary']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('ae-intensity').value = '1';
+  document.getElementById('ae-delete-btn').style.display = 'none';
+  admTab('add', document.getElementById('atab-add'));
+}
+
+// ── Save conflict ─────────────────────────────────────────
+function adminSaveConflict(){
+  const name    = document.getElementById('ae-name').value.trim();
+  const lat     = parseFloat(document.getElementById('ae-lat').value);
+  const lng     = parseFloat(document.getElementById('ae-lng').value);
+  const intensity = parseInt(document.getElementById('ae-intensity').value);
+  const since   = document.getElementById('ae-since').value.trim();
+  const parties = document.getElementById('ae-parties').value.trim();
+  const deaths  = document.getElementById('ae-deaths').value.trim();
+  const summary = document.getElementById('ae-summary').value.trim();
+
+  if(!name || isNaN(lat) || isNaN(lng)){
+    _showAEMsg('Nombre, latitud y longitud son obligatorios.', 'var(--red)');
+    return;
+  }
+  if(lat < -90||lat > 90||lng < -180||lng > 180){
+    _showAEMsg('Coordenadas fuera de rango.', 'var(--red)');
+    return;
+  }
+
+  const data = _getConflicts();
+  const id   = _editingId || 'custom_' + Date.now();
+
+  const entry = {id, name, lat, lng, i:intensity, since, parties, deaths, summary, cat:'general', _custom:true};
+
+  if(_editingId){
+    const idx = data.findIndex(x => x.id === _editingId);
+    if(idx >= 0) data[idx] = entry;
+  } else {
+    data.push(entry);
+  }
+
+  _saveConflicts(data);
+  _conflicts = data;
+  _drawConflicts();
+
+  _showAEMsg('✓ Guardado', 'var(--green)');
+  setTimeout(() => admTab('list', document.getElementById('atab-list')), 800);
+}
+
+// ── Delete conflict ───────────────────────────────────────
+function adminDeleteConflict(){
+  if(!_editingId) return;
+  if(!confirm('¿Eliminar este conflicto?')) return;
+  const data = _getConflicts().filter(x => x.id !== _editingId);
+  _saveConflicts(data);
+  _conflicts = data;
+  _drawConflicts();
+  _editingId = null;
+  admTab('list', document.getElementById('atab-list'));
+}
+
+// ── Reset to defaults ─────────────────────────────────────
+function adminResetToDefault(){
+  if(!confirm('¿Restaurar el dataset original? Se perderán todos los cambios.')) return;
+  localStorage.removeItem(SK_CONFLICTS);
+  _conflicts = CDATA.map(x => ({...x}));
+  _drawConflicts();
+  _renderAdminList();
+}
+
+// ── Pick coordinates on map ───────────────────────────────
+function adminPickOnMap(){
+  if(!_lmap){ alert('El mapa debe estar visible para seleccionar coordenadas.'); return; }
+  _pickingCoord = true;
+
+  const btn = document.getElementById('pick-map-btn');
+  btn.textContent = '🎯 Clic en el mapa...';
+  btn.style.background = 'rgba(232,68,90,.1)';
+  btn.style.borderColor = 'var(--red)';
+  _lmap.getContainer().style.cursor = 'crosshair';
+
+  const handler = e => {
+    document.getElementById('ae-lat').value = e.latlng.lat.toFixed(4);
+    document.getElementById('ae-lng').value = e.latlng.lng.toFixed(4);
+    _lmap.off('click', handler);
+    _lmap.getContainer().style.cursor = '';
+    btn.textContent = `📍 ${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`;
+    btn.style.background = 'rgba(45,212,160,.1)';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    _pickingCoord = false;
+    // Revert after 3s
+    setTimeout(() => {
+      btn.textContent = '📍 Clicar en el mapa para seleccionar coordenadas';
+      btn.style.background = '';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--blue)';
+    }, 3000);
+  };
+  _lmap.on('click', handler);
+}
+
+// ── DRAW MODE ─────────────────────────────────────────────
+function setDrawColor(el, col){
+  _drawColor = col;
+  document.querySelectorAll('.draw-col-btn').forEach(b => b.style.border = '2px solid transparent');
+  el.style.border = '2px solid #fff';
+}
+
+function adminStartDraw(){
+  if(!_lmap){ alert('El mapa debe estar visible.'); return; }
+  _drawMode  = true;
+  _drawType  = document.getElementById('draw-type').value;
+  _drawPoints= [];
+  _lmap.getContainer().style.cursor = 'crosshair';
+
+  document.getElementById('draw-start-btn').style.display = 'none';
+  document.getElementById('draw-stop-btn').style.display  = 'block';
+
+  _lmap.on('click', _drawClickHandler);
+
+  // Show instructions
+  const hint = L.popup({closeButton:false, autoClose:false, closeOnClick:false})
+    .setLatLng(_lmap.getCenter())
+    .setContent('<div style="font-size:11px;color:#fff;background:rgba(10,13,20,.9);padding:6px 10px;border-radius:5px;">Clic para añadir puntos • Doble clic para terminar</div>')
+    .openOn(_lmap);
+  setTimeout(() => _lmap.closePopup(hint), 2500);
+}
+
+function _drawClickHandler(e){
+  if(!_drawMode) return;
+  _drawPoints.push([e.latlng.lat, e.latlng.lng]);
+
+  // Preview
+  if(_tempLine) _lmap.removeLayer(_tempLine);
+
+  if(_drawType === 'polyline' && _drawPoints.length >= 2){
+    _tempLine = L.polyline(_drawPoints, {color:_drawColor, weight:3, opacity:.8}).addTo(_lmap);
+  } else if(_drawType === 'polygon' && _drawPoints.length >= 3){
+    _tempLine = L.polygon(_drawPoints, {color:_drawColor, fillColor:_drawColor,
+      fillOpacity:.15, weight:2, opacity:.8}).addTo(_lmap);
+  } else if(_drawType === 'circle' && _drawPoints.length === 1){
+    _tempLine = L.circle(_drawPoints[0], {radius:200000, color:_drawColor,
+      fillColor:_drawColor, fillOpacity:.1, weight:2}).addTo(_lmap);
+  }
+}
+
+_lmap_dblclick = null; // will be set after map init
+
+function adminStopDraw(){
+  _drawMode = false;
+  if(_lmap) {
+    _lmap.off('click', _drawClickHandler);
+    _lmap.getContainer().style.cursor = '';
+  }
+
+  document.getElementById('draw-start-btn').style.display = 'block';
+  document.getElementById('draw-stop-btn').style.display  = 'none';
+
+  if(_tempLine && _drawPoints.length >= 1){
+    // Save with label
+    const label = document.getElementById('draw-label').value.trim();
+    const layer = _tempLine;
+
+    if(label){
+      const center = _drawType === 'circle' ? _drawPoints[0]
+        : _drawPoints[Math.floor(_drawPoints.length/2)];
+      L.marker(center, {
+        icon: L.divIcon({
+          className:'',
+          html:`<div style="font-size:10px;font-weight:600;color:${_drawColor};
+            text-shadow:0 0 6px #000,0 0 12px #000;
+            font-family:'JetBrains Mono',monospace;pointer-events:none;
+            white-space:nowrap;">${label}</div>`,
+          iconSize:[0,0],iconAnchor:[0,0],
+        }), interactive:false,
+      }).addTo(_lmap);
+    }
+
+    _drawLayers.push({type:_drawType, points:_drawPoints, color:_drawColor, label});
+    _saveDrawings();
+    _tempLine = null;
+    _drawPoints = [];
+  }
+}
+
+function adminClearDrawings(){
+  if(!confirm('¿Borrar todos los dibujos del mapa?')) return;
+  localStorage.removeItem(SK_DRAWINGS);
+  _drawLayers = [];
+  // Reload map to clear visual layers
+  if(_lmap){ reinitLeafletMap(); }
+}
+
+function _saveDrawings(){
+  localStorage.setItem(SK_DRAWINGS, JSON.stringify(_drawLayers));
+}
+
+function _loadDrawingsFromStorage(){
+  if(!_lmap) return;
+  const raw = localStorage.getItem(SK_DRAWINGS);
+  if(!raw) return;
+  try{
+    const saved = JSON.parse(raw);
+    saved.forEach(d => {
+      let layer;
+      if(d.type==='polyline')
+        layer = L.polyline(d.points,{color:d.color,weight:3,opacity:.8});
+      else if(d.type==='polygon')
+        layer = L.polygon(d.points,{color:d.color,fillColor:d.color,fillOpacity:.15,weight:2});
+      else if(d.type==='circle' && d.points[0])
+        layer = L.circle(d.points[0],{radius:200000,color:d.color,fillColor:d.color,fillOpacity:.1,weight:2});
+      if(layer) layer.addTo(_lmap);
+      if(d.label && d.points.length){
+        const center = d.points[Math.floor(d.points.length/2)];
+        L.marker(center,{icon:L.divIcon({
+          className:'',
+          html:`<div style="font-size:10px;font-weight:600;color:${d.color};
+            text-shadow:0 0 6px #000;font-family:'JetBrains Mono',monospace;
+            pointer-events:none;white-space:nowrap;">${d.label}</div>`,
+          iconSize:[0,0],iconAnchor:[0,0],
+        }),interactive:false}).addTo(_lmap);
+      }
+    });
+  }catch(e){}
+}
+
+// ── Storage helpers ───────────────────────────────────────
+function _getConflicts(){
+  const raw = localStorage.getItem(SK_CONFLICTS);
+  if(raw) try{ return JSON.parse(raw); }catch(e){}
+  return CDATA.map(x => ({...x}));
+}
+
+function _saveConflicts(data){
+  localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
+}
+
+function _showAEMsg(msg, col){
+  const el = document.getElementById('ae-msg');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = col;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display='none'; }, 2500);
 }
 
 
