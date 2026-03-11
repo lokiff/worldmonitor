@@ -471,51 +471,37 @@ select.sp-input{cursor:pointer;}
 
 
 
-/* ══ GLOBE / MAP ══════════════════════════════════════════ */
+
+/* ══ FLAT MAP ═══════════════════════════════════════════ */
 #col-map{position:relative;}
-#globe-wrap canvas{display:block;}
-@keyframes lgPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
-
-/* marker HTML elements rendered by globe.gl */
-.globe-marker{
-  position:relative;cursor:pointer;
-  transform:translate(-50%,-50%);
-  transition:transform .15s;
+#flat-map .maplibregl-canvas{display:block;}
+/* hide default MapLibre logo */
+.maplibregl-ctrl-logo{display:none!important;}
+.maplibregl-ctrl-attrib{
+  background:rgba(15,17,23,.75)!important;color:var(--t2)!important;
+  font-size:9px!important;backdrop-filter:blur(4px);
 }
-.globe-marker:hover{transform:translate(-50%,-50%) scale(1.3);}
-.gm-dot{
-  width:var(--sz);height:var(--sz);
-  border-radius:50%;
-  background:var(--col);
-  border:1.5px solid rgba(255,255,255,.25);
-  box-shadow:0 0 8px var(--col);
+.maplibregl-ctrl-attrib a{color:var(--t2)!important;}
+.maplibregl-ctrl-group{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--radius-sm)!important;
+  box-shadow:none!important;
 }
-.gm-pulse{
-  position:absolute;inset:-5px;
-  border-radius:50%;
-  background:var(--col);
-  opacity:0;
-  animation:gmPulse 2.2s ease infinite;
+.maplibregl-ctrl-group button{
+  background:transparent!important;
+  color:var(--t1)!important;
+  border-color:var(--border)!important;
 }
-@keyframes gmPulse{0%{transform:scale(.6);opacity:.5}100%{transform:scale(2.2);opacity:0}}
-.gm-label{
-  position:absolute;left:calc(var(--sz) + 4px);top:50%;
-  transform:translateY(-50%);
-  white-space:nowrap;
-  font-size:10px;font-weight:500;
-  color:rgba(255,255,255,.85);
-  text-shadow:0 1px 4px rgba(0,0,0,.9);
-  pointer-events:none;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* map info panel scrollbar */
-#map-info::-webkit-scrollbar{width:3px;}
-#map-info::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-
-/* mobile: map tab */
+.maplibregl-ctrl-group button:hover{background:var(--surface2)!important;}
+.maplibregl-ctrl-group button span{filter:invert(1) brightness(.7);}
+/* map panel scroll */
+#map-panel::-webkit-scrollbar{width:3px;}
+#map-panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+@keyframes mrkPulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* mobile */
 @media(max-width:700px){
-  #globe-wrap{touch-action:none;}
+  #map-viewport{touch-action:pan-x pan-y;}
 }
 
 /* ── PROGRESS BAR ── */
@@ -718,68 +704,73 @@ select.sp-input{cursor:pointer;}
       </div>
 
 
-      <!-- MAPA 3D -->
+      <!-- MAPA PLANO -->
       <div class="col" id="col-map">
         <div class="col-hdr">
           <span class="col-title" style="display:flex;align-items:center;gap:6px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            Mapa Global
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><path d="M9 4v13M15 7v13"/></svg>
+            Conflictos
           </span>
-          <span id="map-conflict-count" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--t2);"></span>
+          <span id="map-count" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--t2);"></span>
           <span id="cs-map" class="col-status"></span>
         </div>
-        <!-- Globe container -->
-        <div id="globe-wrap" style="flex:1;position:relative;min-height:0;overflow:hidden;background:#080c14;">
-          <div id="globe-el" style="width:100%;height:100%;"></div>
+
+        <!-- Map viewport -->
+        <div id="map-viewport" style="flex:1;position:relative;min-height:0;overflow:hidden;">
+          <div id="flat-map" style="width:100%;height:100%;"></div>
 
           <!-- Legend -->
-          <div id="globe-legend" style="
-            position:absolute;bottom:14px;left:14px;
-            background:rgba(22,27,39,0.85);
-            backdrop-filter:blur(8px);
-            border:1px solid rgba(255,255,255,.08);
-            border-radius:8px;padding:8px 12px;
-            font-size:10px;color:var(--t1);
-            z-index:10;pointer-events:none;
-            display:flex;flex-direction:column;gap:5px;
-          ">
-            <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:50%;background:#e8445a;box-shadow:0 0 6px #e8445a;display:inline-block;animation:lgPulse 1.8s ease infinite;"></span>Guerra activa</div>
-            <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:50%;background:#f0a832;display:inline-block;"></span>Conflicto medio</div>
-            <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:50%;background:#4d8cf5;display:inline-block;"></span>Tensión latente</div>
+          <div style="position:absolute;bottom:12px;left:12px;z-index:5;pointer-events:none;
+            background:rgba(15,17,23,.82);backdrop-filter:blur(8px);
+            border:1px solid rgba(255,255,255,.08);border-radius:7px;
+            padding:8px 11px;display:flex;flex-direction:column;gap:5px;font-size:10px;color:var(--t1);">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span style="width:9px;height:9px;border-radius:50%;background:#e8445a;
+                box-shadow:0 0 5px #e8445a;display:inline-block;flex-shrink:0;
+                animation:mrkPulse 1.8s ease infinite;"></span>Guerra activa
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span style="width:9px;height:9px;border-radius:50%;background:#f0a832;
+                display:inline-block;flex-shrink:0;"></span>Conflicto activo
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span style="width:9px;height:9px;border-radius:50%;background:#4d8cf5;
+                display:inline-block;flex-shrink:0;"></span>Tensión/Alerta
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span style="width:9px;height:9px;border-radius:50%;background:#2dd4a0;
+                display:inline-block;flex-shrink:0;"></span>Evento GDELT 24h
+            </div>
           </div>
 
-          <!-- Auto-rotate hint -->
-          <div id="globe-hint" style="
-            position:absolute;top:10px;right:10px;
-            background:rgba(22,27,39,0.7);backdrop-filter:blur(6px);
-            border:1px solid rgba(255,255,255,.07);border-radius:6px;
-            padding:4px 8px;font-size:9px;font-family:var(--mono);
-            color:var(--t2);z-index:10;pointer-events:none;
-            transition:opacity .5s;
-          ">AUTO-ROTATE</div>
+          <!-- Last updated -->
+          <div id="map-updated" style="position:absolute;bottom:12px;right:12px;z-index:5;pointer-events:none;
+            font-size:9px;font-family:var(--mono);color:var(--t2);
+            background:rgba(15,17,23,.7);padding:3px 7px;border-radius:5px;"></div>
 
           <!-- Conflict info panel -->
-          <div id="map-info" style="
-            position:absolute;bottom:0;left:0;right:0;
-            background:rgba(22,27,39,0.96);
-            backdrop-filter:blur(16px);
-            border-top:1px solid rgba(255,255,255,.1);
-            padding:16px 18px 18px;
+          <div id="map-panel" style="
+            position:absolute;bottom:0;left:0;right:0;z-index:10;
+            background:rgba(15,17,23,.96);backdrop-filter:blur(16px);
+            border-top:1px solid rgba(255,255,255,.09);
+            padding:15px 16px 16px;
             transform:translateY(101%);
-            transition:transform .3s cubic-bezier(.4,0,.2,1);
-            z-index:20;max-height:60%;overflow-y:auto;
-          ">
+            transition:transform .28s cubic-bezier(.4,0,.2,1);
+            max-height:62%;overflow-y:auto;">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
-              <div>
-                <div id="map-info-title" style="font-size:14px;font-weight:600;color:#fff;line-height:1.3;"></div>
-                <div id="map-info-badge" style="margin-top:4px;"></div>
+              <div style="flex:1;min-width:0;">
+                <div id="mp-title" style="font-size:13px;font-weight:600;color:#fff;line-height:1.35;"></div>
+                <div id="mp-badges" style="margin-top:5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
               </div>
-              <button onclick="closeMapInfo()" style="background:rgba(255,255,255,.08);border:none;color:var(--t1);cursor:pointer;font-size:18px;line-height:1;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:10px;">×</button>
+              <button onclick="closeMapPanel()" style="flex-shrink:0;margin-left:10px;
+                background:rgba(255,255,255,.07);border:none;color:var(--t1);cursor:pointer;
+                width:24px;height:24px;border-radius:50%;font-size:16px;
+                display:flex;align-items:center;justify-content:center;">×</button>
             </div>
-            <div id="map-info-parties" style="font-size:10px;color:var(--t2);font-family:var(--mono);margin-bottom:10px;"></div>
-            <div id="map-info-summary" style="font-size:12px;color:var(--t1);line-height:1.7;"></div>
-            <div id="map-info-ai" style="margin-top:12px;"></div>
-            <div id="map-info-news" style="margin-top:12px;"></div>
+            <div id="mp-parties" style="font-size:10px;color:var(--t2);font-family:var(--mono);margin-bottom:10px;"></div>
+            <div id="mp-summary" style="font-size:12px;color:var(--t1);line-height:1.7;"></div>
+            <div id="mp-news"    style="margin-top:11px;"></div>
+            <div id="mp-ai"     style="margin-top:11px;"></div>
           </div>
         </div>
       </div>
@@ -800,8 +791,8 @@ select.sp-input{cursor:pointer;}
       <span>OSINT</span>
       <span class="mob-badge" id="mbadge-osint">—</span>
     </button>
-    <button class="mob-tab" id="mtab-map" onclick="mobTab('map',this);setTimeout(initGlobe,80);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <button class="mob-tab" id="mtab-map" onclick="mobTab('map',this);setTimeout(initFlatMap,80);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><path d="M9 4v13M15 7v13"/></svg>
       <span>Mapa</span>
     </button>
     <button class="mob-tab" id="mtab-refresh" onclick="refreshAll()">
@@ -1396,7 +1387,7 @@ async function refreshAll(){
   mediaCache={ts:0,data:[]};
   osintCache={ts:0,data:[]};
   gdeltCache={ts:0,data:[]};
-  _gdeltGeoCache={ts:0,points:[]};
+  _gdeltGeoTs=0;
   brkLoaded=false;
   const _fm=document.getElementById('feed-media');
   const _fo=document.getElementById('feed-osint');
@@ -1573,7 +1564,7 @@ function applyAccent(v, dot){
 }
 function toggleTheme(){
   document.body.classList.toggle('light');
-  _reinitGlobe();
+  reinitFlatMap();
   const isLight = document.body.classList.contains('light');
   const btn = document.getElementById('theme-btn');
   const tog = document.getElementById('tog-dark');
@@ -1652,326 +1643,413 @@ function startClock(){
 // INIT
 // ═══════════════════════════════════════════════════════════
 
+
+
 // ═══════════════════════════════════════════════════════════
-// 3D GLOBE — globe.gl + Three.js
-// Auto-rotation, HTML markers, AI conflict summaries
+// FLAT MAP — MapLibre GL JS + GDELT real-time conflict data
 // ═══════════════════════════════════════════════════════════
 
-let CONFLICTS = [
-  // ── HIGH INTENSITY ──
-  {id:'ukraine',     name:'Guerra Rusia-Ucrania',       lat:49.0,  lng:32.0,  i:'high',
-   since:'Feb 2022', parties:'Rusia vs Ucrania + OTAN (suministros)',
-   cat:'ukraine',
-   summary:'Invasión rusa a gran escala. Combates activos en el Donbás, Zaporiyia y Jersón. Ucrania contraataca con armamento occidental. Línea del frente relativamente estática desde finales de 2022.'},
-
-  {id:'gaza',        name:'Guerra Gaza',                lat:31.35, lng:34.3,  i:'high',
-   since:'Oct 2023', parties:'Israel vs Hamas / Yihad Islámica Palestina',
-   cat:'mideast',
-   summary:'Operación terrestre israelí tras ataque de Hamas del 7-Oct. Más de 35.000 muertos en Gaza. Crisis humanitaria grave. Riesgo de escalada con Hezbollah e Irán.'},
-
-  {id:'sudan',       name:'Guerra Civil Sudán',         lat:15.5,  lng:32.5,  i:'high',
+// ── Base conflict dataset (authoritative, manually curated) ──────────────
+// These are the 18 known active conflicts as of 2025-2026
+// Intensity is dynamically overridden by feed mention counts every refresh
+const BASE_CONFLICTS = [
+  {id:'ukraine',     name:'Guerra Rusia-Ucrania',       lat:49.0,  lng:32.0,  intensity:'high',
+   since:'Feb 2022', parties:'Rusia vs Ucrania + apoyo OTAN',
+   cat:'ukraine', deaths:'500k+',
+   summary:'Invasión rusa a gran escala en curso. Combates activos en el Donbás, Zaporiyia y la región de Kursk. Ucrania opera con armamento occidental. Una de las guerras más mortíferas en Europa desde 1945.'},
+  {id:'gaza',        name:'Guerra Gaza',                lat:31.4,  lng:34.3,  intensity:'high',
+   since:'Oct 2023', parties:'Israel vs Hamas / Yihad Islámica',
+   cat:'mideast', deaths:'50k+',
+   summary:'Ofensiva israelí en respuesta al ataque del 7-Oct-2023. Crisis humanitaria severa, más de 2 millones de desplazados. Riesgo de escalada regional con Hezbollah, Irán y Yemen.'},
+  {id:'sudan',       name:'Guerra Civil Sudán',         lat:15.5,  lng:32.5,  intensity:'high',
    since:'Abr 2023', parties:'SAF (ejército) vs RSF (paramilitares)',
-   cat:'africa',
-   summary:'Conflicto entre el ejército y las Fuerzas de Apoyo Rápido. Jartum devastada. +8 millones de desplazados. Una de las peores crisis humanitarias del mundo.'},
-
-  {id:'myanmar',     name:'Guerra Civil Myanmar',       lat:19.0,  lng:96.5,  i:'high',
-   since:'Feb 2021', parties:'Junta militar vs PDF + EAO (Alianza 3BHA)',
-   cat:'asia',
-   summary:'Tras el golpe de 2021, la junta ha perdido el control de gran parte del país. La Alianza de los Tres Hermanos tomó el noreste. PDF opera en todo el territorio. Aviación junta ataca civiles.'},
-
-  {id:'sahel',       name:'Crisis Sahel',               lat:14.0,  lng:2.0,   i:'high',
-   since:'2012',     parties:'JNIM / ISGS vs gobiernos AES + Wagner/África Corps',
-   cat:'africa',
-   summary:'Insurgencia yihadista devastadora en Mali, Burkina Faso y Níger. Tres golpes militares. Francia expulsada. Presencia rusa (Wagner). Miles de civiles muertos anualmente.'},
-
-  {id:'drcongo',     name:'Este del Congo (RDC)',        lat:-1.5,  lng:29.0,  i:'high',
-   since:'1996',     parties:'M23/Rwanda vs FARDC, FDLR y milicias',
-   cat:'africa',
-   summary:'El M23 (apoyado por Rwanda) tomó Goma en 2024. +7 millones de desplazados. Decenas de grupos armados en Kivu Norte y Sur. Crisis humanitaria crónica e ignorada.'},
-
-  // ── MEDIUM INTENSITY ──
-  {id:'yemen',       name:'Guerra Yemen',               lat:15.5,  lng:48.0,  i:'medium',
-   since:'Mar 2015', parties:'Hutíes (Ansarallah) vs Arabia Saudí + coalición',
-   cat:'mideast',
-   summary:'Hutíes controlan el norte incluyendo Saná. Ataques con drones al Mar Rojo bloqueando tráfico marítimo. Crisis humanitaria con millones en riesgo de hambruna.'},
-
-  {id:'syria',       name:'Guerra Civil Siria',         lat:35.0,  lng:38.0,  i:'medium',
-   since:'Mar 2011', parties:'HTS, SDF, Turquía, milicias pro-Irán, gobierno',
-   cat:'mideast',
-   summary:'HTS tomó el poder en Dic 2024 tras colapso del régimen de Assad. Múltiples actores compiten por territorio. Israel bombardea infraestructura militar. Incertidumbre total sobre el futuro.'},
-
-  {id:'ethiopia',    name:'Conflictos Etiopía',         lat:9.0,   lng:40.0,  i:'medium',
-   since:'2020',     parties:'Gobierno vs OLA (Oromía), milicias Amhara',
-   cat:'africa',
-   summary:'Tras acuerdo de paz del Tigré (2022), combates en Amhara y Oromía. Grupos armados étnicos siguen activos. Acceso humanitario severamente limitado.'},
-
-  {id:'somalia',     name:'Conflicto Somalia',          lat:5.0,   lng:46.0,  i:'medium',
-   since:'2006',     parties:'Gobierno somalí + UA vs Al-Shabaab',
-   cat:'africa',
-   summary:'Al-Shabaab controla amplias zonas rurales del sur. Ataques frecuentes en Mogadiscio. Drones de EEUU activos. Retirada gradual de tropas de la Unión Africana.'},
-
-  {id:'lebanon',     name:'Conflicto Líbano-Israel',    lat:33.5,  lng:35.5,  i:'medium',
-   since:'Oct 2023', parties:'Israel vs Hezbollah',
-   cat:'mideast',
-   summary:'Intercambios de fuego en la frontera norte. Israel atacó infraestructura de Hezbollah en 2024. Acuerdo de alto el fuego frágil. Riesgo persistente de escalada.'},
-
-  {id:'iran',        name:'Tensión Irán-Israel/EEUU',   lat:32.0,  lng:53.0,  i:'medium',
-   since:'2019',     parties:'Irán vs Israel, EEUU, monarquías del Golfo',
-   cat:'mideast',
-   summary:'Intercambio directo de misiles y drones entre Irán e Israel en Abr y Oct 2024. Programa nuclear iraní avanza. EEUU mantiene presencia naval en el Golfo.'},
-
-  {id:'sahara',      name:'Sáhara Occidental',          lat:24.0,  lng:-13.0, i:'medium',
-   since:'Nov 2020', parties:'Marruecos vs Frente Polisario (apoyo argelia)',
-   cat:'africa',
-   summary:'Polisario retomó las armas en 2020. Ataques de baja intensidad. Marruecos controla ~80% del territorio. Sin solución política. Tensión diplomática Argelia-Marruecos.'},
-
-  // ── LOW INTENSITY / TENSION ──
-  {id:'taiwan',      name:'Tensión China-Taiwán',       lat:23.5,  lng:121.0, i:'low',
+   cat:'africa', deaths:'150k+',
+   summary:'Conflicto entre ejército regular y paramilitares RSF. Jartum devastada, Darfur bajo ataques masivos. Más de 10 millones de desplazados. Crisis humanitaria más grave del mundo en 2024-25.'},
+  {id:'myanmar',     name:'Guerra Civil Myanmar',       lat:19.0,  lng:96.5,  intensity:'high',
+   since:'Feb 2021', parties:'Junta vs PDF + EAO (Alianza 3BHA)',
+   cat:'asia', deaths:'50k+',
+   summary:'La junta militar ha perdido el control de gran parte del país frente a la Alianza de los Tres Hermanos y el PDF. Ataques aéreos contra civiles documentados. Sin perspectiva de resolución.'},
+  {id:'sahel',       name:'Insurgencia Sahel',          lat:14.0,  lng:2.0,   intensity:'high',
+   since:'2012',     parties:'JNIM / ISGS vs gobiernos AES + Rusia',
+   cat:'africa', deaths:'10k+/año',
+   summary:'Insurgencia yihadista que ha desestabilizado Mali, Burkina Faso y Níger. Tres golpes militares. Francia expulsada; Wagner/África Corps activo. Miles de civiles muertos cada año.'},
+  {id:'drcongo',     name:'Este del Congo (RDC)',        lat:-1.5,  lng:29.0,  intensity:'high',
+   since:'1996',     parties:'M23/Rwanda vs FARDC + milicias',
+   cat:'africa', deaths:'6M históricos',
+   summary:'El M23 (apoyado por Rwanda) tomó Goma en 2024. Más de 7 millones de desplazados internos. Decenas de grupos armados activos en Kivu Norte y Sur. Crisis humanitaria ignorada por los medios.'},
+  {id:'yemen',       name:'Guerra Yemen',               lat:15.5,  lng:48.0,  intensity:'medium',
+   since:'2015',     parties:'Hutíes vs Arabia Saudí + coalición',
+   cat:'mideast', deaths:'377k+',
+   summary:'Hutíes controlan el norte incluyendo Saná. Ataques con drones y misiles al Mar Rojo interrumpen el comercio global. Negociaciones de paz intermitentes. Crisis humanitaria estructural.'},
+  {id:'syria',       name:'Posguerra Siria',            lat:34.8,  lng:38.5,  intensity:'medium',
+   since:'2011',     parties:'HTS, SDF, Turquía, milicias varias',
+   cat:'mideast', deaths:'600k+',
+   summary:'Caída del régimen Assad en Dic 2024 tras ofensiva relámpago de HTS. Múltiples facciones compiten por el poder. Israel bombardea infraestructura militar heredada. Incertidumbre sobre el futuro político.'},
+  {id:'ethiopia',    name:'Conflictos Etiopía',         lat:9.0,   lng:40.0,  intensity:'medium',
+   since:'2020',     parties:'Gobierno vs OLA + milicias Amhara',
+   cat:'africa', deaths:'500k+',
+   summary:'Tras el acuerdo de paz del Tigré (2022), los combates continúan en Amhara y Oromía. Grupos armados étnicos con capacidad creciente. Acceso humanitario severamente restringido.'},
+  {id:'somalia',     name:'Conflicto Somalia',          lat:5.0,   lng:46.0,  intensity:'medium',
+   since:'2006',     parties:'Gobierno + UA vs Al-Shabaab',
+   cat:'africa', deaths:'500k+ histórico',
+   summary:'Al-Shabaab controla zonas rurales del sur y ataca con frecuencia Mogadiscio. EEUU mantiene programa de ataques con drones. Retirada progresiva de tropas africanas de la ATMIS.'},
+  {id:'lebanon',     name:'Tensión Líbano-Israel',      lat:33.5,  lng:35.5,  intensity:'medium',
+   since:'2023',     parties:'Israel vs Hezbollah',
+   cat:'mideast', deaths:'4k+',
+   summary:'Alto el fuego frágil tras campaña israelí de 2024 que eliminó el liderazgo de Hezbollah. Tensión persistente en la frontera. Presencia militar israelí en el sur del Líbano.'},
+  {id:'iran',        name:'Tensión Irán / Eje',         lat:32.0,  lng:53.0,  intensity:'medium',
+   since:'2019',     parties:'Irán + proxies vs Israel, EEUU, Arabia Saudí',
+   cat:'mideast', deaths:'sin cifra',
+   summary:'Intercambio directo de misiles entre Irán e Israel en 2024. Programa nuclear avanza. Hutíes, Hezbollah y milicias iraquíes como proxies regionales. EEUU mantiene presencia naval en el Golfo.'},
+  {id:'sahara',      name:'Sáhara Occidental',          lat:24.0,  lng:-13.0, intensity:'medium',
+   since:'2020',     parties:'Marruecos vs Polisario (apoyo Argelia)',
+   cat:'africa', deaths:'bajo',
+   summary:'El Frente Polisario retomó la lucha armada en 2020. Ataques esporádicos. Marruecos controla ~80% del territorio con muro de arena. Tensión diplomática severa entre Argelia y Marruecos.'},
+  {id:'taiwan',      name:'Tensión Estrecho Taiwán',    lat:23.5,  lng:120.5, intensity:'low',
    since:'1949',     parties:'China (RPC) vs Taiwán (ROC) + EEUU',
-   cat:'asia',
-   summary:'Ejercicios militares chinos regulares alrededor de Taiwán. EEUU vende armas y mantiene ambigüedad estratégica. Sin combates activos pero tensión estructural alta.'},
-
-  {id:'southchinasea',name:'Mar del Sur de China',      lat:12.0,  lng:115.0, i:'low',
+   cat:'asia', deaths:'potencial enorme',
+   summary:'China realiza ejercicios militares crecientes alrededor de Taiwán. EEUU mantiene ventas de armas y ambigüedad estratégica. Sin combates activos, pero representa el mayor riesgo de guerra grande.'},
+  {id:'southchinasea',name:'Mar del Sur de China',     lat:11.5,  lng:114.0, intensity:'low',
    since:'2009',     parties:'China vs Filipinas, Vietnam, Malasia',
-   cat:'asia',
-   summary:'China militariza islas artificiales. Incidentes frecuentes con guardacostas filipinos. EEUU realiza misiones de libertad de navegación. Tensión sin conflicto armado abierto.'},
-
-  {id:'ukraine-border',name:'Tensión Armenia-Azerbaiyán',lat:40.5, lng:45.5, i:'low',
+   cat:'asia', deaths:'bajo',
+   summary:'China militariza islas artificiales en el Mar de la China Meridional. Incidentes regulares con guardacostas filipinos. EEUU realiza misiones FONOPS. Sin conflicto armado abierto.'},
+  {id:'armenia',     name:'Frontera Armenia-Azerbaiyán',lat:40.2,  lng:45.0,  intensity:'low',
    since:'2023',     parties:'Armenia vs Azerbaiyán',
-   cat:'general',
-   summary:'Azerbaiyán tomó Nagorno-Karabaj en Sep 2023. +100.000 armenios expulsados. Negociaciones de paz en curso. Escaramuzas fronterizas ocasionales. Armenia reorienta política exterior.'},
-
-  {id:'pakistan',    name:'Insurgencia Pakistán-Afg',   lat:33.0,  lng:69.0,  i:'low',
-   since:'2007',     parties:'TTP vs ejército pakistaní, tensión con Afganistán',
-   cat:'asia',
-   summary:'TTP (Tehrik-i-Taliban Pakistán) intensifica ataques desde Afganistán. Ejército paquistaní realiza operaciones en KPK y Baluchistán. Relaciones tensas con el gobierno talibán afgano.'},
-
-  {id:'northkorea',  name:'Tensión Corea del Norte',    lat:39.0,  lng:127.5, i:'low',
-   since:'1953',     parties:'Corea del Norte vs Corea del Sur, EEUU, Japón',
-   cat:'asia',
-   summary:'Kim Jong-un acelera programa nuclear y de misiles. Tropas norcoreanas desplegadas en apoyo a Rusia en Ucrania. Tensión creciente en la península. Sin diálogo diplomático.'},
+   cat:'general', deaths:'bajo',
+   summary:'Azerbaiyán tomó Nagorno-Karabaj en Sep 2023 expulsando a +100.000 armenios. Negociaciones de paz en curso pero frontera en tensión. Armenia reorienta política exterior hacia la UE.'},
+  {id:'pakistan',    name:'Insurgencia Pakistán',       lat:33.0,  lng:69.5,  intensity:'low',
+   since:'2007',     parties:'TTP vs ejército pakistaní',
+   cat:'asia', deaths:'8k+/año',
+   summary:'TTP intensifica ataques desde Afganistán. Operaciones militares en KPK y Baluchistán. Tensión con el gobierno talibán afgano por uso del territorio como base.'},
+  {id:'northkorea',  name:'Tensión Corea del Norte',   lat:39.0,  lng:127.5, intensity:'low',
+   since:'1953',     parties:'RPDC vs Corea del Sur, EEUU, Japón',
+   cat:'asia', deaths:'potencial enorme',
+   summary:'Kim Jong-un acelera programa nuclear y de misiles. Tropas norcoreanas confirmadas combatiendo en Ucrania con Rusia. Sin diálogo diplomático. Tensión máxima en la península coreana.'},
 ];
 
-const G_COL = {high:'#e8445a', medium:'#f0a832', low:'#4d8cf5'};
-const G_SZ  = {high:16, medium:12, low:9};
+// Keywords para actualizar intensidad dinámicamente desde feeds
+const CONFLICT_KW = {
+  ukraine:     ['ukraine','ucrania','kyiv','kharkiv','zaporizhzhia','donbas','russia','rusia','kursk'],
+  gaza:        ['gaza','hamas','israel','rafah','khan younis','cisjordania','west bank','hezbollah'],
+  sudan:       ['sudan','sudán','rsf','khartoum','jartum','darfur'],
+  myanmar:     ['myanmar','burma','birmania','junta','sagaing','shan'],
+  sahel:       ['mali','burkina','niger','sahel','jnim','bamako','ouagadougou'],
+  drcongo:     ['congo','drc','m23','goma','kivu','rdc','kinshasa'],
+  yemen:       ['yemen','houthi','huthi','ansarallah','hodeidah','red sea','mar rojo'],
+  syria:       ['syria','siria','hts','idlib','aleppo','damasco','damascus'],
+  ethiopia:    ['ethiopia','etiop','tigray','amhara','oromia','addis'],
+  somalia:     ['somalia','al-shabaab','mogadishu','mogadiscio'],
+  lebanon:     ['lebanon','líbano','libano','hezbollah','beirut'],
+  iran:        ['iran','irán','nuclear','irgc','hormuz'],
+  sahara:      ['sahara','polisario','western sahara','marruecos'],
+  taiwan:      ['taiwan','strait','pla','china threat'],
+  southchinasea:['south china sea','spratly','scarborough','paracel'],
+  armenia:     ['armenia','azerbaiy','nagorno'],
+  pakistan:    ['pakistan','ttp','peshawar','balochistan'],
+  northkorea:  ['north korea','corea del norte','kim jong','pyongyang'],
+};
 
-let _globe      = null;
-let _globeInited= false;
-let _autoRotate = true;
-let _rotTimer   = null;
-let _aiCache    = {};
+// ── State ────────────────────────────────────────────────────
+let _flatMap     = null;
+let _flatInited  = false;
+let _conflicts   = BASE_CONFLICTS.map(c => ({...c})); // mutable copy
+let _gdeltPoints = [];
+let _mapAiCache  = {};
+let _mapMarkers  = []; // DOM elements for cleanup
 
-function initGlobe(){
-  if(_globeInited) return;
-  const wrap = document.getElementById('globe-el');
-  if(!wrap) return;
-  _globeInited = true;
+// ── Init ─────────────────────────────────────────────────────
+function initFlatMap(){
+  if(_flatInited) return;
+  const el = document.getElementById('flat-map');
+  if(!el) return;
+  _flatInited = true;
   colStatus('map','loading');
 
-  // Load globe.gl bundle (includes Three.js)
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/globe.gl@2.30.0/dist/globe.gl.min.js';
-  s.onload = _buildGlobe;
-  s.onerror = () => { colStatus('map','err'); _globeInited=false; };
-  document.head.appendChild(s);
+  // Load MapLibre GL JS dynamically
+  if(window.maplibregl){
+    _buildFlatMap();
+  } else {
+    // Load CSS first
+    const lnk = document.createElement('link');
+    lnk.rel='stylesheet';
+    lnk.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+    document.head.appendChild(lnk);
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+    s.onload  = _buildFlatMap;
+    s.onerror = () => { colStatus('map','err'); _flatInited=false; };
+    document.head.appendChild(s);
+  }
 }
 
-function _buildGlobe(){
-  const wrap = document.getElementById('globe-el');
-  if(!wrap || !window.Globe) return;
-
+function _buildFlatMap(){
   const isDark = !document.body.classList.contains('light');
+  const style  = isDark
+    ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+    : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
-  _globe = Globe({ animateIn: false })(wrap);
+  _flatMap = new maplibregl.Map({
+    container: 'flat-map',
+    style,
+    center: [15, 20],
+    zoom: 1.8,
+    minZoom: 1,
+    maxZoom: 10,
+    attributionControl: true,
+  });
 
-  _globe
-    // ── Earth textures ──
-    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-    .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-    .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-    .atmosphereColor(isDark ? '#1a3a5c' : '#4a90d9')
-    .atmosphereAltitude(0.18)
-    .showAtmosphere(true)
+  _flatMap.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
 
-    // ── HTML markers ──
-    .htmlElementsData(CONFLICTS)
-    .htmlElement(d => _makeMarker(d))
-    .htmlLat(d => d.lat)
-    .htmlLng(d => d.lng)
-    .htmlAltitude(0.01)
+  _flatMap.on('load', () => {
+    _renderMarkers();
+    loadGDELTGeo();
+    colStatus('map','ok', _conflicts.length+' conflictos');
+    const e = document.getElementById('map-count');
+    if(e) e.textContent = _conflicts.length + ' activos';
+  });
 
-    // ── Camera ──
-    .pointOfView({lat:20, lng:15, altitude:2.2}, 0);
+  // Handle resize
+  const ro = new ResizeObserver(() => _flatMap && _flatMap.resize());
+  const el = document.getElementById('flat-map');
+  if(el) ro.observe(el);
+}
 
-  // Resize observer
-  const ro = new ResizeObserver(() => {
-    if(_globe && wrap.offsetWidth > 0){
-      _globe.width(wrap.offsetWidth).height(wrap.offsetHeight);
+function _renderMarkers(){
+  if(!_flatMap) return;
+
+  // Clear old markers
+  _mapMarkers.forEach(m => m.remove());
+  _mapMarkers = [];
+
+  const COL = {high:'#e8445a', medium:'#f0a832', low:'#4d8cf5', gdelt:'#2dd4a0'};
+  const SZ  = {high:15, medium:11, low:8, gdelt:7};
+
+  const all = [
+    ..._conflicts.map(c => ({...c, _type:'conflict'})),
+    ..._gdeltPoints.map(p => ({...p, _type:'gdelt', intensity:'gdelt'})),
+  ];
+
+  all.forEach(d => {
+    const col = COL[d.intensity] || COL.low;
+    const sz  = SZ[d.intensity]  || SZ.low;
+    const el  = document.createElement('div');
+
+    el.style.cssText = `
+      width:${sz*2}px;height:${sz*2}px;
+      border-radius:50%;
+      background:${col};
+      border:1.5px solid rgba(255,255,255,.28);
+      box-shadow:0 0 ${d.intensity==='high'?'10':'5'}px ${col}90;
+      cursor:pointer;
+      transition:transform .15s,box-shadow .15s;
+      position:relative;
+    `;
+    if(d.intensity === 'high'){
+      el.style.animation = 'mrkPulse 2s ease infinite';
     }
+    el.title = d.name;
+    el.addEventListener('mouseenter', () => {
+      el.style.transform='scale(1.35)';
+      el.style.boxShadow=`0 0 16px ${col}`;
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.transform='scale(1)';
+      el.style.boxShadow=`0 0 ${d.intensity==='high'?'10':'5'}px ${col}90`;
+    });
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      _flatMap.flyTo({center:[d.lng, d.lat], zoom:4, duration:700});
+      openMapPanel(d);
+    });
+
+    const marker = new maplibregl.Marker({element:el})
+      .setLngLat([d.lng, d.lat])
+      .addTo(_flatMap);
+    _mapMarkers.push(marker);
   });
-  ro.observe(wrap);
-  _globe.width(wrap.offsetWidth).height(wrap.offsetHeight);
-
-  // Auto-rotate
-  _startAutoRotate();
-
-  // Pause rotate on user interaction
-  wrap.addEventListener('mousedown', _pauseRotate);
-  wrap.addEventListener('touchstart', _pauseRotate, {passive:true});
-
-  colStatus('map','ok', CONFLICTS.length + ' conflictos');
-  const e = document.getElementById('map-conflict-count');
-  if(e) e.textContent = CONFLICTS.length + ' activos';
 }
 
-function _makeMarker(d){
-  const col = G_COL[d.i] || G_COL.low;
-  const sz  = G_SZ[d.i]  || G_SZ.low;
-  const el  = document.createElement('div');
-  el.className = 'globe-marker';
-  el.style.cssText = `--col:${col};--sz:${sz}px;`;
-  el.innerHTML = `
-    ${d.i==='high' ? '<div class="gm-pulse"></div>' : ''}
-    <div class="gm-dot"></div>
-    <div class="gm-label">${d.name}</div>
-  `;
-  el.addEventListener('click', e => {
-    e.stopPropagation();
-    // Fly to conflict
-    _globe.pointOfView({lat:d.lat, lng:d.lng, altitude:1.2}, 800);
-    _pauseRotate();
-    openConflictInfo(d);
+// ── GDELT GEO API — real-time events ────────────────────────
+const GDELT_GEO_URLS = [
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=war+attack+military+killed&format=geojson&timespan=1d&maxpoints=60',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=ukraine+russia+missile+strike&format=geojson&timespan=1d&maxpoints=40',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=israel+hamas+bomb+airstrike&format=geojson&timespan=1d&maxpoints=40',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=sudan+congo+sahel+rebel+attack&format=geojson&timespan=1d&maxpoints=40',
+  'https://api.gdeltproject.org/api/v2/geo/geo?query=myanmar+junta+airstrike+killed&format=geojson&timespan=1d&maxpoints=30',
+];
+
+let _gdeltGeoTs = 0;
+
+async function loadGDELTGeo(){
+  if(_gdeltGeoTs && Date.now()-_gdeltGeoTs < 15*60*1000) return;
+
+  const pts = [];
+  await pool(GDELT_GEO_URLS.map(url => async () => {
+    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+    try{
+      const r = await fetch(proxy, {signal:AbortSignal.timeout(12000)});
+      if(!r.ok) return;
+      const j = JSON.parse((await r.json()).contents);
+      (j.features||[]).forEach(f => {
+        const [lng,lat] = f.geometry?.coordinates||[];
+        if(!lat||!lng) return;
+        pts.push({lat,lng,
+          name: (f.properties?.name||'Evento').slice(0,50),
+          hits: f.properties?.shareimage||1,
+          url:  f.properties?.url||'',
+        });
+      });
+    }catch(e){}
+  }), 3);
+
+  _gdeltGeoTs = Date.now();
+
+  // ── Update conflict intensities from feeds ──
+  _updateIntensities();
+
+  // ── Filter GDELT points: only hotspots NOT near existing conflicts ──
+  _gdeltPoints = pts
+    .filter(p => {
+      // Must have significant coverage
+      if((p.hits||0) < 2) return false;
+      // Must be >2.5° (~250km) from any known conflict
+      return !_conflicts.some(c => {
+        const d = Math.sqrt((c.lat-p.lat)**2 + (c.lng-p.lng)**2);
+        return d < 2.5;
+      });
+    })
+    .slice(0, 25); // cap at 25 extra points
+
+  // Re-render all markers
+  if(_flatMap) _renderMarkers();
+
+  // Update counts
+  const total = _conflicts.length + _gdeltPoints.length;
+  const e = document.getElementById('map-count');
+  if(e) e.textContent = _conflicts.length + ' conflictos' +
+    (_gdeltPoints.length ? ' + ' + _gdeltPoints.length + ' alertas' : '');
+
+  const upd = document.getElementById('map-updated');
+  if(upd) upd.textContent = 'GDELT ' + new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) + ' UTC';
+}
+
+function _updateIntensities(){
+  const all = [...(mediaCache.data||[]), ...(osintCache.data||[])];
+  const now = Date.now();
+  const recent = all.filter(i => now - new Date(i.pubDate||0) < 24*3600*1000);
+
+  _conflicts.forEach(c => {
+    const kw = CONFLICT_KW[c.id] || [];
+    const n  = recent.filter(i => kw.some(k=>(i.title||'').toLowerCase().includes(k))).length;
+    c._mentions = n;
+    // Never downgrade below original base intensity
+    const base = BASE_CONFLICTS.find(b=>b.id===c.id)?.intensity || 'low';
+    const lvl  = n>=12?'high': n>=4?'medium': n>=1?'low': base;
+    const rank = {high:3,medium:2,low:1};
+    c.intensity = rank[lvl] >= rank[base] ? lvl : base;
   });
-  return el;
 }
 
-function _startAutoRotate(){
-  _autoRotate = true;
-  const hint = document.getElementById('globe-hint');
-  if(hint) hint.style.opacity = '1';
-  _tick();
-}
-
-function _tick(){
-  if(!_autoRotate || !_globe) return;
-  const pov = _globe.pointOfView();
-  _globe.pointOfView({lat: pov.lat, lng: pov.lng + 0.12, altitude: pov.altitude}, 0);
-  requestAnimationFrame(_tick);
-}
-
-function _pauseRotate(){
-  _autoRotate = false;
-  const hint = document.getElementById('globe-hint');
-  if(hint) hint.style.opacity = '0';
-  clearTimeout(_rotTimer);
-  // Resume after 60s of inactivity
-  _rotTimer = setTimeout(() => {
-    _startAutoRotate();
-  }, 60000);
-}
-
-// ── Conflict info panel ────────────────────────────────────
-function openConflictInfo(d){
-  const panel = document.getElementById('map-info');
-  const title = document.getElementById('map-info-title');
-  const badge = document.getElementById('map-info-badge');
-  const parties= document.getElementById('map-info-parties');
-  const summary= document.getElementById('map-info-summary');
-  const aiEl  = document.getElementById('map-info-ai');
-  const newsEl= document.getElementById('map-info-news');
+// ── Panel ──────────────────────────────────────────────────
+function openMapPanel(d){
+  const panel = document.getElementById('map-panel');
   if(!panel) return;
 
-  const col = G_COL[d.i];
-  const label = d.i==='high'?'🔴 GUERRA ACTIVA':d.i==='medium'?'🟡 CONFLICTO ACTIVO':'🔵 TENSIÓN';
+  const COL = {high:'#e8445a',medium:'#f0a832',low:'#4d8cf5',gdelt:'#2dd4a0'};
+  const col = COL[d.intensity]||COL.low;
+  const lvl = d.intensity==='high'?'GUERRA ACTIVA':d.intensity==='medium'?'CONFLICTO ACTIVO':d.intensity==='gdelt'?'ALERTA GDELT':'TENSIÓN';
 
-  title.textContent = d.name;
-  const mentionBadge = d._mentions > 0
-    ? `<span style="font-size:10px;color:var(--green);margin-left:10px;font-family:var(--mono);">↑${d._mentions} menciones/24h</span>` : '';
-  badge.innerHTML = `<span style="font-size:10px;font-weight:600;color:${col};">${label}</span>
-    <span style="font-size:10px;color:var(--t2);margin-left:10px;font-family:var(--mono);">Desde ${d.since}</span>${mentionBadge}`;
-  parties.textContent = '⚔ ' + d.parties;
-  summary.innerHTML = `<p style="margin:0;">${d.summary}</p>`;
-  aiEl.innerHTML = '';
-  newsEl.innerHTML = '';
+  document.getElementById('mp-title').textContent = d.name;
 
-  // Show panel
+  const badges = document.getElementById('mp-badges');
+  badges.innerHTML = `
+    <span style="font-size:10px;font-weight:700;color:${col};">● ${lvl}</span>
+    ${d.since?`<span style="font-size:10px;color:var(--t2);font-family:var(--mono);">Desde ${d.since}</span>`:''}
+    ${d.deaths?`<span style="font-size:10px;color:var(--t2);font-family:var(--mono);">☠ ${d.deaths}</span>`:''}
+    ${d._mentions>0?`<span style="font-size:10px;color:var(--green);font-family:var(--mono);">↑${d._mentions} menciones/24h</span>`:''}
+  `;
+
+  document.getElementById('mp-parties').textContent = d.parties ? '⚔ ' + d.parties : '';
+  document.getElementById('mp-summary').innerHTML = `<p style="margin:0;">${d.summary||''}</p>`;
+  document.getElementById('mp-news').innerHTML = '';
+  document.getElementById('mp-ai').innerHTML = '';
+
+  // Panel up
   panel.style.transform = 'translateY(0)';
 
-  // Related news from feeds
-  const kw = d.name.toLowerCase().split(/\s+/).filter(w=>w.length>3);
-  const all = [...(mediaCache.data||[]), ...(osintCache.data||[])];
-  const related = all
-    .filter(i => i.cat===d.cat || kw.some(k=>(i.title||'').toLowerCase().includes(k)))
-    .slice(0,4);
+  // Related news
+  if(d._type !== 'gdelt'){
+    const kw = CONFLICT_KW[d.id]||[];
+    const related = [...(mediaCache.data||[]),...(osintCache.data||[])]
+      .filter(i => i.cat===d.cat || kw.some(k=>(i.title||'').toLowerCase().includes(k)))
+      .slice(0,4);
+    if(related.length){
+      document.getElementById('mp-news').innerHTML = `
+        <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;">
+          <div style="font-size:9px;color:var(--t2);font-family:var(--mono);letter-spacing:.5px;margin-bottom:7px;">NOTICIAS RECIENTES</div>
+          ${related.map(i=>`
+            <div onclick="openItem('${(i.link||'').replace(/'/g,"\\'")}');closeMapPanel();"
+                 style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;">
+              <div style="font-size:11px;color:var(--t0);line-height:1.4;">${i.title.slice(0,100)}</div>
+              <div style="font-size:9px;color:var(--t2);margin-top:2px;font-family:var(--mono);">${i.src} · ${timeAgo(i.pubDate)}</div>
+            </div>`).join('')}
+        </div>`;
+    }
 
-  if(related.length){
-    newsEl.innerHTML = `
-      <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:4px;">
-        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);margin-bottom:7px;letter-spacing:.5px;">NOTICIAS RECIENTES</div>
-        ${related.map(i=>`
-          <div onclick="openItem('${(i.link||'').replace(/'/g,"\\'")}');closeMapInfo();"
-               style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;">
-            <div style="font-size:11px;color:var(--t0);line-height:1.4;">${i.title.slice(0,100)}</div>
-            <div style="font-size:9px;color:var(--t2);margin-top:2px;font-family:var(--mono);">${i.src} · ${timeAgo(i.pubDate)}</div>
-          </div>`).join('')}
-      </div>`;
-  }
-
-  // AI summary
-  if(_aiCache[d.id]){
-    _renderAI(d.id, _aiCache[d.id]);
-  } else {
-    _fetchAI(d, related);
+    // AI summary
+    if(_mapAiCache[d.id]){
+      _showMapAI(d.id, _mapAiCache[d.id]);
+    } else {
+      _fetchMapAI(d, related);
+    }
   }
 }
 
-function closeMapInfo(){
-  const p = document.getElementById('map-info');
+function closeMapPanel(){
+  const p = document.getElementById('map-panel');
   if(p) p.style.transform = 'translateY(101%)';
 }
 
-async function _fetchAI(d, related){
-  const el = document.getElementById('map-info-ai');
+async function _fetchMapAI(d, related){
+  const el = document.getElementById('mp-ai');
   if(!el) return;
-  el.innerHTML = `<div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:4px;">
+  el.innerHTML = `<div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;">
     <div style="font-size:9px;color:var(--blue);font-family:var(--mono);margin-bottom:6px;">⬡ ANÁLISIS IA</div>
     <div style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:6px;">
-      <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border2);border-top-color:var(--blue);animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;"></span>
+      <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border2);
+        border-top-color:var(--blue);animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;"></span>
       Generando análisis...
-    </div>
-  </div>`;
+    </div></div>`;
 
-  const headlines = related.map(i=>`- ${i.title} (${i.src})`).join('\n') || '(sin noticias recientes)';
-  const prompt = `Eres un analista de conflictos. En 3 frases concisas en español, describe el estado actual del conflicto "${d.name}" y su evolución reciente.
-Contexto base: ${d.summary}
-Titulares recientes relacionados:
+  const headlines = related.map(i=>`- ${i.title} (${i.src})`).join('\n')||'(sin noticias recientes)';
+  const prompt = `Eres un analista de conflictos armados. En 3 frases concisas en español, describe el estado actual del conflicto "${d.name}" y su evolución más reciente.
+Contexto: ${d.summary}
+Titulares recientes:
 ${headlines}
-Responde solo con el análisis, sin formato, máximo 80 palabras.`;
+Solo el análisis, sin formato markdown, máximo 90 palabras.`;
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:180,
-        messages:[{role:'user',content:prompt}]
-      })
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,
+        messages:[{role:'user',content:prompt}]})
     });
-    if(!res.ok) throw new Error(res.status);
+    if(!res.ok) throw 0;
     const data = await res.json();
     const text = data.content?.[0]?.text||'';
-    if(text){ _aiCache[d.id]=text; _renderAI(d.id,text); }
+    if(text){ _mapAiCache[d.id]=text; _showMapAI(d.id,text); }
     else { if(el) el.innerHTML=''; }
-  } catch(e){ if(el) el.innerHTML=''; }
+  }catch(e){ if(el) el.innerHTML=''; }
 }
 
-function _renderAI(id, text){
-  const el = document.getElementById('map-info-ai');
+function _showMapAI(id, text){
+  const el = document.getElementById('mp-ai');
   if(!el) return;
   el.innerHTML = `
-    <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:4px;">
-      <div style="font-size:9px;color:var(--blue);font-family:var(--mono);margin-bottom:7px;letter-spacing:.5px;display:flex;align-items:center;gap:5px;">
+    <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:10px;">
+      <div style="font-size:9px;color:var(--blue);font-family:var(--mono);letter-spacing:.5px;margin-bottom:7px;
+        display:flex;align-items:center;gap:5px;">
         <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
         ANÁLISIS IA
       </div>
@@ -1979,156 +2057,21 @@ function _renderAI(id, text){
     </div>`;
 }
 
-// Reinit globe on theme change
-// ═══════════════════════════════════════════════════════════
-// DYNAMIC CONFLICT DATA — GDELT GEO + Feed intelligence
-// ═══════════════════════════════════════════════════════════
-
-// GDELT Event API — returns geolocated conflict events (no key needed)
-// Updated every 15min by GDELT. Returns lat/lng + event type + country
-const GDELT_GEO_QUERIES = [
-  // CAMEO codes: 19=Fight, 18=Assault, 20=Use unconventional mass violence
-  'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict+war+military+attack&format=geojson&timespan=1d&maxpoints=50',
-  'https://api.gdeltproject.org/api/v2/geo/geo?query=ukraine+russia+bomb+missile&format=geojson&timespan=1d&maxpoints=30',
-  'https://api.gdeltproject.org/api/v2/geo/geo?query=israel+hamas+strike+killed&format=geojson&timespan=1d&maxpoints=30',
-  'https://api.gdeltproject.org/api/v2/geo/geo?query=sudan+congo+sahel+armed+attack&format=geojson&timespan=1d&maxpoints=30',
-];
-
-let _gdeltGeoCache = {ts:0, points:[]};
-let _gdeltGeoMarkers = []; // extra markers from GDELT not in base CONFLICTS
-
-// Keyword → conflict id mapping for intensity updates
-const CONFLICT_KEYWORDS = {
-  ukraine:      ['ukraine','ucrania','kyiv','kharkiv','zaporizhzhia','kherson','donbas','russia'],
-  gaza:         ['gaza','hamas','israel','rafah','khan younis','west bank','cisjordania'],
-  sudan:        ['sudan','rsf','khartoum','darfur','jartum'],
-  myanmar:      ['myanmar','burma','junta','pdf','shan','sagaing'],
-  sahel:        ['mali','burkina','niger','jnim','sahel','bamako'],
-  drcongo:      ['congo','drc','m23','goma','kivu','rdc'],
-  yemen:        ['yemen','houthi','huthi','ansarallah','hodeidah'],
-  syria:        ['syria','siria','hts','idlib','aleppo','damasco'],
-  ethiopia:     ['ethiopia','etiopia','tigray','amhara','oromia'],
-  somalia:      ['somalia','al-shabaab','mogadishu','mogadiscio'],
-  lebanon:      ['lebanon','libano','hezbollah','beirut'],
-  iran:         ['iran','nuclear','irgc','strait of hormuz','hormuz'],
-  sahara:       ['western sahara','polisario','sahara occidental'],
-  taiwan:       ['taiwan','strait','pla exercise','china threat'],
-  southchinasea:['south china sea','mar del sur','scarborough','spratly','paracel'],
-  pakistan:     ['ttp','pakistan','peshawar','khyber','balochistan'],
-  northkorea:   ['north korea','corea del norte','kim jong','pyongyang','icbm'],
-};
-
-async function loadGDELTGeo(){
-  if(_gdeltGeoCache.ts && Date.now()-_gdeltGeoCache.ts < 15*60*1000) return;
-
-  const allPoints = [];
-  await pool(GDELT_GEO_QUERIES.map(url => async () => {
-    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
-    try{
-      const r = await fetch(proxy, {signal:AbortSignal.timeout(12000)});
-      if(!r.ok) return;
-      const j = JSON.parse((await r.json()).contents);
-      (j.features||[]).forEach(f => {
-        const [lng,lat] = f.geometry?.coordinates || [];
-        if(!lat||!lng) return;
-        allPoints.push({
-          lat, lng,
-          name: f.properties?.name || f.properties?.title || 'Evento',
-          count: f.properties?.shareimage || 1,
-          url:   f.properties?.url || '',
-          date:  f.properties?.dateadded || '',
-        });
-      });
-    }catch(e){}
-  }), 3);
-
-  if(!allPoints.length) return;
-  _gdeltGeoCache = {ts:Date.now(), points:allPoints};
-  _applyDynamicData(allPoints);
+// ── Public: called after feeds refresh ──────────────────────
+function updateMapFromFeeds(){
+  if(!_flatMap || !_flatInited) return;
+  _updateIntensities();
+  _renderMarkers();
 }
 
-function _applyDynamicData(points){
-  if(!_globe) return;
-
-  // ── 1. Update CONFLICT intensities from recent feed mentions ──
-  const allItems = [...(mediaCache.data||[]), ...(osintCache.data||[])];
-  const now = Date.now();
-  const recent24h = allItems.filter(i => now - new Date(i.pubDate||0) < 24*60*60*1000);
-
-  CONFLICTS.forEach(conflict => {
-    const kw = CONFLICT_KEYWORDS[conflict.id] || [];
-    const mentions = recent24h.filter(i => {
-      const t = (i.title||'').toLowerCase();
-      return kw.some(k => t.includes(k));
-    }).length;
-
-    // Store mention count for display
-    conflict._mentions = mentions;
-    conflict._lastUpdated = new Date().toISOString();
-
-    // Dynamically adjust intensity based on 24h feed activity
-    if(mentions >= 15)      conflict.i = 'high';
-    else if(mentions >= 5)  conflict.i = 'medium';
-    else if(mentions >= 1)  conflict.i = 'low';
-    // Don't downgrade below base level — only upgrade
-  });
-
-  // ── 2. Build GDELT hotspot markers (events NOT near existing conflicts) ──
-  const newHotspots = [];
-  points.forEach(pt => {
-    // Skip if within 300km of an existing conflict marker
-    const nearExisting = CONFLICTS.some(c => {
-      const dlat = c.lat - pt.lat, dlng = c.lng - pt.lng;
-      return Math.sqrt(dlat*dlat + dlng*dlng) < 3.0; // ~300km in deg
-    });
-    if(nearExisting) return;
-
-    // Only add if high event count (GDELT shareimage = coverage intensity)
-    if((pt.count||0) < 3) return;
-
-    newHotspots.push({
-      id:      'gdelt_' + Math.round(pt.lat*10) + '_' + Math.round(pt.lng*10),
-      name:    pt.name.slice(0,40),
-      lat:     pt.lat, lng: pt.lng,
-      i:       'low',
-      since:   'Detectado hoy',
-      parties: 'Fuente: GDELT',
-      cat:     'general',
-      summary: 'Evento detectado automáticamente por GDELT en las últimas 24h. Cobertura mediática: ' + pt.count + ' fuentes.',
-      _gdelt:  true,
-    });
-  });
-
-  // ── 3. Refresh globe markers ──
-  const allMarkers = [...CONFLICTS, ...newHotspots];
-  _globe.htmlElementsData(allMarkers);
-
-  // Update counter
-  const e = document.getElementById('map-conflict-count');
-  if(e) e.textContent = CONFLICTS.length + ' conflictos' + (newHotspots.length ? ' + ' + newHotspots.length + ' alertas GDELT' : '');
-
-  // Update status
-  colStatus('map','ok', allMarkers.length + ' marcadores');
-}
-
-// ── Called after feeds load to update intensities ──
-function updateGlobeFromFeeds(){
-  if(!_globe || !_globeInited) return;
-  if(_gdeltGeoCache.points.length){
-    _applyDynamicData(_gdeltGeoCache.points);
-  } else {
-    // Just update intensities from feed data without GDELT points
-    _applyDynamicData([]);
-  }
-}
-
-function _reinitGlobe(){
-  if(!_globeInited) return;
-  _globeInited = false;
-  _globe = null;
-  const el = document.getElementById('globe-el');
-  if(el) el.innerHTML = '';
-  setTimeout(initGlobe, 150);
+// ── Reinit on theme change ───────────────────────────────────
+function reinitFlatMap(){
+  if(!_flatInited) return;
+  _flatInited = false;
+  _mapMarkers.forEach(m=>m.remove()); _mapMarkers=[];
+  _flatMap.remove(); _flatMap=null;
+  document.getElementById('flat-map').innerHTML='';
+  setTimeout(initFlatMap,100);
 }
 
 
@@ -2168,8 +2111,7 @@ function init(){
     await Promise.all([loadMedia(), loadOSINT()]);
     setLastUpdated();
     setTimeout(loadBreakingBar,  300);
-    setTimeout(initGlobe, 600);
-    setTimeout(loadGDELTGeo, 3000);
+    setTimeout(initFlatMap, 700);
     setTimeout(loadGDELT,       800);
     setTimeout(loadOREF,       1200);
   }, 300);
