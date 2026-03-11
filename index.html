@@ -1791,10 +1791,11 @@ function _buildFlatMap(){
   _flatMap = new maplibregl.Map({
     container: 'flat-map',
     style,
-    center: [15, 20],
-    zoom: 1.8,
-    minZoom: 1,
+    center: [20, 25],
+    zoom: 1.5,
+    minZoom: 0.5,
     maxZoom: 10,
+    renderWorldCopies: false,
     attributionControl: true,
   });
 
@@ -1822,7 +1823,7 @@ function _renderMarkers(){
   _mapMarkers = [];
 
   const COL = {high:'#e8445a', medium:'#f0a832', low:'#4d8cf5', gdelt:'#2dd4a0'};
-  const SZ  = {high:15, medium:11, low:8, gdelt:7};
+  const SZ  = {high:9, medium:7, low:5, gdelt:5};
 
   const all = [
     ..._conflicts.map(c => ({...c, _type:'conflict'})),
@@ -1838,31 +1839,46 @@ function _renderMarkers(){
       width:${sz*2}px;height:${sz*2}px;
       border-radius:50%;
       background:${col};
-      border:1.5px solid rgba(255,255,255,.28);
-      box-shadow:0 0 ${d.intensity==='high'?'10':'5'}px ${col}90;
+      border:2px solid rgba(255,255,255,.35);
+      box-shadow:0 0 8px ${col}80;
       cursor:pointer;
-      transition:transform .15s,box-shadow .15s;
-      position:relative;
     `;
     if(d.intensity === 'high'){
       el.style.animation = 'mrkPulse 2s ease infinite';
     }
     el.title = d.name;
-    el.addEventListener('mouseenter', () => {
-      el.style.transform='scale(1.35)';
-      el.style.boxShadow=`0 0 16px ${col}`;
-    });
-    el.addEventListener('mouseleave', () => {
-      el.style.transform='scale(1)';
-      el.style.boxShadow=`0 0 ${d.intensity==='high'?'10':'5'}px ${col}90`;
-    });
-    el.addEventListener('click', e => {
+    el.addEventListener('mouseenter', () => { el.style.transform='scale(1.5)'; });
+    el.addEventListener('mouseleave', () => { el.style.transform='scale(1)'; });
+
+
+    // Wrap in container for label
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:flex;align-items:center;cursor:pointer;';
+    wrap.appendChild(el);
+
+    // Label — only show for high/medium on desktop
+    if(d.intensity === 'high' || d.intensity === 'medium'){
+      const lbl = document.createElement('div');
+      lbl.textContent = d.name;
+      lbl.style.cssText = `
+        position:absolute;left:${sz*2+4}px;top:50%;transform:translateY(-50%);
+        white-space:nowrap;font-size:9px;font-weight:500;
+        color:rgba(255,255,255,.8);pointer-events:none;
+        text-shadow:0 1px 3px rgba(0,0,0,1),0 0 6px rgba(0,0,0,.9);
+        font-family:'JetBrains Mono',monospace;
+      `;
+      wrap.appendChild(lbl);
+    }
+
+    wrap.addEventListener('click', e => {
       e.stopPropagation();
       _flatMap.flyTo({center:[d.lng, d.lat], zoom:4, duration:700});
       openMapPanel(d);
     });
+    // Remove old click from el, use wrap
+    el.onclick = null;
 
-    const marker = new maplibregl.Marker({element:el})
+    const marker = new maplibregl.Marker({element:wrap, anchor:'left'})
       .setLngLat([d.lng, d.lat])
       .addTo(_flatMap);
     _mapMarkers.push(marker);
