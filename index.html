@@ -1337,37 +1337,72 @@ async function pool(tasks, n=6){
 // Fetch a single RSS — tries Worker first, then direct, then proxies
 // No simultaneous race: sequential so we don't hammer proxies needlessly
 async function fetchRSS(url){
-  const TO = 4000;
   const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
-  const ctrl = new AbortController();
-  const sig  = ctrl.signal;
-  const kill = setTimeout(() => ctrl.abort(), TO + 500);
+  const enc   = encodeURIComponent(url);
 
-  try {
-    const txt = await Promise.any([
-      // 1. Worker (best — cached, no CORS)
-      fetch(WORKER+'/rss?url='+encodeURIComponent(url), {signal:sig})
-        .then(r => { if(!r.ok) throw 0; return r.text(); })
-        .then(x => { if(!isRSS(x)) throw 0; return x; }),
-      // 2. Direct (fast for CORS-open feeds)
-      fetch(url, {signal:sig})
-        .then(r => { if(!r.ok) throw 0; return r.text(); })
-        .then(x => { if(!isRSS(x)) throw 0; return x; }),
-      // 3. allorigins proxy
-      fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url), {signal:sig})
-        .then(r => { if(!r.ok) throw 0; return r.json(); })
-        .then(j => { if(!isRSS(j.contents)) throw 0; return j.contents; }),
-      // 4. corsproxy.io
-      fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:sig})
-        .then(r => { if(!r.ok) throw 0; return r.text(); })
-        .then(x => { if(!isRSS(x)) throw 0; return x; }),
-    ]);
-    clearTimeout(kill); ctrl.abort();
-    return txt;
-  } catch(e) {
-    clearTimeout(kill);
-    return null;
+  // Sequential fallback — try each proxy in order, move to next on failure
+  const proxies = [
+    // 1. Direct (instant if CORS-open — RT, Al Jazeera, many others)
+    async () => {
+      const r = await fetch(url, {signal:AbortSignal.timeout(4000)});
+      if(!r.ok) throw 0;
+      const x = await r.text();
+      if(!isRSS(x)) throw 0;
+      return x;
+    },
+    // 2. Worker (Cloudflare — best reliability when up)
+    async () => {
+      const r = await fetch(WORKER+'/rss?url='+enc, {signal:AbortSignal.timeout(5000)});
+      if(!r.ok) throw 0;
+      const x = await r.text();
+      if(!isRSS(x)) throw 0;
+      return x;
+    },
+    // 3. rss2json — converts RSS to JSON, very reliable
+    async () => {
+      const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&api_key=&count=20', {signal:AbortSignal.timeout(6000)});
+      if(!r.ok) throw 0;
+      const j = await r.json();
+      if(!j.items?.length) throw 0;
+      // Convert JSON back to minimal RSS XML for our parser
+      const items = j.items.map(i => `<item>
+        <title><![CDATA[${i.title||''}]]></title>
+        <link>${i.link||''}</link>
+        <pubDate>${i.pubDate||''}</pubDate>
+        <description><![CDATA[${i.description||i.content||''}]]></description>
+      </item>`).join('');
+      return `<rss><channel><title>${j.feed?.title||''}</title>${items}</channel></rss>`;
+    },
+    // 4. allorigins
+    async () => {
+      const r = await fetch('https://api.allorigins.win/get?url='+enc, {signal:AbortSignal.timeout(8000)});
+      if(!r.ok) throw 0;
+      const j = await r.json();
+      if(!isRSS(j.contents)) throw 0;
+      return j.contents;
+    },
+    // 5. corsproxy.io
+    async () => {
+      const r = await fetch('https://corsproxy.io/?'+enc, {signal:AbortSignal.timeout(7000)});
+      if(!r.ok) throw 0;
+      const x = await r.text();
+      if(!isRSS(x)) throw 0;
+      return x;
+    },
+    // 6. codetabs
+    async () => {
+      const r = await fetch('https://api.codetabs.com/v1/proxy?quest='+enc, {signal:AbortSignal.timeout(7000)});
+      if(!r.ok) throw 0;
+      const x = await r.text();
+      if(!isRSS(x)) throw 0;
+      return x;
+    },
+  ];
+
+  for(const proxy of proxies){
+    try{ return await proxy(); }catch(e){}
   }
+  return null;
 }
 
 async function fetchTG(ch){
@@ -1557,11 +1592,13 @@ async function loadMedia(){
   const all=[];
   const isFirst=!mediaCache.data.length;
   await pool(srcs.map(src=>async()=>{
-    const xml=await fetchRSS(src.url);
+    let xml = await fetchRSS(src.url);
+    // one retry after 1s if first attempt failed
+    if(!xml){ await new Promise(r=>setTimeout(r,1000)); xml=await fetchRSS(src.url); }
     if(xml) parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
     done++;
     progSet(Math.round((done/srcs.length)*50));
-  }),10);
+  }),8);
   sortByDate(all);
   if(!all.length){
     if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
@@ -2010,7 +2047,7 @@ let _lmapInited = false;
 let _gdeltTs    = 0;
 let _gdeltPts   = [];
 let _mapAiCache = {};
-let _conflicts  = CDATA.map(x => ({...x})); // mutable copy
+let _conflicts  = []; // populated in _buildLeafletMap
 let _cLayers    = []; // leaflet circle layers
 
 // ── Init ─────────────────────────────────────────────────
@@ -2325,7 +2362,7 @@ function reinitLeafletMap(){
 // Admin password — stored as SHA-256 hash
 // Default password: "conflicttracker2025"
 // To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-const ADMIN_PWD_HASH = 'b1ee26e50b7c432d72ad7e20e0ea64c5c76e04a6c0fdf2b4c8c29dd79a2a2f3e';
+const ADMIN_PWD_HASH = 'f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
 
 let _adminAuthed  = false;
 let _pickingCoord = false;
