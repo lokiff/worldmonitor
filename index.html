@@ -2084,7 +2084,9 @@ function _buildLeafletMap(){
     maxZoom: 10,
     zoomControl: true,
     attributionControl: true,
-    worldCopyJump: false,
+    worldCopyJump: true,
+    maxBounds: [[-90, -220], [90, 220]],
+    maxBoundsViscosity: 0.8,
   });
 
   // CARTO tile — dark or light
