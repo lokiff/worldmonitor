@@ -2438,19 +2438,31 @@ let _editingId    = null;
 // ── Admin: Publish & Sync ─────────────────────────────────
 async function adminPublish(){
   const btn = document.getElementById('admin-publish-btn');
+  const resetBtn = () => {
+    if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
+  };
+
   if(btn){ btn.disabled=true; btn.innerHTML='<span style="opacity:.6">Publicando...</span>'; }
 
-  if(!JSONBIN_BIN || !JSONBIN_KEY){
+  if(!GH_TOKEN){
     document.getElementById('admin-jsonbin-setup').style.display = 'block';
-    _showSyncStatus('⚠ JSONBin no configurado — cambios solo locales', 'var(--amber)');
-    if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
-    return;
+    _showSyncStatus('⚠ Token no configurado', 'var(--amber)');
+    resetBtn(); return;
   }
 
-  const data = _getConflicts();
-  const ok = await _saveConflicts(data);
-  _showSyncStatus(ok ? '✓ Publicado — '+data.length+' conflictos' : '✗ Error al publicar', ok ? 'var(--green)' : 'var(--red)');
-  if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
+  try{
+    const data = _getConflicts();
+    const ok = await _saveConflicts(data);
+    _showSyncStatus(
+      ok ? '✓ Publicado — '+data.length+' conflictos en GitHub' : '✗ Error — revisa la consola (F12)',
+      ok ? 'var(--green)' : 'var(--red)'
+    );
+  }catch(e){
+    console.error('adminPublish error:', e);
+    _showSyncStatus('✗ Error: '+e.message, 'var(--red)');
+  } finally {
+    resetBtn();
+  }
 }
 
 function _showSyncStatus(msg, col){
@@ -2874,40 +2886,64 @@ function _getConflicts(){
 async function _saveConflicts(data){
   // Siempre guardar local
   localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-  // Subir a GitHub solo si hay token configurado
   if(!GH_TOKEN) return true;
+
   try{
-    // Obtener SHA actual del archivo (necesario para PUT)
-    if(!_ghFileSha){
-      const r = await fetch(GH_API, {
-        headers:{ Authorization: 'token '+GH_TOKEN },
-        signal: AbortSignal.timeout(5000),
-      });
-      if(r.ok){ const j=await r.json(); _ghFileSha = j.sha||''; }
+    // 1. Obtener SHA actual (si el archivo ya existe)
+    _ghFileSha = '';
+    const check = await fetch(GH_API, {
+      headers:{
+        'Authorization': 'token '+GH_TOKEN,
+        'Accept': 'application/vnd.github+json',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if(check.ok){
+      const j = await check.json();
+      _ghFileSha = j.sha || '';
+    } else if(check.status !== 404){
+      const err = await check.text();
+      console.error('GH check error:', check.status, err);
+      _showSyncStatus('✗ Error '+check.status+' al verificar archivo', 'var(--red)');
+      return false;
     }
-    // Subir archivo
+    // 404 = archivo no existe aún, crearlo sin sha
+
+    // 2. Subir archivo
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
     const body = {
       message: 'Update conflicts ' + new Date().toISOString(),
       content,
       ...(_ghFileSha ? {sha: _ghFileSha} : {}),
     };
+
     const res = await fetch(GH_API, {
       method: 'PUT',
       headers:{
         'Authorization': 'token '+GH_TOKEN,
+        'Accept': 'application/vnd.github+json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(12000),
     });
+
     if(res.ok){
       const j = await res.json();
       _ghFileSha = j.content?.sha || '';
+      console.log('✓ conflicts.json publicado en GitHub, SHA:', _ghFileSha);
       return true;
+    } else {
+      const err = await res.text();
+      console.error('GH PUT error:', res.status, err);
+      _showSyncStatus('✗ Error '+res.status+': '+JSON.parse(err||'{}').message, 'var(--red)');
+      return false;
     }
+  }catch(e){
+    console.error('GH exception:', e);
+    _showSyncStatus('✗ Error de red: '+e.message, 'var(--red)');
     return false;
-  }catch(e){ return false; }
+  }
 }
 
 function _showAEMsg(msg, col){
