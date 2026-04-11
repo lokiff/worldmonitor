@@ -817,8 +817,8 @@ let _ghFileSha = '';
 // ── State ────────────────────────────────────────────────
 let mediaCache = {ts:0,data:[]};
 let osintCache = {ts:0,data:[]};
-// let readSet = new Set(JSON.parse(localStorage.getItem('ct_read')||'[]'));
-// customSources initialized in state block above
+let readSet = new Set(JSON.parse(localStorage.getItem('ct_read')||'[]'));
+let customSources = JSON.parse(localStorage.getItem('ct_custom')||'[]');
 let activeCatMedia = 'all';
 let activeCatOsint = 'all';
 let _refreshing = false;
@@ -1272,168 +1272,6 @@ function _renderBreakingBar(items){
   requestAnimationFrame(()=>{
     inner.style.animationDuration=Math.max(40,inner.scrollWidth/2/110)+'s';
   });
-}
-
-// ═══════════════════════════════════════════════════════════
-// REFRESH ALL — debounced, single entry point
-// ═══════════════════════════════════════════════════════════
-async function refreshAll(){
-  if(_refreshing) return;
-  _refreshing=true;
-  const btn=document.getElementById('refresh-btn');
-  if(btn){btn.classList.add('active');btn.disabled=true;}
-  progSet(2);
-  mediaCache={ts:0,data:[]};
-  osintCache={ts:0,data:[]};
-  gdeltCache={ts:0,data:[]};
-  brkLoaded=false;
-  const _fm=document.getElementById('feed-media');
-  const _fo=document.getElementById('feed-osint');
-  // Keep existing items visible during refresh — no blanking, no flash
-  try{
-    await Promise.all([loadMedia(),loadOSINT()]);
-    setLastUpdated();
-    // feeds already updated in place by loadMedia/loadOSINT
-    loadBreakingBar();
-    loadGDELT();
-  }finally{
-    _refreshing=false;
-    if(btn){btn.classList.remove('active');btn.disabled=false;}
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO-REFRESH — tab-aware, 5min interval, no countdown
-// ═══════════════════════════════════════════════════════════
-function startAutoRefresh(){
-  const INTERVAL=5*60*1000;
-  let lastRun=Date.now();
-  function schedule(){
-    const wait=Math.max(0,INTERVAL-(Date.now()-lastRun));
-    setTimeout(async()=>{
-      if(!document.hidden){lastRun=Date.now();await refreshAll();}
-      schedule();
-    },wait);
-  }
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden&&Date.now()-lastRun>INTERVAL){lastRun=Date.now();refreshAll();}
-  });
-  schedule();
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// ITEM ACTIONS
-// ═══════════════════════════════════════════════════════════
-function openItem(href){ window.open(href,'_blank'); markRead(href); }
-function markRead(href){
-  if(!href) return;
-  readSet.add(href);
-  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
-  // Visually mark
-  document.querySelectorAll('.fitem').forEach(el => {
-    if(el.getAttribute('onclick')?.includes(href)) el.classList.add('read');
-  });
-}
-function toggleRead(btn, href){
-  const item = btn.closest('.fitem');
-  if(readSet.has(href)){ readSet.delete(href); item.classList.remove('read'); btn.classList.remove('read-on'); }
-  else { readSet.add(href); item.classList.add('read'); btn.classList.add('read-on'); }
-  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
-}
-function saveItem(item){
-  if(savedItems.find(s=>s.link===item.link)) return;
-  savedItems.unshift(item);
-  if(savedItems.length>100) savedItems.pop();
-  try{ localStorage.setItem('ct_saved', JSON.stringify(savedItems)); }catch(e){}
-}
-
-// ═══════════════════════════════════════════════════════════
-// SIDEBAR MODES
-// ═══════════════════════════════════════════════════════════
-function setSidebar(mode, btn){
-  currentSidebar = mode;
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const media = document.getElementById('feed-media');
-  const saved = document.getElementById('feed-saved');
-  const fm = document.getElementById('filters-media');
-  if(mode==='saved'){
-    media.style.display='none'; if(fm) fm.style.display='none';
-    saved.style.display=''; renderSaved();
-  } else {
-    media.style.display=''; if(fm) fm.style.display='';
-    saved.style.display='none';
-  }
-}
-function renderSaved(){
-  const el = document.getElementById('feed-saved'); if(!el) return;
-  if(!savedItems.length){ el.innerHTML='<div class="fstatus">Sin guardadas.</div>'; return; }
-  el.innerHTML = savedItems.map((item,i) => `
-    <div class="sitem" onclick="window.open('${(item.link||'').replace(/'/g,"\\'")}','_blank')">
-      <div class="sitem-t">${item.title}</div>
-      <div class="sitem-m">
-        <span>${item.src}</span>
-        <button onclick="event.stopPropagation();savedItems.splice(${i},1);try{localStorage.setItem('ct_saved',JSON.stringify(savedItems))}catch(e){}renderSaved()" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;margin-left:auto;">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// FILTER FEEDS
-// ═══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════
-// TWITTER — RSSHub feed (same engine as OSINT)
-// ═══════════════════════════════════════════════════════════
-
-
-
-
-
-
-function filterFeed(f, btn, which){
-
-
-  if(which==='media') activeCatMedia=f; else activeCatOsint=f;
-  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  if(which==='media') renderFeed(mediaCache.data, 'feed-media');
-  else renderFeed(osintCache.data, 'feed-osint');
-}
-
-// ═══════════════════════════════════════════════════════════
-// PANELS
-// ═══════════════════════════════════════════════════════════
-function openPanel(id){
-  closePanel();
-  activePanel = id;
-  document.getElementById('panel-overlay').style.display = 'block';
-  document.getElementById('panel-'+id)?.classList.add('open');
-}
-function closePanel(){
-  document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
-  document.getElementById('panel-overlay').style.display = 'none';
-  activePanel = null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// OREF
-// ═══════════════════════════════════════════════════════════
-async function loadOREF(){
-  try{
-    const r = await fetch(WORKER+'/oref', {signal:AbortSignal.timeout(5000)});
-    if(!r.ok) return;
-    const d = await r.json();
-    const banner = document.getElementById('oref-banner');
-    if(d.status==='active' && d.alerts?.length){
-      banner.classList.add('active');
-      document.getElementById('oref-text').textContent =
-        '🚨 ALERTA COHETES — ' + d.alerts.map(a=>a.data||'').flat().join(' · ');
-    } else {
-      banner.classList.remove('active');
-    }
-  }catch(e){}
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1940,6 +1778,173 @@ function syncMobBadges(){
   if(mo && bo) bo.textContent = mo.textContent || '—';
 }
 
+async function pool(tasks, n=6){
+  let i=0;
+  const run = async()=>{ while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} };
+  await Promise.all(Array.from({length:Math.min(n,tasks.length)},run));
+}
+
+// Fetch a single RSS — tries Worker first, then direct, then proxies
+// No simultaneous race: sequential so we don't hammer proxies needlessly
+async function fetchRSS(url){
+  const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
+  const enc   = encodeURIComponent(url);
+  const ctrl  = new AbortController();
+  const sig   = ctrl.signal;
+
+  const rss = fn => fn().then(x => { if(!isRSS(x)) throw 0; ctrl.abort(); return x; });
+  const tf  = (ms, fn) => new Promise((res,rej) => {
+    const id = setTimeout(() => rej('to'), ms);
+    fn(sig).then(x=>{clearTimeout(id);res(x);}).catch(e=>{clearTimeout(id);rej(e);});
+  });
+  const after = ms => new Promise(r => setTimeout(r, ms));
+
+  try {
+    return await Promise.any([
+
+      // 1. Worker Cloudflare — proxy sin CORS, cacheado 5min — PRIMERO Y SIN DELAY
+      rss(() => tf(5000, s =>
+        fetch(WORKER+'/rss?url='+enc, {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.text(); })
+      )),
+
+      // 2. Directo — feeds con CORS abierto (BBC, Al Jazeera, DW...)
+      rss(() => tf(3000, s =>
+        fetch(url, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); })
+      )),
+
+      // 3. corsproxy.io — 400ms delay
+      rss(() => after(400).then(() => tf(5000, s =>
+        fetch('https://corsproxy.io/?'+enc, {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.text(); })
+      ))),
+
+      // 4. rss2json — 700ms delay, convierte JSON→XML
+      rss(() => after(700).then(() => tf(6000, s =>
+        fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&count=25', {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.json(); })
+          .then(j => {
+            if(!j.items?.length) throw 0;
+            const items = j.items.map(i =>
+              '<item><title><![CDATA['+(i.title||'')+']]></title>'+
+              '<link>'+(i.link||'')+'</link>'+
+              '<pubDate>'+(i.pubDate||'')+'</pubDate>'+
+              '<description><![CDATA['+(i.description||i.content||'')+']]></description></item>'
+            ).join('');
+            return '<rss><channel><title>'+(j.feed?.title||'')+'</title>'+items+'</channel></rss>';
+          })
+      ))),
+
+    ]);
+  } catch(e) { return null; }
+}
+
+
+async function fetchTG(ch){
+  try{
+    const r = await fetch(WORKER+'/telegram?ch='+encodeURIComponent(ch), {signal:AbortSignal.timeout(8000)});
+    if(!r.ok) return null;
+    const d = await r.json();
+    return (d.items?.length) ? d : null;
+  }catch(e){ return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARSE RSS
+// ═══════════════════════════════════════════════════════════
+function parseRSS(xml, src, cat){
+  const items = [];
+
+  // Extract text from a tag — strips all HTML, CDATA, entities
+  const get = (b, tag) => {
+    const m = b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+    if(!m) return '';
+    return m[1]
+      .replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '') // CDATA
+      .replace(/<[^>]+>/g, ' ')                            // strip tags
+      .replace(/&lt;[^&]*&gt;/g, '')                       // encoded tags
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
+      .replace(/\s+/g, ' ').trim();
+  };
+
+  // Clean desc — remove any remaining html-like junk, truncate cleanly
+  const cleanDesc = raw => {
+    if(!raw) return '';
+    // Strip anything that looks like html attribute junk
+    let s = raw.replace(/\w+=["'][^"']*["']/g, '').replace(/\s+/g,' ').trim();
+    if(s.length < 20) return ''; // too short to be useful
+    return s.slice(0, 160);
+  };
+
+  let re = /<item[^>]*>([\s\S]*?)<\/item>/gi, m;
+  while((m=re.exec(xml))!==null){
+    const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
+    const link=get(b,'link')||get(b,'guid');
+    const pubDate=get(b,'pubDate')||get(b,'dc:date')||new Date().toUTCString();
+    const desc=cleanDesc(get(b,'description'));
+    items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
+  }
+  if(!items.length){
+    re = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
+    while((m=re.exec(xml))!==null){
+      const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
+      const link=(b.match(/<link[^>]+href="([^"]+)"/)||[])[1]||'';
+      const pubDate=get(b,'published')||get(b,'updated')||new Date().toUTCString();
+      const desc=cleanDesc(get(b,'summary')||get(b,'content'));
+      items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
+    }
+  }
+  return items;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MERGE — always newest first
+// ═══════════════════════════════════════════════════════════
+const sortByDate = arr => arr.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+function merge(existing, incoming){
+  const seen = new Set(existing.map(i => i.link||i.title));
+  const fresh = incoming.filter(i => { const k=i.link||i.title; return k&&!seen.has(k); });
+  fresh.forEach(i => i._new=true);
+  return { merged: sortByDate([...fresh,...existing]).slice(0,400), newCount: fresh.length };
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function timeAgo(d){
+  if(!d) return '';
+  const s = Math.floor((Date.now()-new Date(d))/1000);
+  if(s<60) return s+'s';
+  if(s<3600) return Math.floor(s/60)+'m';
+  if(s<86400) return Math.floor(s/3600)+'h';
+  return Math.floor(s/86400)+'d';
+}
+
+function itemHTML(item){
+  const cat = item.type==='tg' ? 'tg' : classify(item.title);
+  const [tcls,tlbl] =
+    item.type==='twitter' ? ['tag-tw','𝕏 OSINT'] :
+    item.type==='gdelt'   ? ['tag-gd','GDELT']   :
+    item.type==='osint'   ? ['tag-tg','OSINT']   :
+    (TAG_MAP[cat]||TAG_MAP.general);
+  const href = (item.link||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const isRead = readSet.has(item.link||'');
+  const si = JSON.stringify({title:item.title,link:item.link,src:item.src,pubDate:item.pubDate}).replace(/"/g,'&quot;');
+  return `<div class="fitem${isRead?' read':''}${item._new?' isnew':''}" ${href?`onclick="openItem('${href}')"`:''}><div class="ftop">
+    <span class="ftag ${tcls}">${tlbl}</span>
+    <span class="fsrc">${item.src}</span>
+    <span class="ftime">${timeAgo(item.pubDate)}</span>
+    <div class="fitem-btns">
+      ${href?`<button class="ibtn rbtn${isRead?' read-on':''}" onclick="event.stopPropagation();toggleRead(this,'${href}')" title="Marcar leída">◉</button>`:''}
+      ${href?`<button class="ibtn" onclick="event.stopPropagation();saveItem(${si})" title="Guardar">🔖</button>`:''}
+    </div>
+  </div>
+  <div class="ftitle">${item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  ${item.desc?`<div class="fdesc">${item.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
+  </div>`;
+}
+
 
 function init(){
   loadPrefs();
@@ -1964,11 +1969,6 @@ function init(){
   setInterval(loadGDELT,        15*60*1000);
   setInterval(_pollRemoteConflicts, 5*60*1000);
 }
-
-document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
-</html>
 
 // ── MAP EVENTS (from infinite-monitor world-conflicts template) ──
 const EVENT_TYPES = {
@@ -2729,1802 +2729,25 @@ function _generateNotams() {
 }
 
 
-// ── Utility ───────────────────────────────────────────────
-function progSet(pct) {
-  const fill=document.getElementById('prog-fill'), bar=document.getElementById('prog');
-  if(!fill||!bar) return; bar.classList.remove('idle'); fill.style.width=pct+'%';
-  if(pct>=100) setTimeout(()=>{bar.classList.add('idle');setTimeout(()=>{bar.classList.remove('idle');fill.style.width='0%';},700);},200);
-}
-function colStatus(id,state,text='') {
-  const el=document.getElementById('cs-'+id); if(!el) return;
-  if(state==='loading') el.innerHTML='<span class="spin-sq"></span>';
-  else if(state==='ok') el.innerHTML='<span style="color:var(--grn)">✓</span>'+(text?' <span>'+text+'</span>':'');
-  else if(state==='err') el.innerHTML='<span style="color:var(--red)">✗</span>';
-  else el.innerHTML='';
-}
-function sortByDate(arr) { return arr.sort((a,b)=>b.d-a.d); }
-function merge(existing, incoming) {
-  const ids=new Set(existing.map(x=>x.id));
-  const nw=incoming.filter(x=>!ids.has(x.id));
-  return {merged:[...nw,...existing].slice(0,600),newCount:nw.length};
-}
-function timeAgo(ts) {
-  const m=Math.floor((Date.now()-ts)/60000);
-  if(m<1) return 'now'; if(m<60) return m+'m'; if(m<1440) return Math.floor(m/60)+'h'; return Math.floor(m/1440)+'d';
-}
-function markRead(href) { readSet.add(href); localStorage.setItem('ct_read',JSON.stringify([...readSet].slice(-500))); }
-function openItem(href) { window.open(href,'_blank'); markRead(href); }
-const KEYWORDS = {
-  conflict:['attack','airstrike','missile','killed','explosion','bomb','strike','offensive','combat'],
-  ukraine:['ukraine','zelensky','kyiv','kharkiv','donbas','zaporizhzhia','russia'],
-  mideast:['gaza','hamas','israel','rafah','hezbollah','iran','tehran'],
-  africa:['africa','sudan','congo','sahel','mali','burkina','somalia'],
-  asia:['china','taiwan','korea','japan','india','pakistan','myanmar'],
-  breaking:['breaking','flash','urgent','alert'],
-};
-function classify(title) {
-  const t=title.toLowerCase();
-  for(const [cat,kws] of Object.entries(KEYWORDS)) { if(kws.some(k=>t.includes(k))) return cat; }
-  return 'general';
-}
-function sortByDate(a) { return a.sort((x,y)=>y.d-x.d); }
-
-// ── RSS Fetch ─────────────────────────────────────────────
-async function pool(tasks, n=6){
-  let i=0;
-  const run = async()=>{ while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} };
-  await Promise.all(Array.from({length:Math.min(n,tasks.length)},run));
-}
-
-// Fetch a single RSS — tries Worker first, then direct, then proxies
-// No simultaneous race: sequential so we don't hammer proxies needlessly
-async function fetchRSS(url){
-  const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
-  const enc   = encodeURIComponent(url);
-  const ctrl  = new AbortController();
-  const sig   = ctrl.signal;
-
-  const rss = fn => fn().then(x => { if(!isRSS(x)) throw 0; ctrl.abort(); return x; });
-  const tf  = (ms, fn) => new Promise((res,rej) => {
-    const id = setTimeout(() => rej('to'), ms);
-    fn(sig).then(x=>{clearTimeout(id);res(x);}).catch(e=>{clearTimeout(id);rej(e);});
-  });
-  const after = ms => new Promise(r => setTimeout(r, ms));
-
-  try {
-    return await Promise.any([
-
-      // 1. Worker Cloudflare — proxy sin CORS, cacheado 5min — PRIMERO Y SIN DELAY
-      rss(() => tf(5000, s =>
-        fetch(WORKER+'/rss?url='+enc, {signal:s})
-          .then(r => { if(!r.ok) throw 0; return r.text(); })
-      )),
-
-      // 2. Directo — feeds con CORS abierto (BBC, Al Jazeera, DW...)
-      rss(() => tf(3000, s =>
-        fetch(url, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); })
-      )),
-
-      // 3. corsproxy.io — 400ms delay
-      rss(() => after(400).then(() => tf(5000, s =>
-        fetch('https://corsproxy.io/?'+enc, {signal:s})
-          .then(r => { if(!r.ok) throw 0; return r.text(); })
-      ))),
-
-      // 4. rss2json — 700ms delay, convierte JSON→XML
-      rss(() => after(700).then(() => tf(6000, s =>
-        fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&count=25', {signal:s})
-          .then(r => { if(!r.ok) throw 0; return r.json(); })
-          .then(j => {
-            if(!j.items?.length) throw 0;
-            const items = j.items.map(i =>
-              '<item><title><![CDATA['+(i.title||'')+']]></title>'+
-              '<link>'+(i.link||'')+'</link>'+
-              '<pubDate>'+(i.pubDate||'')+'</pubDate>'+
-              '<description><![CDATA['+(i.description||i.content||'')+']]></description></item>'
-            ).join('');
-            return '<rss><channel><title>'+(j.feed?.title||'')+'</title>'+items+'</channel></rss>';
-          })
-      ))),
-
-    ]);
-  } catch(e) { return null; }
-}
-
-
-async function fetchTG(ch){
-  try{
-    const r = await fetch(WORKER+'/telegram?ch='+encodeURIComponent(ch), {signal:AbortSignal.timeout(8000)});
-    if(!r.ok) return null;
-    const d = await r.json();
-    return (d.items?.length) ? d : null;
-  }catch(e){ return null; }
-}
-
-// ═══════════════════════════════════════════════════════════
-// PARSE RSS
-// ═══════════════════════════════════════════════════════════
-function parseRSS(xml, src, cat){
-  const items = [];
-
-  // Extract text from a tag — strips all HTML, CDATA, entities
-  const get = (b, tag) => {
-    const m = b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
-    if(!m) return '';
-    return m[1]
-      .replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '') // CDATA
-      .replace(/<[^>]+>/g, ' ')                            // strip tags
-      .replace(/&lt;[^&]*&gt;/g, '')                       // encoded tags
-      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
-      .replace(/\s+/g, ' ').trim();
-  };
-
-  // Clean desc — remove any remaining html-like junk, truncate cleanly
-  const cleanDesc = raw => {
-    if(!raw) return '';
-    // Strip anything that looks like html attribute junk
-    let s = raw.replace(/\w+=["'][^"']*["']/g, '').replace(/\s+/g,' ').trim();
-    if(s.length < 20) return ''; // too short to be useful
-    return s.slice(0, 160);
-  };
-
-  let re = /<item[^>]*>([\s\S]*?)<\/item>/gi, m;
-  while((m=re.exec(xml))!==null){
-    const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
-    const link=get(b,'link')||get(b,'guid');
-    const pubDate=get(b,'pubDate')||get(b,'dc:date')||new Date().toUTCString();
-    const desc=cleanDesc(get(b,'description'));
-    items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
-  }
-  if(!items.length){
-    re = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
-    while((m=re.exec(xml))!==null){
-      const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
-      const link=(b.match(/<link[^>]+href="([^"]+)"/)||[])[1]||'';
-      const pubDate=get(b,'published')||get(b,'updated')||new Date().toUTCString();
-      const desc=cleanDesc(get(b,'summary')||get(b,'content'));
-      items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
-    }
-  }
-  return items;
-}
-
-// ═══════════════════════════════════════════════════════════
-// MERGE — always newest first
-// ═══════════════════════════════════════════════════════════
-const sortByDate = arr => arr.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
-
-function merge(existing, incoming){
-  const seen = new Set(existing.map(i => i.link||i.title));
-  const fresh = incoming.filter(i => { const k=i.link||i.title; return k&&!seen.has(k); });
-  fresh.forEach(i => i._new=true);
-  return { merged: sortByDate([...fresh,...existing]).slice(0,400), newCount: fresh.length };
-}
-
-// ═══════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════
-function timeAgo(d){
-  if(!d) return '';
-  const s = Math.floor((Date.now()-new Date(d))/1000);
-  if(s<60) return s+'s';
-  if(s<3600) return Math.floor(s/60)+'m';
-  if(s<86400) return Math.floor(s/3600)+'h';
-  return Math.floor(s/86400)+'d';
-}
-
-function itemHTML(item){
-  const cat = item.type==='tg' ? 'tg' : classify(item.title);
-  const [tcls,tlbl] =
-    item.type==='twitter' ? ['tag-tw','𝕏 OSINT'] :
-    item.type==='gdelt'   ? ['tag-gd','GDELT']   :
-    item.type==='osint'   ? ['tag-tg','OSINT']   :
-    (TAG_MAP[cat]||TAG_MAP.general);
-  const href = (item.link||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const isRead = readSet.has(item.link||'');
-  const si = JSON.stringify({title:item.title,link:item.link,src:item.src,pubDate:item.pubDate}).replace(/"/g,'&quot;');
-  return `<div class="fitem${isRead?' read':''}${item._new?' isnew':''}" ${href?`onclick="openItem('${href}')"`:''}><div class="ftop">
-    <span class="ftag ${tcls}">${tlbl}</span>
-    <span class="fsrc">${item.src}</span>
-    <span class="ftime">${timeAgo(item.pubDate)}</span>
-    <div class="fitem-btns">
-      ${href?`<button class="ibtn rbtn${isRead?' read-on':''}" onclick="event.stopPropagation();toggleRead(this,'${href}')" title="Marcar leída">◉</button>`:''}
-      ${href?`<button class="ibtn" onclick="event.stopPropagation();saveItem(${si})" title="Guardar">🔖</button>`:''}
-    </div>
-  </div>
-  <div class="ftitle">${item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-  ${item.desc?`<div class="fdesc">${item.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
-  </div>`;
-}
-
-function renderFeed(items, feedId){
-  const el = document.getElementById(feedId); if(!el) return;
-  const filt = feedId==='feed-media' ? activeCatMedia : activeCatOsint;
-  let filtered = items;
-  if(filt!=='all'){
-    if(filt==='breaking') filtered = items.filter(i=>KEYWORDS.breaking.test(i.title));
-    else filtered = items.filter(i=>(i.cat||'')==filt||(KEYWORDS[filt]&&KEYWORDS[filt].test(i.title)));
-  }
-  if(!filtered.length){
-    el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return;
-  }
-  // Build in fragment then swap — preserves scroll, no flash
-  const scrollTop = el.scrollTop;
-  const frag = document.createDocumentFragment();
-  const badge = el.querySelector('.nbadge');
-  if(badge) frag.appendChild(badge.cloneNode(true));
-  filtered.forEach(item => {
-    const d = document.createElement('div');
-    d.innerHTML = itemHTML(item);
-    if(d.firstChild) frag.appendChild(d.firstChild);
-  });
-  el.innerHTML = '';
-  el.appendChild(frag);
-  el.scrollTop = scrollTop;
-}
-
-function prependNew(items, feedId){
-  const el = document.getElementById(feedId); if(!el||!items.length) return;
-  const ob = el.querySelector('.nbadge'); if(ob) ob.remove();
-  const badge = document.createElement('div');
-  badge.className = 'nbadge';
-  badge.innerHTML = `<span class="npip"></span>+${items.length} nuevas`;
-  badge.onclick = ()=>badge.remove();
-  setTimeout(()=>{ if(badge.parentNode) badge.remove(); }, 8000);
-  el.insertBefore(badge, el.firstChild);
-  const frag = document.createDocumentFragment();
-  items.forEach((item,ix)=>{
-    const d = document.createElement('div'); d.innerHTML=itemHTML(item);
-    const node = d.firstChild; node.style.animationDelay=(ix*.04)+'s'; frag.appendChild(node);
-  });
-  el.insertBefore(frag, badge.nextSibling);
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// CONFLICTOS ACTIVOS — Lista curada, actualización manual
-// ═══════════════════════════════════════════════════════════
-
-const CONFLICTS = [
-  // ── EUROPA ──────────────────────────────────────────────
-  {
-    id:'ukraine', name:'Guerra Rusia-Ucrania', region:'Europa',
-    intensity:3, // 1=tensión 2=conflicto 3=guerra
-    since:'Feb 2022',
-    parties:'Rusia vs Ucrania + apoyo OTAN',
-    deaths:'~750.000 (est.)',
-    status:'Línea de frente activa en Donetsk, Zaporiyia y Járkov. Ataques con drones y misiles continuos sobre infraestructura civil.',
-    tags:['guerra','invasión','europa'],
-  },
-
-  // ── ORIENTE MEDIO ────────────────────────────────────────
-  {
-    id:'gaza', name:'Guerra Gaza', region:'M.Este',
-    intensity:3,
-    since:'Oct 2023',
-    parties:'Israel vs Hamas / PIJ',
-    deaths:'>50.000 (Gaza)',
-    status:'Operaciones terrestres en Rafah y norte de Gaza. Crisis humanitaria severa. Cese el fuego intermitente.',
-    tags:['guerra','oriente medio'],
-  },
-  {
-    id:'westbank', name:'Cisjordania', region:'M.Este',
-    intensity:2,
-    since:'2023 (escal.)',
-    parties:'Israel vs Autoridad Palestina / milicias',
-    deaths:'>700 en 2024',
-    status:'Operaciones militares israelíes en Jenin, Tulkarm y Yenín. Violencia de colonos en aumento.',
-    tags:['conflicto','oriente medio'],
-  },
-  {
-    id:'lebanon', name:'Líbano (posguerra)', region:'M.Este',
-    intensity:1,
-    since:'Oct 2023',
-    parties:'Israel vs Hezbolá',
-    deaths:'>4.000 (2024)',
-    status:'Alto el fuego vigente desde nov 2024. Retirada israelí pendiente. Hezbolá debilitado.',
-    tags:['tensión','oriente medio'],
-  },
-  {
-    id:'yemen', name:'Yemen', region:'M.Este',
-    intensity:2,
-    since:'2015',
-    parties:'Huzíes vs coalición / EE.UU.',
-    deaths:'>150.000',
-    status:'Huzíes atacan rutas marítimas en el Mar Rojo. EE.UU. y UK realizan bombardeos en respuesta.',
-    tags:['conflicto','oriente medio'],
-  },
-  {
-    id:'syria', name:'Siria (posguerra)', region:'M.Este',
-    intensity:1,
-    since:'2011',
-    parties:'HTS / SNA vs kurdos SDF',
-    deaths:'>500.000 total',
-    status:'Régimen Assad caído (dic 2024). HTS controla Damasco. Tensiones entre facciones en el norte.',
-    tags:['tensión','oriente medio'],
-  },
-  {
-    id:'iran', name:'Irán — Tensión regional', region:'M.Este',
-    intensity:1,
-    since:'2024',
-    parties:'Irán vs Israel / EE.UU.',
-    deaths:'N/D',
-    status:'Intercambios de misiles y drones en abr y oct 2024. Programa nuclear iraní bajo presión. Sanciones renovadas.',
-    tags:['tensión','oriente medio'],
-  },
-
-  // ── ÁFRICA ───────────────────────────────────────────────
-  {
-    id:'sudan', name:'Guerra Civil Sudán', region:'África',
-    intensity:3,
-    since:'Abr 2023',
-    parties:'FFAA sudanesas vs RSF (paramilitares)',
-    deaths:'>150.000 (est.)',
-    status:'Mayor crisis humanitaria del mundo. Darfur bajo control RSF. Jartum en disputa. Riesgo de hambruna masiva.',
-    tags:['guerra','africa'],
-  },
-  {
-    id:'drcongo', name:'Este del Congo (RDC)', region:'África',
-    intensity:3,
-    since:'1998 (ciclos)',
-    parties:'FARDC vs M23 / Rwanda',
-    deaths:'>10.000 en 2024',
-    status:'M23 tomó Goma en ene 2025. Kivu Norte bajo control rebelde. Apoyo rwandés documentado por la ONU.',
-    tags:['guerra','africa'],
-  },
-  {
-    id:'sahel', name:'Sahel (Mali/Burkina/Níger)', region:'África',
-    intensity:2,
-    since:'2012',
-    parties:'JNIM / ISGS vs ejércitos juntas + Wagner',
-    deaths:'>10.000/año',
-    status:'JNIM controla amplias zonas rurales. Juntas expulsan tropas francesas. Wagner opera en Mali y Burkina.',
-    tags:['conflicto','africa'],
-  },
-  {
-    id:'somalia', name:'Somalia', region:'África',
-    intensity:2,
-    since:'2006',
-    parties:'Al-Shabaab vs Gobierno / ATMIS',
-    deaths:'>5.000/año',
-    status:'Al-Shabaab controla zonas del sur y centro. Ataques continuos en Mogadiscio. Retirada ATMIS en curso.',
-    tags:['conflicto','africa'],
-  },
-  {
-    id:'ethiopia', name:'Etiopía (Amhara/Oromía)', region:'África',
-    intensity:2,
-    since:'2023',
-    parties:'Ejército etíope vs FANO (Amhara) / OLA',
-    deaths:'>5.000 (2024)',
-    status:'Conflicto en Amhara y Oromía persiste. Tigray en frágil paz desde nov 2022. Acceso humanitario bloqueado.',
-    tags:['conflicto','africa'],
-  },
-  {
-    id:'mozambique', name:'Mozambique Norte', region:'África',
-    intensity:2,
-    since:'2017',
-    parties:'Ansar al-Sunna (ISIS-M) vs FFAA + Rwanda',
-    deaths:'>6.000',
-    status:'Cabo Delgado: insurgencia islámica activa. Fuerzas rwandesas y SAMIM contienen avance. Civiles desplazados.',
-    tags:['conflicto','africa'],
-  },
-
-  // ── ASIA ─────────────────────────────────────────────────
-  {
-    id:'myanmar', name:'Myanmar (Guerra Civil)', region:'Asia',
-    intensity:3,
-    since:'Feb 2021',
-    parties:'Junta (SAC) vs PDF / EAOs',
-    deaths:'>50.000',
-    status:'Alianza de Tres Hermandades controla gran parte del norte. Junta pierde territorio. Sin perspectiva de paz.',
-    tags:['guerra','asia'],
-  },
-  {
-    id:'pakistan', name:'Pakistán (KPK/Baluchistán)', region:'Asia',
-    intensity:2,
-    since:'2007 (rebrote)',
-    parties:'Ejército paquistaní vs TTP / BLA',
-    deaths:'>1.000/año',
-    status:'TTP intensifica ataques desde Afganistán. BLA activa en Baluchistán. Tensiones con Kabul.',
-    tags:['conflicto','asia'],
-  },
-  {
-    id:'taiwan', name:'Estrecho de Taiwán', region:'Asia',
-    intensity:1,
-    since:'Permanente',
-    parties:'China (RPC) vs Taiwán (ROC)',
-    deaths:'N/D',
-    status:'Ejercicios militares chinos frecuentes. Incursiones aéreas en zona ADIZ. Sin conflicto armado activo.',
-    tags:['tensión','asia'],
-  },
-  {
-    id:'northkorea', name:'Corea del Norte', region:'Asia',
-    intensity:1,
-    since:'Permanente',
-    parties:'RPDC vs Corea del Sur / EE.UU.',
-    deaths:'N/D',
-    status:'Ensayos de misiles balísticos continuos. Tropas norcoreanas desplegadas en Rusia (Ucrania).',
-    tags:['tensión','asia'],
-  },
-];
-
-let _cfFilter = 'all';
-
-const CF_INTENSITY = {
-  3: {label:'GUERRA',     col:'var(--red)', dot:'var(--red)', pulse:true},
-  2: {label:'CONFLICTO',  col:'var(--amb)', dot:'var(--amb)', pulse:false},
-  1: {label:'TENSIÓN',    col:'var(--t1)',  dot:'var(--t1)',  pulse:false},
-};
-
-function cfFilter(region, btn){
-  _cfFilter = region;
-  document.querySelectorAll('#cf-filters .fbtn').forEach(b => b.classList.remove('on'));
-  if(btn) btn.classList.add('on');
-  renderConflicts();
-}
-
-function renderConflicts(){
-  const list = document.getElementById('cf-list');
-  const cnt  = document.getElementById('cf-count');
-  const upd  = document.getElementById('cf-updated');
-  if(!list) return;
-
-  const data = _cfFilter === 'all'
-    ? CONFLICTS
-    : CONFLICTS.filter(c => c.region === _cfFilter);
-
-  if(cnt) cnt.textContent = data.length + ' ACT';
-
-  // Group by intensity
-  const byInt = {3:[], 2:[], 1:[]};
-  data.forEach(c => (byInt[c.intensity]||byInt[1]).push(c));
-
-  let html = '';
-  [3,2,1].forEach(i => {
-    if(!byInt[i].length) return;
-    const {label, col} = CF_INTENSITY[i];
-    html += `<div style="padding:5px 10px 3px;font-size:8px;font-weight:700;
-      letter-spacing:.9px;color:${col};font-family:var(--mono);
-      border-bottom:1px solid rgba(255,255,255,.05);
-      background:rgba(${i===3?'232,68,90':i===2?'240,168,50':'77,140,245'},.06);">
-      ${label} · ${byInt[i].length}
-    </div>`;
-    byInt[i].forEach(cf => {
-      const {dot, pulse} = CF_INTENSITY[cf.intensity];
-      html += `<div class="cf-item" onclick="cfExpand('${cf.id}')"
-        style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);
-        cursor:pointer;transition:background .12s;"
-        onmouseover="this.style.background='rgba(255,255,255,.04)'"
-        onmouseout="this.style.background=''">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:${dot};
-            flex-shrink:0;box-shadow:0 0 5px ${dot};
-            ${pulse?'animation:mrkPulse 1.5s ease infinite;':''}"></span>
-          <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.9);
-            line-height:1.3;flex:1;">${cf.name}</span>
-        </div>
-        <div style="font-size:9px;color:var(--t2);margin-left:13px;line-height:1.4;">
-          ${cf.parties}
-        </div>
-        <div id="cf-expand-${cf.id}" style="display:none;margin-top:7px;margin-left:13px;">
-          <div style="font-size:10px;color:rgba(255,255,255,.7);line-height:1.5;
-            margin-bottom:5px;">${cf.status}</div>
-          <div style="display:flex;gap:8px;font-size:8px;font-family:var(--mono);">
-            <span style="color:var(--t2);">📅 ${cf.since}</span>
-            <span style="color:var(--red);">☠ ${cf.deaths}</span>
-          </div>
-        </div>
-      </div>`;
-    });
-  });
-
-  list.innerHTML = html;
-  if(upd){
-    const now = new Date();
-    upd.textContent = now.toLocaleDateString('es',{month:'short',year:'numeric'}).toUpperCase();
-  }
-}
-
-function cfExpand(id){
-  const el = document.getElementById('cf-expand-'+id);
-  if(!el) return;
-  const open = el.style.display !== 'none';
-  // Close all others
-  document.querySelectorAll('[id^="cf-expand-"]').forEach(e => e.style.display='none');
-  if(!open) el.style.display = 'block';
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-// PROGRESS + STATUS HELPERS
-// ═══════════════════════════════════════════════════════════
-function progSet(pct){
-  const f=document.getElementById('prog-fill');
-  const b=document.getElementById('prog-bar');
-  if(!f||!b) return;
-  b.classList.remove('idle');
-  f.style.width=pct+'%';
-  if(pct>=100){
-    setTimeout(()=>{b.classList.add('idle');setTimeout(()=>{b.classList.remove('idle');f.style.width='0%';},700);},200);
-  }
-}
-function colStatus(id,state,text=''){
-  const el=document.getElementById('cs-'+id); if(!el) return;
-  if(state==='loading') el.innerHTML='<span class="cs-spin"></span>';
-  else if(state==='ok')  el.innerHTML='<span class="cs-ok">✓</span>'+(text?' <span>'+text+'</span>':'');
-  else if(state==='err') el.innerHTML='<span class="cs-err">✗</span>';
-  else el.innerHTML='';
-}
-function setLastUpdated(){
-  const el=document.getElementById('last-updated'); if(!el) return;
-  const n=new Date();
-  el.textContent='Actualizado '+String(n.getUTCHours()).padStart(2,'0')+':'+String(n.getUTCMinutes()).padStart(2,'0')+' UTC';
-}
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ═══════════════════════════════════════════════════════════
-
-// ── Feed item render ──────────────────────────────────────
-
-function itemHTML(item){
-  const cat = item.type==='tg' ? 'tg' : classify(item.title);
-  const [tcls,tlbl] =
-    item.type==='twitter' ? ['tag-tw','𝕏 OSINT'] :
-    item.type==='gdelt'   ? ['tag-gd','GDELT']   :
-    item.type==='osint'   ? ['tag-tg','OSINT']   :
-    (TAG_MAP[cat]||TAG_MAP.general);
-  const href = (item.link||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const isRead = readSet.has(item.link||'');
-  const si = JSON.stringify({title:item.title,link:item.link,src:item.src,pubDate:item.pubDate}).replace(/"/g,'&quot;');
-  return `<div class="fitem${isRead?' read':''}${item._new?' isnew':''}" ${href?`onclick="openItem('${href}')"`:''}><div class="ftop">
-    <span class="ftag ${tcls}">${tlbl}</span>
-    <span class="fsrc">${item.src}</span>
-    <span class="ftime">${timeAgo(item.pubDate)}</span>
-    <div class="fitem-btns">
-      ${href?`<button class="ibtn rbtn${isRead?' read-on':''}" onclick="event.stopPropagation();toggleRead(this,'${href}')" title="Marcar leída">◉</button>`:''}
-      ${href?`<button class="ibtn" onclick="event.stopPropagation();saveItem(${si})" title="Guardar">🔖</button>`:''}
-    </div>
-  </div>
-  <div class="ftitle">${item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-  ${item.desc?`<div class="fdesc">${item.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
-  </div>`;
-}
-
-function renderFeed(items, feedId){
-  const el = document.getElementById(feedId); if(!el) return;
-  const filt = feedId==='feed-media' ? activeCatMedia : activeCatOsint;
-  let filtered = items;
-  if(filt!=='all'){
-    if(filt==='breaking') filtered = items.filter(i=>KEYWORDS.breaking.test(i.title));
-    else filtered = items.filter(i=>(i.cat||'')==filt||(KEYWORDS[filt]&&KEYWORDS[filt].test(i.title)));
-  }
-  if(!filtered.length){
-    el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return;
-  }
-  // Build in fragment then swap — preserves scroll, no flash
-  const scrollTop = el.scrollTop;
-  const frag = document.createDocumentFragment();
-  const badge = el.querySelector('.nbadge');
-  if(badge) frag.appendChild(badge.cloneNode(true));
-  filtered.forEach(item => {
-    const d = document.createElement('div');
-    d.innerHTML = itemHTML(item);
-    if(d.firstChild) frag.appendChild(d.firstChild);
-  });
-  el.innerHTML = '';
-  el.appendChild(frag);
-  el.scrollTop = scrollTop;
-}
-
-function prependNew(items, feedId){
-  const el = document.getElementById(feedId); if(!el||!items.length) return;
-  const ob = el.querySelector('.nbadge'); if(ob) ob.remove();
-  const badge = document.createElement('div');
-  badge.className = 'nbadge';
-  badge.innerHTML = `<span class="npip"></span>+${items.length} nuevas`;
-  badge.onclick = ()=>badge.remove();
-  setTimeout(()=>{ if(badge.parentNode) badge.remove(); }, 8000);
-  el.insertBefore(badge, el.firstChild);
-  const frag = document.createDocumentFragment();
-  items.forEach((item,ix)=>{
-    const d = document.createElement('div'); d.innerHTML=itemHTML(item);
-    const node = d.firstChild; node.style.animationDelay=(ix*.04)+'s'; frag.appendChild(node);
-  });
-  el.insertBefore(frag, badge.nextSibling);
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// CONFLICTOS ACTIVOS — Lista curada, actualización manual
-// ═══════════════════════════════════════════════════════════
-
-const CONFLICTS = [
-  // ── EUROPA ──────────────────────────────────────────────
-  {
-    id:'ukraine', name:'Guerra Rusia-Ucrania', region:'Europa',
-    intensity:3, // 1=tensión 2=conflicto 3=guerra
-    since:'Feb 2022',
-    parties:'Rusia vs Ucrania + apoyo OTAN',
-    deaths:'~750.000 (est.)',
-    status:'Línea de frente activa en Donetsk, Zaporiyia y Járkov. Ataques con drones y misiles continuos sobre infraestructura civil.',
-    tags:['guerra','invasión','europa'],
-  },
-
-  // ── ORIENTE MEDIO ────────────────────────────────────────
-  {
-    id:'gaza', name:'Guerra Gaza', region:'M.Este',
-    intensity:3,
-    since:'Oct 2023',
-    parties:'Israel vs Hamas / PIJ',
-    deaths:'>50.000 (Gaza)',
-    status:'Operaciones terrestres en Rafah y norte de Gaza. Crisis humanitaria severa. Cese el fuego intermitente.',
-    tags:['guerra','oriente medio'],
-  },
-  {
-    id:'westbank', name:'Cisjordania', region:'M.Este',
-    intensity:2,
-    since:'2023 (escal.)',
-    parties:'Israel vs Autoridad Palestina / milicias',
-    deaths:'>700 en 2024',
-    status:'Operaciones militares israelíes en Jenin, Tulkarm y Yenín. Violencia de colonos en aumento.',
-    tags:['conflicto','oriente medio'],
-  },
-  {
-    id:'lebanon', name:'Líbano (posguerra)', region:'M.Este',
-    intensity:1,
-    since:'Oct 2023',
-    parties:'Israel vs Hezbolá',
-    deaths:'>4.000 (2024)',
-    status:'Alto el fuego vigente desde nov 2024. Retirada israelí pendiente. Hezbolá debilitado.',
-    tags:['tensión','oriente medio'],
-  },
-  {
-    id:'yemen', name:'Yemen', region:'M.Este',
-    intensity:2,
-    since:'2015',
-    parties:'Huzíes vs coalición / EE.UU.',
-    deaths:'>150.000',
-    status:'Huzíes atacan rutas marítimas en el Mar Rojo. EE.UU. y UK realizan bombardeos en respuesta.',
-    tags:['conflicto','oriente medio'],
-  },
-  {
-    id:'syria', name:'Siria (posguerra)', region:'M.Este',
-    intensity:1,
-    since:'2011',
-    parties:'HTS / SNA vs kurdos SDF',
-    deaths:'>500.000 total',
-    status:'Régimen Assad caído (dic 2024). HTS controla Damasco. Tensiones entre facciones en el norte.',
-    tags:['tensión','oriente medio'],
-  },
-  {
-    id:'iran', name:'Irán — Tensión regional', region:'M.Este',
-    intensity:1,
-    since:'2024',
-    parties:'Irán vs Israel / EE.UU.',
-    deaths:'N/D',
-    status:'Intercambios de misiles y drones en abr y oct 2024. Programa nuclear iraní bajo presión. Sanciones renovadas.',
-    tags:['tensión','oriente medio'],
-  },
-
-  // ── ÁFRICA ───────────────────────────────────────────────
-  {
-    id:'sudan', name:'Guerra Civil Sudán', region:'África',
-    intensity:3,
-    since:'Abr 2023',
-    parties:'FFAA sudanesas vs RSF (paramilitares)',
-    deaths:'>150.000 (est.)',
-    status:'Mayor crisis humanitaria del mundo. Darfur bajo control RSF. Jartum en disputa. Riesgo de hambruna masiva.',
-    tags:['guerra','africa'],
-  },
-  {
-    id:'drcongo', name:'Este del Congo (RDC)', region:'África',
-    intensity:3,
-    since:'1998 (ciclos)',
-    parties:'FARDC vs M23 / Rwanda',
-    deaths:'>10.000 en 2024',
-    status:'M23 tomó Goma en ene 2025. Kivu Norte bajo control rebelde. Apoyo rwandés documentado por la ONU.',
-    tags:['guerra','africa'],
-  },
-  {
-    id:'sahel', name:'Sahel (Mali/Burkina/Níger)', region:'África',
-    intensity:2,
-    since:'2012',
-    parties:'JNIM / ISGS vs ejércitos juntas + Wagner',
-    deaths:'>10.000/año',
-    status:'JNIM controla amplias zonas rurales. Juntas expulsan tropas francesas. Wagner opera en Mali y Burkina.',
-    tags:['conflicto','africa'],
-  },
-  {
-    id:'somalia', name:'Somalia', region:'África',
-    intensity:2,
-    since:'2006',
-    parties:'Al-Shabaab vs Gobierno / ATMIS',
-    deaths:'>5.000/año',
-    status:'Al-Shabaab controla zonas del sur y centro. Ataques continuos en Mogadiscio. Retirada ATMIS en curso.',
-    tags:['conflicto','africa'],
-  },
-  {
-    id:'ethiopia', name:'Etiopía (Amhara/Oromía)', region:'África',
-    intensity:2,
-    since:'2023',
-    parties:'Ejército etíope vs FANO (Amhara) / OLA',
-    deaths:'>5.000 (2024)',
-    status:'Conflicto en Amhara y Oromía persiste. Tigray en frágil paz desde nov 2022. Acceso humanitario bloqueado.',
-    tags:['conflicto','africa'],
-  },
-  {
-    id:'mozambique', name:'Mozambique Norte', region:'África',
-    intensity:2,
-    since:'2017',
-    parties:'Ansar al-Sunna (ISIS-M) vs FFAA + Rwanda',
-    deaths:'>6.000',
-    status:'Cabo Delgado: insurgencia islámica activa. Fuerzas rwandesas y SAMIM contienen avance. Civiles desplazados.',
-    tags:['conflicto','africa'],
-  },
-
-  // ── ASIA ─────────────────────────────────────────────────
-  {
-    id:'myanmar', name:'Myanmar (Guerra Civil)', region:'Asia',
-    intensity:3,
-    since:'Feb 2021',
-    parties:'Junta (SAC) vs PDF / EAOs',
-    deaths:'>50.000',
-    status:'Alianza de Tres Hermandades controla gran parte del norte. Junta pierde territorio. Sin perspectiva de paz.',
-    tags:['guerra','asia'],
-  },
-  {
-    id:'pakistan', name:'Pakistán (KPK/Baluchistán)', region:'Asia',
-    intensity:2,
-    since:'2007 (rebrote)',
-    parties:'Ejército paquistaní vs TTP / BLA',
-    deaths:'>1.000/año',
-    status:'TTP intensifica ataques desde Afganistán. BLA activa en Baluchistán. Tensiones con Kabul.',
-    tags:['conflicto','asia'],
-  },
-  {
-    id:'taiwan', name:'Estrecho de Taiwán', region:'Asia',
-    intensity:1,
-    since:'Permanente',
-    parties:'China (RPC) vs Taiwán (ROC)',
-    deaths:'N/D',
-    status:'Ejercicios militares chinos frecuentes. Incursiones aéreas en zona ADIZ. Sin conflicto armado activo.',
-    tags:['tensión','asia'],
-  },
-  {
-    id:'northkorea', name:'Corea del Norte', region:'Asia',
-    intensity:1,
-    since:'Permanente',
-    parties:'RPDC vs Corea del Sur / EE.UU.',
-    deaths:'N/D',
-    status:'Ensayos de misiles balísticos continuos. Tropas norcoreanas desplegadas en Rusia (Ucrania).',
-    tags:['tensión','asia'],
-  },
-];
-
-let _cfFilter = 'all';
-
-const CF_INTENSITY = {
-  3: {label:'GUERRA',     col:'var(--red)', dot:'var(--red)', pulse:true},
-  2: {label:'CONFLICTO',  col:'var(--amb)', dot:'var(--amb)', pulse:false},
-  1: {label:'TENSIÓN',    col:'var(--t1)',  dot:'var(--t1)',  pulse:false},
-};
-
-function cfFilter(region, btn){
-  _cfFilter = region;
-  document.querySelectorAll('#cf-filters .fbtn').forEach(b => b.classList.remove('on'));
-  if(btn) btn.classList.add('on');
-  renderConflicts();
-}
-
-function renderConflicts(){
-  const list = document.getElementById('cf-list');
-  const cnt  = document.getElementById('cf-count');
-  const upd  = document.getElementById('cf-updated');
-  if(!list) return;
-
-  const data = _cfFilter === 'all'
-    ? CONFLICTS
-    : CONFLICTS.filter(c => c.region === _cfFilter);
-
-  if(cnt) cnt.textContent = data.length + ' ACT';
-
-  // Group by intensity
-  const byInt = {3:[], 2:[], 1:[]};
-  data.forEach(c => (byInt[c.intensity]||byInt[1]).push(c));
-
-  let html = '';
-  [3,2,1].forEach(i => {
-    if(!byInt[i].length) return;
-    const {label, col} = CF_INTENSITY[i];
-    html += `<div style="padding:5px 10px 3px;font-size:8px;font-weight:700;
-      letter-spacing:.9px;color:${col};font-family:var(--mono);
-      border-bottom:1px solid rgba(255,255,255,.05);
-      background:rgba(${i===3?'232,68,90':i===2?'240,168,50':'77,140,245'},.06);">
-      ${label} · ${byInt[i].length}
-    </div>`;
-    byInt[i].forEach(cf => {
-      const {dot, pulse} = CF_INTENSITY[cf.intensity];
-      html += `<div class="cf-item" onclick="cfExpand('${cf.id}')"
-        style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);
-        cursor:pointer;transition:background .12s;"
-        onmouseover="this.style.background='rgba(255,255,255,.04)'"
-        onmouseout="this.style.background=''">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:${dot};
-            flex-shrink:0;box-shadow:0 0 5px ${dot};
-            ${pulse?'animation:mrkPulse 1.5s ease infinite;':''}"></span>
-          <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.9);
-            line-height:1.3;flex:1;">${cf.name}</span>
-        </div>
-        <div style="font-size:9px;color:var(--t2);margin-left:13px;line-height:1.4;">
-          ${cf.parties}
-        </div>
-        <div id="cf-expand-${cf.id}" style="display:none;margin-top:7px;margin-left:13px;">
-          <div style="font-size:10px;color:rgba(255,255,255,.7);line-height:1.5;
-            margin-bottom:5px;">${cf.status}</div>
-          <div style="display:flex;gap:8px;font-size:8px;font-family:var(--mono);">
-            <span style="color:var(--t2);">📅 ${cf.since}</span>
-            <span style="color:var(--red);">☠ ${cf.deaths}</span>
-          </div>
-        </div>
-      </div>`;
-    });
-  });
-
-  list.innerHTML = html;
-  if(upd){
-    const now = new Date();
-    upd.textContent = now.toLocaleDateString('es',{month:'short',year:'numeric'}).toUpperCase();
-  }
-}
-
-function cfExpand(id){
-  const el = document.getElementById('cf-expand-'+id);
-  if(!el) return;
-  const open = el.style.display !== 'none';
-  // Close all others
-  document.querySelectorAll('[id^="cf-expand-"]').forEach(e => e.style.display='none');
-  if(!open) el.style.display = 'block';
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-// PROGRESS + STATUS HELPERS
-// ═══════════════════════════════════════════════════════════
-function progSet(pct){
-  const f=document.getElementById('prog-fill');
-  const b=document.getElementById('prog-bar');
-  if(!f||!b) return;
-  b.classList.remove('idle');
-  f.style.width=pct+'%';
-  if(pct>=100){
-    setTimeout(()=>{b.classList.add('idle');setTimeout(()=>{b.classList.remove('idle');f.style.width='0%';},700);},200);
-  }
-}
-function colStatus(id,state,text=''){
-  const el=document.getElementById('cs-'+id); if(!el) return;
-  if(state==='loading') el.innerHTML='<span class="cs-spin"></span>';
-  else if(state==='ok')  el.innerHTML='<span class="cs-ok">✓</span>'+(text?' <span>'+text+'</span>':'');
-  else if(state==='err') el.innerHTML='<span class="cs-err">✗</span>';
-  else el.innerHTML='';
-}
-function setLastUpdated(){
-  const el=document.getElementById('last-updated'); if(!el) return;
-  const n=new Date();
-  el.textContent='Actualizado '+String(n.getUTCHours()).padStart(2,'0')+':'+String(n.getUTCMinutes()).padStart(2,'0')+' UTC';
-}
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ═══════════════════════════════════════════════════════════
-
-// ── Load feeds ────────────────────────────────────────────
-
-async function loadMedia(){
-  colStatus('media','loading');
-  const srcs=[...MEDIA_SOURCES,...customSources];
-  let done=0, firstRender=false;
-  const all=[];
-  const isFirst=!mediaCache.data.length;
-
-  await pool(srcs.map(src=>async()=>{
-    const xml = await fetchRSS(src.url);
-    if(xml){
-      parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
-      // Show first results as soon as 5+ items arrive — don't wait for all sources
-      if(isFirst && !firstRender && all.length >= 5){
-        firstRender=true;
-        sortByDate(all);
-        mediaCache={ts:Date.now(),data:[...all]};
-        renderFeed(all,'feed-media');
-        colStatus('media','ok',all.length+' items');
-        const e=document.getElementById('ft-media'); if(e) e.textContent=all.length;
-      }
-    }
-    done++;
-    progSet(Math.round((done/srcs.length)*50));
-  }),15);
-
-  sortByDate(all);
-  if(!all.length){
-    if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
-    colStatus('media','err'); return;
-  }
-  if(isFirst){
-    mediaCache={ts:Date.now(),data:all};
-    renderFeed(all,'feed-media');
-  } else {
-    const {merged,newCount}=merge(mediaCache.data,all);
-    mediaCache={ts:Date.now(),data:merged};
-    if(newCount) prependNew(merged.slice(0,newCount),'feed-media');
-    else renderFeed(merged,'feed-media');
-  }
-  const e=document.getElementById('ft-media'); if(e) e.textContent=mediaCache.data.length;
-  colStatus('media','ok',mediaCache.data.length+' items');
-  syncMobBadges();
-}
-
-// ═══════════════════════════════════════════════════════════
-// LOAD OSINT
-// ═══════════════════════════════════════════════════════════
-async function loadOSINT(){
-  colStatus('osint','loading');
-  let done=0;
-  const all=[];
-  const isFirst=!osintCache.data.length;
-  let firstRender=false;
-  await pool(OSINT_SOURCES.map(src=>async()=>{
-    const xml=await fetchRSS(src.url);
-    if(xml){
-      const items = parseRSS(xml,src.n,src.cat);
-      items.forEach(i=>{i.type='osint';all.push(i);});
-      if(isFirst && !firstRender && all.length >= 3){
-        firstRender = true;
-        sortByDate(all);
-        osintCache={ts:Date.now(),data:[...all]};
-        renderFeed(all,'feed-osint');
-        colStatus('osint','ok', all.length+' items');
-      }
-    }
-    done++;
-    progSet(50+Math.round((done/OSINT_SOURCES.length)*50));
-  }),10);
-  sortByDate(all);
-  if(!all.length&&isFirst){
-    document.getElementById('feed-osint').innerHTML='<div class="fstatus">Sin datos OSINT disponibles.</div>';
-    colStatus('osint','err'); return;
-  }
-  if(isFirst){
-    osintCache={ts:Date.now(),data:all};
-    renderFeed(all,'feed-osint');
-  } else {
-    const {merged,newCount}=merge(osintCache.data,all);
-    osintCache={ts:Date.now(),data:merged};
-    if(newCount) prependNew(merged.slice(0,newCount),'feed-osint');
-    else renderFeed(merged,'feed-osint');
-  }
-  const e=document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
-  colStatus('osint','ok',osintCache.data.length+' items');
-  progSet(100);
-}
-
-// Load Twitter/X via RSSHub — silently merges into OSINT
-
-// ═══════════════════════════════════════════════════════════
-// BREAKING BAR
-// ═══════════════════════════════════════════════════════════
-async function loadBreakingBar(){
-  // Reuse media cache if available — no extra fetches
-  if(brkLoaded&&mediaCache.data.length){ _renderBreakingBar(mediaCache.data); return; }
-  const all=[];
-  await pool(BREAKING_RSS.map(url=>async()=>{
-    const xml=await fetchRSS(url); if(!xml) return;
-    parseRSS(xml,'','general').slice(0,10).forEach(i=>all.push(i));
-  }),3);
-  sortByDate(all);
-  if(all.length){ brkLoaded=true; _renderBreakingBar(all); }
-}
-function _renderBreakingBar(items){
-  const inner=document.getElementById('brk-inner'); if(!inner) return;
-  const kw=/war|conflict|attack|killed|missile|strike|troops|offensive|bomb|crisis|explosion/i;
-  const filtered=items.filter(i=>kw.test(i.title));
-  const display=(filtered.length>=5?filtered:items).slice(0,40);
-  const html=display.map(i=>{
-    const href=(i.link||'').replace(/'/g,"\\'");
-    return `<span class="brk-item" onclick="window.open('${href}','_blank')">${i.title}</span><span class="brk-sep">◆</span>`;
-  }).join('');
-  inner.innerHTML=html+html;
-  requestAnimationFrame(()=>{
-    inner.style.animationDuration=Math.max(40,inner.scrollWidth/2/110)+'s';
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// REFRESH ALL — debounced, single entry point
-// ═══════════════════════════════════════════════════════════
-async function refreshAll(){
-  if(_refreshing) return;
-  _refreshing=true;
-  const btn=document.getElementById('refresh-btn');
-  if(btn){btn.classList.add('active');btn.disabled=true;}
-  progSet(2);
-  mediaCache={ts:0,data:[]};
-  osintCache={ts:0,data:[]};
-  gdeltCache={ts:0,data:[]};
-  brkLoaded=false;
-  const _fm=document.getElementById('feed-media');
-  const _fo=document.getElementById('feed-osint');
-  // Keep existing items visible during refresh — no blanking, no flash
-  try{
-    await Promise.all([loadMedia(),loadOSINT()]);
-    setLastUpdated();
-    // feeds already updated in place by loadMedia/loadOSINT
-    loadBreakingBar();
-    loadGDELT();
-  }finally{
-    _refreshing=false;
-    if(btn){btn.classList.remove('active');btn.disabled=false;}
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO-REFRESH — tab-aware, 5min interval, no countdown
-// ═══════════════════════════════════════════════════════════
-function startAutoRefresh(){
-  const INTERVAL=5*60*1000;
-  let lastRun=Date.now();
-  function schedule(){
-    const wait=Math.max(0,INTERVAL-(Date.now()-lastRun));
-    setTimeout(async()=>{
-      if(!document.hidden){lastRun=Date.now();await refreshAll();}
-      schedule();
-    },wait);
-  }
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden&&Date.now()-lastRun>INTERVAL){lastRun=Date.now();refreshAll();}
-  });
-  schedule();
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// ITEM ACTIONS
-// ═══════════════════════════════════════════════════════════
-function openItem(href){ window.open(href,'_blank'); markRead(href); }
-function markRead(href){
-  if(!href) return;
-  readSet.add(href);
-  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
-  // Visually mark
-  document.querySelectorAll('.fitem').forEach(el => {
-    if(el.getAttribute('onclick')?.includes(href)) el.classList.add('read');
-  });
-}
-function toggleRead(btn, href){
-  const item = btn.closest('.fitem');
-  if(readSet.has(href)){ readSet.delete(href); item.classList.remove('read'); btn.classList.remove('read-on'); }
-  else { readSet.add(href); item.classList.add('read'); btn.classList.add('read-on'); }
-  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
-}
-function saveItem(item){
-  if(savedItems.find(s=>s.link===item.link)) return;
-  savedItems.unshift(item);
-  if(savedItems.length>100) savedItems.pop();
-  try{ localStorage.setItem('ct_saved', JSON.stringify(savedItems)); }catch(e){}
-}
-
-// ═══════════════════════════════════════════════════════════
-// SIDEBAR MODES
-// ═══════════════════════════════════════════════════════════
-function setSidebar(mode, btn){
-  currentSidebar = mode;
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const media = document.getElementById('feed-media');
-  const saved = document.getElementById('feed-saved');
-  const fm = document.getElementById('filters-media');
-  if(mode==='saved'){
-    media.style.display='none'; if(fm) fm.style.display='none';
-    saved.style.display=''; renderSaved();
-  } else {
-    media.style.display=''; if(fm) fm.style.display='';
-    saved.style.display='none';
-  }
-}
-function renderSaved(){
-  const el = document.getElementById('feed-saved'); if(!el) return;
-  if(!savedItems.length){ el.innerHTML='<div class="fstatus">Sin guardadas.</div>'; return; }
-  el.innerHTML = savedItems.map((item,i) => `
-    <div class="sitem" onclick="window.open('${(item.link||'').replace(/'/g,"\\'")}','_blank')">
-      <div class="sitem-t">${item.title}</div>
-      <div class="sitem-m">
-        <span>${item.src}</span>
-        <button onclick="event.stopPropagation();savedItems.splice(${i},1);try{localStorage.setItem('ct_saved',JSON.stringify(savedItems))}catch(e){}renderSaved()" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;margin-left:auto;">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// FILTER FEEDS
-// ═══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════
-// TWITTER — RSSHub feed (same engine as OSINT)
-// ═══════════════════════════════════════════════════════════
-
-
-
-
-
-
-function filterFeed(f, btn, which){
-
-
-  if(which==='media') activeCatMedia=f; else activeCatOsint=f;
-  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  if(which==='media') renderFeed(mediaCache.data, 'feed-media');
-  else renderFeed(osintCache.data, 'feed-osint');
-}
-
-// ═══════════════════════════════════════════════════════════
-// PANELS
-// ═══════════════════════════════════════════════════════════
-function openPanel(id){
-  closePanel();
-  activePanel = id;
-  document.getElementById('panel-overlay').style.display = 'block';
-  document.getElementById('panel-'+id)?.classList.add('open');
-}
-function closePanel(){
-  document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
-  document.getElementById('panel-overlay').style.display = 'none';
-  activePanel = null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// OREF
-// ═══════════════════════════════════════════════════════════
-async function loadOREF(){
-  try{
-    const r = await fetch(WORKER+'/oref', {signal:AbortSignal.timeout(5000)});
-    if(!r.ok) return;
-    const d = await r.json();
-    const banner = document.getElementById('oref-banner');
-    if(d.status==='active' && d.alerts?.length){
-      banner.classList.add('active');
-      document.getElementById('oref-text').textContent =
-        '🚨 ALERTA COHETES — ' + d.alerts.map(a=>a.data||'').flat().join(' · ');
-    } else {
-      banner.classList.remove('active');
-    }
-  }catch(e){}
-}
-
-// ═══════════════════════════════════════════════════════════
-// PREFS
-// ═══════════════════════════════════════════════════════════
-function applyFont(v){
-  // v is the raw option value e.g. "Inter" or "'JetBrains Mono'"
-  document.documentElement.style.setProperty('--font', v + ',sans-serif');
-  localStorage.setItem('ct_font', v);
-  const s = document.getElementById('pref-font');
-  if(s) s.value = v;
-}
-function applySize(v){
-  v = parseInt(v);
-  document.documentElement.style.fontSize = v+'px';
-  const sv = document.getElementById('size-val'); if(sv) sv.textContent=v+'px';
-  const sl = document.getElementById('pref-size'); if(sl) sl.value=v;
-  localStorage.setItem('ct_size', v);
-}
-function applyAccent(v, dot){
-  document.documentElement.style.setProperty('--blue', v);
-  document.documentElement.style.setProperty('--accent', v);
-  localStorage.setItem('ct_accent', v);
-  document.querySelectorAll('.cdot').forEach(d=>d.classList.remove('on'));
-  if(dot) dot.classList.add('on');
-}
-function toggleTheme(){
-  document.body.classList.toggle('light');
-  const isLight = document.body.classList.contains('light');
-  const btn = document.getElementById('theme-btn');
-  const tog = document.getElementById('tog-dark');
-  if(tog) tog.classList.toggle('on', !isLight);
-  localStorage.setItem('ct_theme', isLight?'light':'dark');
-}
-function resetPrefs(){
-  ['ct_font','ct_size','ct_accent','ct_theme'].forEach(k=>localStorage.removeItem(k));
-  location.reload();
-}
-function loadPrefs(){
-  const font = localStorage.getItem('ct_font');
-  if(font) applyFont(font);
-  const size = localStorage.getItem('ct_size');
-  if(size) applySize(size);
-  const accent = localStorage.getItem('ct_accent');
-  if(accent){
-    document.documentElement.style.setProperty('--blue', accent);
-    document.querySelectorAll('.cdot').forEach(d => {
-      if(d.style.background===accent||d.getAttribute('onclick')?.includes(accent)){
-        d.classList.add('on');
-      } else d.classList.remove('on');
-    });
-  }
-  if(localStorage.getItem('ct_theme')==='light'){
-    document.body.classList.add('light');
-    const tog=document.getElementById('tog-dark'); if(tog) tog.classList.remove('on');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// CUSTOM SOURCES
-// ═══════════════════════════════════════════════════════════
-function addSource(){
-  const name = document.getElementById('src-name').value.trim();
-  const url  = document.getElementById('src-url').value.trim();
-  const cat  = document.getElementById('src-cat').value;
-  if(!name||!url) return;
-  customSources.push({n:name, url, cat});
-  localStorage.setItem('ct_custom', JSON.stringify(customSources));
-  document.getElementById('src-name').value = '';
-  document.getElementById('src-url').value  = '';
-  renderCustomList();
-}
-function removeSource(i){
-  customSources.splice(i,1);
-  localStorage.setItem('ct_custom', JSON.stringify(customSources));
-  renderCustomList();
-}
-function renderCustomList(){
-  const el = document.getElementById('custom-list'); if(!el) return;
-  if(!customSources.length){ el.innerHTML='<div style="font-size:11px;color:var(--t2);">Sin fuentes personalizadas.</div>'; return; }
-  el.innerHTML = customSources.map((s,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b0);">
-      <span style="flex:1;font-size:12px;color:var(--t1);">${s.n}</span>
-      <span style="font-size:10px;color:var(--t2);">${s.cat}</span>
-      <button onclick="removeSource(${i})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;">✕</button>
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// CLOCK
-// ═══════════════════════════════════════════════════════════
-function startClock(){
-  const el = document.getElementById('clock');
-  setInterval(()=>{
-    const n=new Date();
-    if(el) el.textContent =
-      String(n.getUTCHours()).padStart(2,'0')+':'+
-      String(n.getUTCMinutes()).padStart(2,'0')+':'+
-      String(n.getUTCSeconds()).padStart(2,'0')+' UTC';
-  },1000);
-}
-
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-
-
-
-
-
-// ═══════════════════════════════════════════════════════════
-// ADMIN — Map editor (password protected)
-// ═══════════════════════════════════════════════════════════
-
-// Admin password — stored as SHA-256 hash
-// Default password: "conflicttracker2025"
-// To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-const ADMIN_PWD_HASH = 'f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
-
-let _drawLayers   = []; // saved drawing layers
-
-// ── Admin: Publish & Sync ─────────────────────────────────
-
-// ── Feed filter ───────────────────────────────────────────
 function filterFeed(f, btn, which) {
   if(which==='media') activeCatMedia=f; else activeCatOsint=f;
   document.querySelectorAll('#filters-'+which+' .fbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  const data=which==='media'?mediaCache.data:osintCache.data;
-  const id=which==='media'?'feed-media':'feed-osint';
-  const filtered=f==='all'?data:f==='breaking'?data.filter(x=>x.tag==='breaking'||x.tag==='conflict'):data.filter(x=>x.cat===f||x.tag===f);
-  const el=document.getElementById(id);
-  if(el) el.innerHTML=filtered.length?filtered.slice(0,80).map(itemHTML).join(''):'<div class="fstatus">No results</div>';
+  const data = which==='media' ? mediaCache.data : osintCache.data;
+  const feedId = which==='media' ? 'feed-media' : 'feed-osint';
+  const filtered = f==='all' ? data
+    : f==='breaking' ? data.filter(x=>x.tag==='breaking'||x.tag==='conflict')
+    : data.filter(x=>x.cat===f||x.tag===f);
+  const feedEl = document.getElementById(feedId);
+  if(feedEl) feedEl.innerHTML = filtered.length
+    ? filtered.slice(0,80).map(itemHTML).join('')
+    : '<div class="fstatus">No results</div>';
 }
-
-// ── Breaking bar ──────────────────────────────────────────
 function updateBreakingBar(items) {
   if(!items||!items.length) return;
-  const html=items.map(x=>`<span class="brk-item" onclick="openItem('${x.link.replace(/'/g,"'")}')">${x.title}</span><span class="brk-sep">◆</span>`).join('');
-  const inner=document.getElementById('brk-inner');
-  if(inner) inner.innerHTML=html+html;
-}
-
-// ── Conflict list ─────────────────────────────────────────
-
-let _cfFilter = 'all';
-
-const CF_INTENSITY = {
-  3: {label:'GUERRA',     col:'var(--red)', dot:'var(--red)', pulse:true},
-  2: {label:'CONFLICTO',  col:'var(--amb)', dot:'var(--amb)', pulse:false},
-  1: {label:'TENSIÓN',    col:'var(--t1)',  dot:'var(--t1)',  pulse:false},
-};
-
-function cfFilter(region, btn){
-  _cfFilter = region;
-  document.querySelectorAll('#cf-filters .fbtn').forEach(b => b.classList.remove('on'));
-  if(btn) btn.classList.add('on');
-  renderConflicts();
-}
-
-function renderConflicts(){
-  const list = document.getElementById('cf-list');
-  const cnt  = document.getElementById('cf-count');
-  const upd  = document.getElementById('cf-updated');
-  if(!list) return;
-
-  const data = _cfFilter === 'all'
-    ? CONFLICTS
-    : CONFLICTS.filter(c => c.region === _cfFilter);
-
-  if(cnt) cnt.textContent = data.length + ' ACT';
-
-  // Group by intensity
-  const byInt = {3:[], 2:[], 1:[]};
-  data.forEach(c => (byInt[c.intensity]||byInt[1]).push(c));
-
-  let html = '';
-  [3,2,1].forEach(i => {
-    if(!byInt[i].length) return;
-    const {label, col} = CF_INTENSITY[i];
-    html += `<div style="padding:5px 10px 3px;font-size:8px;font-weight:700;
-      letter-spacing:.9px;color:${col};font-family:var(--mono);
-      border-bottom:1px solid rgba(255,255,255,.05);
-      background:rgba(${i===3?'232,68,90':i===2?'240,168,50':'77,140,245'},.06);">
-      ${label} · ${byInt[i].length}
-    </div>`;
-    byInt[i].forEach(cf => {
-      const {dot, pulse} = CF_INTENSITY[cf.intensity];
-      html += `<div class="cf-item" onclick="cfExpand('${cf.id}')"
-        style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);
-        cursor:pointer;transition:background .12s;"
-        onmouseover="this.style.background='rgba(255,255,255,.04)'"
-        onmouseout="this.style.background=''">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:${dot};
-            flex-shrink:0;box-shadow:0 0 5px ${dot};
-            ${pulse?'animation:mrkPulse 1.5s ease infinite;':''}"></span>
-          <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.9);
-            line-height:1.3;flex:1;">${cf.name}</span>
-        </div>
-        <div style="font-size:9px;color:var(--t2);margin-left:13px;line-height:1.4;">
-          ${cf.parties}
-        </div>
-        <div id="cf-expand-${cf.id}" style="display:none;margin-top:7px;margin-left:13px;">
-          <div style="font-size:10px;color:rgba(255,255,255,.7);line-height:1.5;
-            margin-bottom:5px;">${cf.status}</div>
-          <div style="display:flex;gap:8px;font-size:8px;font-family:var(--mono);">
-            <span style="color:var(--t2);">📅 ${cf.since}</span>
-            <span style="color:var(--red);">☠ ${cf.deaths}</span>
-          </div>
-        </div>
-      </div>`;
-    });
-  });
-
-  list.innerHTML = html;
-  if(upd){
-    const now = new Date();
-    upd.textContent = now.toLocaleDateString('es',{month:'short',year:'numeric'}).toUpperCase();
-  }
-}
-
-function cfExpand(id){
-  const el = document.getElementById('cf-expand-'+id);
-  if(!el) return;
-  const open = el.style.display !== 'none';
-  // Close all others
-  document.querySelectorAll('[id^="cf-expand-"]').forEach(e => e.style.display='none');
-  if(!open) el.style.display = 'block';
-}
-
-
-
-// ── Admin / GitHub sync ───────────────────────────────────
-
-async function adminPublish(){
-  const btn = document.getElementById('admin-publish-btn');
-  const resetBtn = () => {
-    if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
-  };
-
-  if(btn){ btn.disabled=true; btn.innerHTML='<span style="opacity:.6">Publicando...</span>'; }
-
-  if(!ADMIN_SECRET){
-    document.getElementById('admin-jsonbin-setup').style.display = 'block';
-    _showSyncStatus('⚠ ADMIN_SECRET no configurado', 'var(--amb)');
-    resetBtn(); return;
-  }
-
-  try{
-    const data = _getConflicts();
-    const ok = await _saveConflicts(data);
-    _showSyncStatus(
-      ok ? '✓ Publicado — '+data.length+' conflictos en GitHub' : '✗ Error — revisa la consola (F12)',
-      ok ? 'var(--grn)' : 'var(--red)'
-    );
-  }catch(e){
-    console.error('adminPublish error:', e);
-    _showSyncStatus('✗ Error: '+e.message, 'var(--red)');
-  } finally {
-    resetBtn();
-  }
-}
-
-function _showSyncStatus(msg, col){
-  col = col || 'var(--grn)';
-  const el = document.getElementById('admin-sync-status');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = col;
-  setTimeout(() => { if(el.textContent===msg) el.textContent=''; }, 5000);
-}
-
-async function _pollRemoteConflicts(){
-  if(_adminAuthed) return;
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000), {
-      signal: AbortSignal.timeout(6000),
-    });
-    if(!r.ok) return;
-    const data = await r.json();
-    if(!Array.isArray(data)) return;
-    if(!Array.isArray(data) || !data.length) return;
-    const current = JSON.stringify(_conflicts);
-    if(JSON.stringify(data) !== current){
-      _conflicts = data;
-      localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-      _drawConflicts();
-    }
-  }catch(e){}
-}
-
-
-// Storage keys
-const SK_CONFLICTS = 'ct_map_conflicts';
-const SK_DRAWINGS  = 'ct_map_drawings';
-
-// ── Open admin panel ──────────────────────────────────────
-function openAdminPanel(){
-  openPanel('admin');
-  if(_adminAuthed){
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  }
-}
-
-// ── Login ─────────────────────────────────────────────────
-async function adminLogin(){
-  const pwd = document.getElementById('admin-pwd').value;
-  const err = document.getElementById('admin-err');
-  if(!pwd){ err.style.display='block'; return; }
-
-  // Hash the input and compare
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-  if(hash === ADMIN_PWD_HASH){
-    _adminAuthed = true;
-    err.style.display = 'none';
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  } else {
-    err.style.display = 'block';
-    document.getElementById('admin-pwd').value = '';
-  }
-}
-
-// ── Admin tabs ────────────────────────────────────────────
-function admTab(tab, btn){
-  document.querySelectorAll('.adm-tab').forEach(b => {
-    b.style.borderBottomColor = 'transparent';
-    b.style.color = 'var(--t2)';
-    b.classList.remove('on');
-  });
-  btn.style.borderBottomColor = 'var(--t0)';
-  btn.style.color = 'var(--t1)';
-  btn.classList.add('on');
-
-  ['list','add','draw'].forEach(t => {
-    const el = document.getElementById('adm-'+t);
-    if(el) el.style.display = t===tab ? 'block' : 'none';
-  });
-
-  if(tab==='list') _renderAdminList();
-  if(tab==='draw') _loadDrawingsFromStorage();
-}
-
-// ── Conflict list ─────────────────────────────────────────
-function _renderAdminList(){
-  const el = document.getElementById('admin-conflict-list');
-  if(!el) return;
-  const data = _getConflicts();
-  el.innerHTML = data.map(d => {
-    const col = ['#4d8cf5','#f0a832','#e8445a'][d.i] || '#4d8cf5';
-    return `<div onclick="adminEditConflict('${d.id}')" style="
-      display:flex;align-items:center;gap:10px;
-      padding:9px 10px;border-radius:0px;
-      cursor:pointer;margin-bottom:4px;
-      background:var(--s2);
-      border:1px solid var(--b0);
-      transition:border-color .15s;
-    " onmouseover="this.style.borderColor='var(--b1)'"
-       onmouseout="this.style.borderColor='var(--b0)'">
-      <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;
-        box-shadow:0 0 4px ${col};"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:11px;font-weight:500;color:var(--t0);
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
-        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);">
-          ${d.lat.toFixed(1)}, ${d.lng.toFixed(1)} · ${d.since||''}
-        </div>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </div>`;
-  }).join('');
-}
-
-// ── Edit conflict ─────────────────────────────────────────
-function adminEditConflict(id){
-  const data = _getConflicts();
-  const d = data.find(x => x.id === id);
-  if(!d) return;
-
-  _editingId = id;
-  document.getElementById('ae-id').value      = id;
-  document.getElementById('ae-name').value    = d.name;
-  document.getElementById('ae-lat').value     = d.lat;
-  document.getElementById('ae-lng').value     = d.lng;
-  document.getElementById('ae-intensity').value = d.i;
-  document.getElementById('ae-since').value   = d.since || '';
-  document.getElementById('ae-parties').value = d.parties || '';
-  document.getElementById('ae-deaths').value  = d.deaths || '';
-  document.getElementById('ae-summary').value = d.summary || '';
-  document.getElementById('ae-delete-btn').style.display = 'block';
-
-  // Fly to conflict on map
-
-  // Switch to add/edit tab
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── New conflict ──────────────────────────────────────────
-function adminNewConflict(){
-  _editingId = null;
-  ['ae-id','ae-name','ae-lat','ae-lng','ae-since','ae-parties','ae-deaths','ae-summary']
-    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('ae-intensity').value = '1';
-  document.getElementById('ae-delete-btn').style.display = 'none';
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── Save conflict ─────────────────────────────────────────
-function adminSaveConflict(){
-  const name    = document.getElementById('ae-name').value.trim();
-  const lat     = parseFloat(document.getElementById('ae-lat').value);
-  const lng     = parseFloat(document.getElementById('ae-lng').value);
-  const intensity = parseInt(document.getElementById('ae-intensity').value);
-  const since   = document.getElementById('ae-since').value.trim();
-  const parties = document.getElementById('ae-parties').value.trim();
-  const deaths  = document.getElementById('ae-deaths').value.trim();
-  const summary = document.getElementById('ae-summary').value.trim();
-
-  if(!name || isNaN(lat) || isNaN(lng)){
-    _showAEMsg('Nombre, latitud y longitud son obligatorios.', 'var(--red)');
-    return;
-  }
-  if(lat < -90||lat > 90||lng < -180||lng > 180){
-    _showAEMsg('Coordenadas fuera de rango.', 'var(--red)');
-    return;
-  }
-
-  const data = _getConflicts();
-  const id   = _editingId || 'custom_' + Date.now();
-
-  const entry = {id, name, lat, lng, i:intensity, since, parties, deaths, summary, cat:'general', _custom:true};
-
-  if(_editingId){
-    const idx = data.findIndex(x => x.id === _editingId);
-    if(idx >= 0) data[idx] = entry;
-  } else {
-    data.push(entry);
-  }
-
-  _saveConflicts(data).then(()=>{}); // async shared storage
-  _conflicts = data;
-  _drawConflicts();
-
-  _showAEMsg('✓ Guardado (compartido)', 'var(--grn)');
-  setTimeout(() => admTab('list', document.getElementById('atab-list')), 800);
-}
-
-// ── Delete conflict ───────────────────────────────────────
-function adminDeleteConflict(){
-  if(!_editingId) return;
-  if(!confirm('¿Eliminar este conflicto?')) return;
-  const data = _getConflicts().filter(x => x.id !== _editingId);
-  _saveConflicts(data); // async
-  _conflicts = data;
-  _drawConflicts();
-  _editingId = null;
-  admTab('list', document.getElementById('atab-list'));
-}
-
-// ── Reset to defaults ─────────────────────────────────────
-function adminResetToDefault(){
-  if(!confirm('¿Restaurar el dataset original? Se perderán todos los cambios.')) return;
-  localStorage.removeItem(SK_CONFLICTS);
-  try{ window.storage.delete('map_conflicts', true); }catch(e){}
-  _conflicts = _getConflicts();
-  _drawConflicts();
-  _renderAdminList();
-}
-
-// ── Pick coordinates on map ───────────────────────────────
-function adminPickOnMap(){
-  alert('El mapa ha sido desactivado.'); return;
-  _pickingCoord = true;
-
-  const btn = document.getElementById('pick-map-btn');
-  btn.textContent = '🎯 Clic en el mapa...';
-  btn.style.background = 'rgba(232,68,90,.1)';
-  btn.style.borderColor = 'var(--red)';
-
-  const handler = e => {
-    document.getElementById('ae-lat').value = e.latlng.lat.toFixed(4);
-    document.getElementById('ae-lng').value = e.latlng.lng.toFixed(4);
-        btn.textContent = `📍 ${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`;
-    btn.style.background = 'rgba(45,212,160,.1)';
-    btn.style.borderColor = 'var(--grn)';
-    btn.style.color = 'var(--grn)';
-    _pickingCoord = false;
-    // Revert after 3s
-    setTimeout(() => {
-      btn.textContent = '📍 Clicar en el mapa para seleccionar coordenadas';
-      btn.style.background = '';
-      btn.style.borderColor = 'var(--b0)';
-      btn.style.color = 'var(--t0)';
-    }, 3000);
-  };
-}
-
-// ── DRAW MODE ─────────────────────────────────────────────
-function setDrawColor(el, col){
-  _drawColor = col;
-  document.querySelectorAll('.draw-col-btn').forEach(b => b.style.border = '2px solid transparent');
-  el.style.border = '2px solid #fff';
-}
-
-
-
-
-
-
-
-
-
-// ── GitHub — shared storage via repo file ─────────────────
-// Setup: github.com → Settings → Developer settings → Personal access tokens
-//        → Fine-grained token → repo: lokiff/worldmonitor → permisos: Contents (read+write)
-// GitHub config moved to Cloudflare Worker environment variables
-
-
-async function _getConflictsAsync(){
-  // 1. Worker GET /conflicts — sin auth, datos en GitHub via Worker
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000),
-      { signal: AbortSignal.timeout(5000) });
-    if(r.ok){
-      const data = await r.json();
-      if(Array.isArray(data) && data.length){
-        localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-        return data;
-      }
-    }
-  }catch(e){}
-  // 2. localStorage
-  const raw = localStorage.getItem(SK_CONFLICTS);
-  if(raw){ try{ const d=JSON.parse(raw); if(d.length) return d; }catch(e){} }
-  // 3. Hardcoded defaults
-  return [];
-}
-
-function _getConflicts(){
-  const raw = localStorage.getItem(SK_CONFLICTS);
-  if(raw) try{ return JSON.parse(raw); }catch(e){}
-  return [];
-}
-
-async function _saveConflicts(data){
-  localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-  if(!ADMIN_SECRET){
-    console.warn('ADMIN_SECRET not set — saved locally only');
-    return true;
-  }
-  try{
-    const res = await fetch(WORKER_CONFLICTS_PUT, {
-      method: 'PUT',
-      headers:{
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': ADMIN_SECRET,
-      },
-      body: JSON.stringify(data),
-      signal: AbortSignal.timeout(12000),
-    });
-    if(res.ok){
-      console.log('✓ conflicts.json publicado via Worker');
-      return true;
-    }
-    const err = await res.json().catch(() => ({}));
-    console.error('Worker PUT error:', res.status, err);
-    _showSyncStatus('✗ Error '+res.status+': '+(err.error||''), 'var(--red)');
-    return false;
-  }catch(e){
-    console.error('Worker exception:', e);
-    _showSyncStatus('✗ Error de red: '+e.message, 'var(--red)');
-    return false;
-  }
-}
-
-
-async function adminPublish() {
-  const btn=document.getElementById('admin-publish-btn');
-  const resetBtn=()=>{ if(btn){btn.disabled=false;btn.textContent='↑ PUBLISH TO GITHUB';} };
-  if(btn){btn.disabled=true;btn.textContent='Publishing...';}
-  if(!GH_TOKEN){ _showSyncStatus('⚠ GH_TOKEN not set','var(--amb)'); resetBtn(); return; }
-  try {
-    const data=_getConflicts();
-    const ok=await _saveConflicts(data);
-    _showSyncStatus(ok?'✓ Published — '+data.length+' conflicts':'✗ Error — check F12','var(--grn)');
-  } catch(e) { _showSyncStatus('✗ '+e.message,'var(--red)'); }
-  finally { resetBtn(); }
-}
-function _showSyncStatus(msg,col) {
-  const el=document.getElementById('admin-sync-status'); if(!el) return;
-  el.textContent=msg; el.style.color=col||'var(--grn)';
-  setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; },5000);
-}
-
-function openAdminPanel() { openPanel('admin'); }
-function adminLogin() {
-  const pwd=document.getElementById('admin-pwd')?.value||'';
-  const target='f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
-  crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd)).then(buf=>{
-    const hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
-    if(hex===target){
-      document.getElementById('admin-login').style.display='none';
-      document.getElementById('admin-workspace').style.display='flex';
-    } else {
-      const err=document.getElementById('admin-err'); if(err) err.style.display='block';
-      setTimeout(()=>{if(err) err.style.display='none';},2000);
-    }
-  });
+  const brkHtml = items.map(x=>`<span class="brk-item" onclick="openItem('${x.link}')">${x.title}</span><span class="brk-sep">◆</span>`).join('');
+  const brkInner = document.getElementById('brk-inner');
+  if(brkInner) brkInner.innerHTML = brkHtml+brkHtml;
 }
 
 
@@ -4981,8 +3204,6 @@ function renderTgFeed() {
 // ════════════════════════════════════════════════════════════
 // MODULE: AIRSPACE / NOTAM
 // ════════════════════════════════════════════════════════════
-let _notamRegion = 'Global';
-let _notamType = 'All';
 let _expandedNotam = null;
 
 function initAirspace() {
@@ -5093,10 +3314,6 @@ function closePanel() {
 function toggleTheme() { document.body.classList.toggle('light'); }
 
 
-// ════════════════════════════════════════════════════════════
-// CLOCK & PREFS
-// ════════════════════════════════════════════════════════════
-
 function startClock(){
   const el = document.getElementById('clock');
   setInterval(()=>{
@@ -5123,9 +3340,7 @@ function startClock(){
 // Admin password — stored as SHA-256 hash
 // Default password: "conflicttracker2025"
 // To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-const ADMIN_PWD_HASH = 'f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
 
-let _drawLayers   = []; // saved drawing layers
 
 // ── Admin: Publish & Sync ─────────────────────────────────
 async function adminPublish(){
@@ -5187,8 +3402,6 @@ async function _pollRemoteConflicts(){
 
 
 // Storage keys
-const SK_CONFLICTS = 'ct_map_conflicts';
-const SK_DRAWINGS  = 'ct_map_drawings';
 
 // ── Open admin panel ──────────────────────────────────────
 function openAdminPanel(){
@@ -5537,210 +3750,7 @@ function init(){
   setInterval(_pollRemoteConflicts, 5*60*1000);
 }
 
-document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
-</html>
 
-// ════════════════════════════════════════════════════════════
-// REFRESH ALL & INIT
-// ════════════════════════════════════════════════════════════
-
-async function refreshAll(){
-  if(_refreshing) return;
-  _refreshing=true;
-  const btn=document.getElementById('refresh-btn');
-  if(btn){btn.classList.add('active');btn.disabled=true;}
-  progSet(2);
-  mediaCache={ts:0,data:[]};
-  osintCache={ts:0,data:[]};
-  gdeltCache={ts:0,data:[]};
-  brkLoaded=false;
-  const _fm=document.getElementById('feed-media');
-  const _fo=document.getElementById('feed-osint');
-  // Keep existing items visible during refresh — no blanking, no flash
-  try{
-    await Promise.all([loadMedia(),loadOSINT()]);
-    setLastUpdated();
-    // feeds already updated in place by loadMedia/loadOSINT
-    loadBreakingBar();
-    loadGDELT();
-  }finally{
-    _refreshing=false;
-    if(btn){btn.classList.remove('active');btn.disabled=false;}
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO-REFRESH — tab-aware, 5min interval, no countdown
-// ═══════════════════════════════════════════════════════════
-function startAutoRefresh(){
-  const INTERVAL=5*60*1000;
-  let lastRun=Date.now();
-  function schedule(){
-    const wait=Math.max(0,INTERVAL-(Date.now()-lastRun));
-    setTimeout(async()=>{
-      if(!document.hidden){lastRun=Date.now();await refreshAll();}
-      schedule();
-    },wait);
-  }
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden&&Date.now()-lastRun>INTERVAL){lastRun=Date.now();refreshAll();}
-  });
-  schedule();
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// ITEM ACTIONS
-// ═══════════════════════════════════════════════════════════
-function openItem(href){ window.open(href,'_blank'); markRead(href); }
-function markRead(href){
-  if(!href) return;
-  readSet.add(href);
-  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
-  // Visually mark
-  document.querySelectorAll('.fitem').forEach(el => {
-    if(el.getAttribute('onclick')?.includes(href)) el.classList.add('read');
-  });
-}
-function toggleRead(btn, href){
-  const item = btn.closest('.fitem');
-  if(readSet.has(href)){ readSet.delete(href); item.classList.remove('read'); btn.classList.remove('read-on'); }
-  else { readSet.add(href); item.classList.add('read'); btn.classList.add('read-on'); }
-  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
-}
-function saveItem(item){
-  if(savedItems.find(s=>s.link===item.link)) return;
-  savedItems.unshift(item);
-  if(savedItems.length>100) savedItems.pop();
-  try{ localStorage.setItem('ct_saved', JSON.stringify(savedItems)); }catch(e){}
-}
-
-// ═══════════════════════════════════════════════════════════
-// SIDEBAR MODES
-// ═══════════════════════════════════════════════════════════
-function setSidebar(mode, btn){
-  currentSidebar = mode;
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const media = document.getElementById('feed-media');
-  const saved = document.getElementById('feed-saved');
-  const fm = document.getElementById('filters-media');
-  if(mode==='saved'){
-    media.style.display='none'; if(fm) fm.style.display='none';
-    saved.style.display=''; renderSaved();
-  } else {
-    media.style.display=''; if(fm) fm.style.display='';
-    saved.style.display='none';
-  }
-}
-function renderSaved(){
-  const el = document.getElementById('feed-saved'); if(!el) return;
-  if(!savedItems.length){ el.innerHTML='<div class="fstatus">Sin guardadas.</div>'; return; }
-  el.innerHTML = savedItems.map((item,i) => `
-    <div class="sitem" onclick="window.open('${(item.link||'').replace(/'/g,"\\'")}','_blank')">
-      <div class="sitem-t">${item.title}</div>
-      <div class="sitem-m">
-        <span>${item.src}</span>
-        <button onclick="event.stopPropagation();savedItems.splice(${i},1);try{localStorage.setItem('ct_saved',JSON.stringify(savedItems))}catch(e){}renderSaved()" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;margin-left:auto;">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// FILTER FEEDS
-// ═══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════
-// TWITTER — RSSHub feed (same engine as OSINT)
-// ═══════════════════════════════════════════════════════════
-
-
-
-
-
-
-function filterFeed(f, btn, which){
-
-
-  if(which==='media') activeCatMedia=f; else activeCatOsint=f;
-  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  if(which==='media') renderFeed(mediaCache.data, 'feed-media');
-  else renderFeed(osintCache.data, 'feed-osint');
-}
-
-// ═══════════════════════════════════════════════════════════
-// PANELS
-// ═══════════════════════════════════════════════════════════
-function openPanel(id){
-  closePanel();
-  activePanel = id;
-  document.getElementById('panel-overlay').style.display = 'block';
-  document.getElementById('panel-'+id)?.classList.add('open');
-}
-function closePanel(){
-  document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
-  document.getElementById('panel-overlay').style.display = 'none';
-  activePanel = null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// OREF
-// ═══════════════════════════════════════════════════════════
-async function loadOREF(){
-  try{
-    const r = await fetch(WORKER+'/oref', {signal:AbortSignal.timeout(5000)});
-    if(!r.ok) return;
-    const d = await r.json();
-    const banner = document.getElementById('oref-banner');
-    if(d.status==='active' && d.alerts?.length){
-      banner.classList.add('active');
-      document.getElementById('oref-text').textContent =
-        '🚨 ALERTA COHETES — ' + d.alerts.map(a=>a.data||'').flat().join(' · ');
-    } else {
-      banner.classList.remove('active');
-    }
-  }catch(e){}
-}
-
-// ═══════════════════════════════════════════════════════════
-// PREFS
-// ═══════════════════════════════════════════════════════════
-function applyFont(v){
-  // v is the raw option value e.g. "Inter" or "'JetBrains Mono'"
-  document.documentElement.style.setProperty('--font', v + ',sans-serif');
-  localStorage.setItem('ct_font', v);
-  const s = document.getElementById('pref-font');
-  if(s) s.value = v;
-}
-function applySize(v){
-  v = parseInt(v);
-  document.documentElement.style.fontSize = v+'px';
-  const sv = document.getElementById('size-val'); if(sv) sv.textContent=v+'px';
-  const sl = document.getElementById('pref-size'); if(sl) sl.value=v;
-  localStorage.setItem('ct_size', v);
-}
-function applyAccent(v, dot){
-  document.documentElement.style.setProperty('--blue', v);
-  document.documentElement.style.setProperty('--accent', v);
-  localStorage.setItem('ct_accent', v);
-  document.querySelectorAll('.cdot').forEach(d=>d.classList.remove('on'));
-  if(dot) dot.classList.add('on');
-}
-function toggleTheme(){
-  document.body.classList.toggle('light');
-  const isLight = document.body.classList.contains('light');
-  const btn = document.getElementById('theme-btn');
-  const tog = document.getElementById('tog-dark');
-  if(tog) tog.classList.toggle('on', !isLight);
-  localStorage.setItem('ct_theme', isLight?'light':'dark');
-}
-function resetPrefs(){
-  ['ct_font','ct_size','ct_accent','ct_theme'].forEach(k=>localStorage.removeItem(k));
-  location.reload();
-}
 function loadPrefs(){
   const font = localStorage.getItem('ct_font');
   if(font) applyFont(font);
@@ -5820,9 +3830,7 @@ function startClock(){
 // Admin password — stored as SHA-256 hash
 // Default password: "conflicttracker2025"
 // To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-const ADMIN_PWD_HASH = 'f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
 
-let _drawLayers   = []; // saved drawing layers
 
 // ── Admin: Publish & Sync ─────────────────────────────────
 async function adminPublish(){
@@ -5884,8 +3892,6 @@ async function _pollRemoteConflicts(){
 
 
 // Storage keys
-const SK_CONFLICTS = 'ct_map_conflicts';
-const SK_DRAWINGS  = 'ct_map_drawings';
 
 // ── Open admin panel ──────────────────────────────────────
 function openAdminPanel(){
@@ -6234,8 +4240,32 @@ function init(){
   setInterval(_pollRemoteConflicts, 5*60*1000);
 }
 
-document.addEventListener('DOMContentLoaded', init);
 
+function init() {
+  loadPrefs();
+  startClock();
+  renderConflicts();
+  initDeaths();
+  initAirspace();
+  progSet(2);
+  setTimeout(async () => {
+    await Promise.all([loadMedia(), loadOSINT()]);
+    setLastUpdated();
+    setTimeout(loadBreakingBar, 300);
+  }, 200);
+  let lastRun = Date.now();
+  const INTERVAL = 5 * 60 * 1000;
+  const autoRefeed = () => {
+    if (!document.hidden && Date.now() - lastRun > INTERVAL) {
+      lastRun = Date.now(); loadMedia(); loadOSINT();
+    }
+  };
+  setInterval(autoRefeed, 30000);
+  document.addEventListener('visibilitychange', autoRefeed);
+  setInterval(_pollRemoteConflicts, 5 * 60 * 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
 
 </script>
 </body>
