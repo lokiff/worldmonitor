@@ -3,228 +3,585 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>CONFLICT·TRACKER</title>
+<title>CONFLICT TRACKER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Mono:wght@400;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --bg:#000;--s1:#0a0a0a;--s2:#111;
-  --b0:rgba(255,255,255,.055);--b1:rgba(255,255,255,.10);--b2:rgba(255,255,255,.20);
-  --t0:#fff;--t1:rgba(255,255,255,.52);--t2:rgba(255,255,255,.22);--t3:rgba(255,255,255,.09);
-  --red:#ff2020;--r2:rgba(255,32,32,.07);
-  --grn:#00e040;--g2:rgba(0,224,64,.06);
-  --amb:#ff8c00;--a2:rgba(255,140,0,.07);
-  --blu:#4488ff;
-  --mono:'Share Tech Mono',monospace;
-  --head:'Space Mono',monospace;
-  --body:'Roboto Mono',monospace;
+
+/* ── Reset & Base ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg:       #f7f6f3;
+  --surface:  #ffffff;
+  --border:   #e8e6e0;
+  --border2:  #d0cdc6;
+  --text:     #1a1916;
+  --text2:    #6b6860;
+  --text3:    #a09d98;
+  --red:      #c0392b;
+  --red-soft: #fdf0ee;
+  --amber:    #b7791f;
+  --amber-soft: #fef9ee;
+  --green:    #276749;
+  --blue:     #1a4a8a;
+  --accent:   #c0392b;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --serif: 'Playfair Display', serif;
+  --sidebar: 280px;
+  --topbar: 52px;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t0);font-family:var(--body);}
-button,input,select{font-family:inherit;}
-::-webkit-scrollbar{width:2px;height:2px;}
-::-webkit-scrollbar-thumb{background:var(--b1);}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:radial-gradient(circle,rgba(255,255,255,.018) 1px,transparent 1px);
-  background-size:4px 4px;}
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
+button, input { font-family: inherit; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.15}}
-@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
-@keyframes dot{0%,100%{opacity:1}50%{opacity:.1}}
-@keyframes fi-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
-@keyframes brk{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes mrkPulse{0%,100%{opacity:1}50%{opacity:.12}}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ── Animations ── */
+@keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── APP SHELL ── */
-#app{display:flex;flex-direction:column;height:100vh;position:relative;z-index:1;}
+/* ── Layout ── */
+#app { display: flex; flex-direction: column; height: 100vh; }
 
-/* ── TOPBAR ── */
-#topbar{
-  height:40px;flex-shrink:0;background:rgba(0,0,0,.97);
-  border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 14px;gap:8px;
-  position:relative;z-index:200;
+/* ── Topbar ── */
+#topbar {
+  height: var(--topbar);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
 }
-#logo{font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:4px;
-  color:var(--t0);text-transform:uppercase;display:flex;align-items:center;gap:8px;}
-.logo-sq{width:7px;height:7px;background:var(--red);flex-shrink:0;animation:pulse 2s ease infinite;}
-.tb-div{width:1px;height:14px;background:var(--b1);flex-shrink:0;}
-#clock{font-family:var(--mono);font-size:11px;color:var(--t2);letter-spacing:2px;
-  padding:1px 7px;border:1px solid var(--b0);}
-.live-badge{padding:2px 7px;border:1px solid rgba(255,32,32,.35);
-  font-family:var(--mono);font-size:7px;letter-spacing:1.8px;
-  color:var(--red);background:var(--r2);text-transform:uppercase;}
-.live-badge span{display:inline-block;width:4px;height:4px;background:var(--red);
-  margin-right:5px;animation:blink .8s step-end infinite;}
-#tb-right{margin-left:auto;display:flex;align-items:center;gap:5px;}
-.tb-btn{height:24px;padding:0 8px;background:transparent;border:1px solid var(--b1);
-  color:var(--t2);font-size:8px;cursor:pointer;transition:all .1s;
-  display:flex;align-items:center;gap:4px;
-  font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase;}
-.tb-btn:hover{background:var(--b0);border-color:var(--b2);color:var(--t0);}
-.tb-btn svg{width:11px;height:11px;flex-shrink:0;}
-.mod-pill{height:22px;padding:0 8px;background:transparent;border:1px solid var(--b0);
-  color:var(--t2);font-size:7px;cursor:pointer;font-family:var(--mono);
-  letter-spacing:1px;text-transform:uppercase;transition:all .1s;}
-.mod-pill:hover{color:var(--t1);border-color:var(--b1);}
-.mod-pill.on{background:var(--b1);border-color:var(--b2);color:var(--t0);}
+#logo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-right: 32px;
+}
+#logo-text {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+#logo-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse-dot 2s ease infinite;
+  flex-shrink: 0;
+  margin-bottom: 1px;
+}
+#clock {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  margin-right: auto;
+}
 
-/* Progress bar */
-#prog{height:1px;flex-shrink:0;}
-#prog-fill{height:100%;width:0;background:var(--t2);transition:width .2s;}
-#prog.idle #prog-fill{opacity:0;transition:opacity .4s .1s;}
+/* Nav tabs */
+#nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 16px;
+}
+.nav-btn {
+  height: 32px;
+  padding: 0 14px;
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+}
+.nav-btn:hover { background: var(--bg); color: var(--text2); }
+.nav-btn.on { background: var(--text); color: #fff; }
 
-/* ── MAIN ── */
-#main{flex:1;display:flex;min-height:0;overflow:hidden;}
+/* Topbar actions */
+#tb-actions { display: flex; align-items: center; gap: 8px; }
+.tb-btn {
+  height: 32px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.tb-btn:hover { border-color: var(--border2); color: var(--text); background: var(--bg); }
+.tb-btn svg { width: 13px; height: 13px; }
+#last-upd { font-family: var(--mono); font-size: 10px; color: var(--text3); }
 
-/* ── MODULES ── */
-.module{display:none;flex:1;min-height:0;overflow:hidden;}
-.module.on{display:flex;}
+/* ── Progress ── */
+#prog { height: 2px; flex-shrink: 0; background: var(--border); }
+#prog-fill { height: 100%; width: 0; background: var(--red); transition: width 0.3s; }
+#prog.idle #prog-fill { opacity: 0; transition: opacity 0.5s 0.2s; }
 
-/* ── COLUMN LAYOUT ── */
-.col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--b0);}
-.col:last-child{border-right:none;}
-.col-hdr{height:34px;flex-shrink:0;padding:0 11px;background:var(--bg);
-  border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:7px;}
-.col-title{font-family:var(--head);font-size:7px;font-weight:700;letter-spacing:3px;
-  color:var(--t2);text-transform:uppercase;}
-.col-badge{padding:0 5px;height:13px;line-height:13px;font-family:var(--mono);font-size:7px;
-  background:var(--b0);color:var(--t2);margin-left:auto;letter-spacing:.5px;border:1px solid var(--b0);}
-.col-status{font-family:var(--mono);font-size:7px;color:var(--t2);}
-.ph-dot{width:5px;height:5px;background:var(--red);flex-shrink:0;animation:pulse 2.5s ease infinite;}
+/* ── Main body ── */
+#body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
 
-/* ── FILTER BAR ── */
-.fbar{display:flex;gap:2px;padding:4px 9px;flex-shrink:0;
-  border-bottom:1px solid var(--b0);background:var(--s1);overflow-x:auto;}
-.fbar::-webkit-scrollbar{display:none;}
-.fbtn{padding:2px 7px;background:transparent;border:1px solid var(--b0);
-  color:var(--t2);font-size:7px;cursor:pointer;white-space:nowrap;transition:all .1s;
-  font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase;}
-.fbtn:hover{border-color:var(--b1);color:var(--t1);}
-.fbtn.on{background:var(--b1);border-color:var(--b2);color:var(--t0);}
-.fbtn.hot.on{background:var(--r2);border-color:rgba(255,32,32,.3);color:var(--red);}
+/* ── Sidebar (conflicts) ── */
+#sidebar {
+  width: var(--sidebar);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+#sidebar-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#sidebar-title {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+#cf-filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.cf-filter-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.1s;
+}
+.cf-filter-btn:hover { color: var(--text2); border-color: var(--border2); }
+.cf-filter-btn.on { background: var(--text); border-color: var(--text); color: #fff; }
 
-/* ── FEED ── */
-.feed{flex:1;overflow-y:auto;min-height:0;}
-.fstatus{padding:24px;text-align:center;color:var(--t2);font-size:9px;
-  font-family:var(--mono);letter-spacing:.5px;line-height:2.2;}
-.spin-sq{display:inline-block;width:4px;height:4px;background:var(--t2);
-  animation:dot 1s steps(2) infinite;vertical-align:middle;margin-right:6px;}
+#cf-list { flex: 1; overflow-y: auto; }
 
-.fitem{padding:8px 11px 7px;border-bottom:1px solid var(--b0);
-  border-left:2px solid transparent;cursor:pointer;transition:background .06s;
-  animation:fi-in .12s ease both;}
-.fitem:hover{background:var(--s1);}
-.fitem.read{opacity:.18;}
-.fitem-top{display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
-.ftag{font-size:6px;font-weight:700;padding:1px 4px;letter-spacing:1.2px;
-  text-transform:uppercase;font-family:var(--mono);border:1px solid;flex-shrink:0;}
-.tag-r{color:var(--red);border-color:rgba(255,32,32,.25);background:var(--r2);}
-.tag-o{color:var(--amb);border-color:rgba(255,140,0,.25);background:var(--a2);}
-.tag-b{color:var(--blu);border-color:rgba(68,136,255,.2);background:rgba(68,136,255,.05);}
-.tag-g{color:var(--grn);border-color:rgba(0,224,64,.2);background:var(--g2);}
-.tag-n{color:var(--t1);border-color:var(--b1);background:var(--b0);}
-.fsrc{font-size:7px;color:var(--t2);max-width:70px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);}
-.ftime{margin-left:auto;font-size:7px;color:var(--t2);font-family:var(--mono);white-space:nowrap;}
-.ftitle{font-size:11px;color:var(--t0);line-height:1.5;font-weight:400;}
-.fdesc{font-size:9px;color:var(--t2);line-height:1.4;margin-top:2px;font-family:var(--mono);}
+/* Conflict items */
+.cf-group {
+  padding: 10px 20px 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+}
+.cf-item {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+.cf-item:hover { background: var(--bg); }
+.cf-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s;
+}
+.cf-item:hover::before { background: var(--border2); }
+.cf-item.war::before { background: var(--red); }
+.cf-item.conflict::before { background: var(--amber); }
 
-/* ── CONFLICTS COLUMN ── */
-.cf-group-hdr{padding:4px 10px 3px;font-size:7px;font-weight:700;letter-spacing:.9px;
-  font-family:var(--mono);border-bottom:1px solid rgba(255,255,255,.05);text-transform:uppercase;}
-.cf-item{padding:7px 10px;border-bottom:1px solid var(--b0);cursor:pointer;transition:background .06s;}
-.cf-item:hover{background:var(--s1);}
-.cf-name{font-size:10px;font-weight:600;color:var(--t0);line-height:1.3;}
-.cf-parties{font-size:8px;color:var(--t2);margin-top:2px;font-family:var(--mono);}
-.cf-expand{display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--b0);}
-.cf-expand.on{display:block;}
-.cf-status-text{font-size:9px;color:var(--t1);line-height:1.5;margin-bottom:5px;}
-.cf-meta{font-family:var(--mono);font-size:7px;color:var(--t2);display:flex;gap:8px;}
+.cf-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; }
+.cf-sub { font-size: 10px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+.cf-expand {
+  display: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+.cf-expand.on { display: block; }
+.cf-meta { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 6px; }
 
-/* ── MAP MODULE ── */
-#mod-map{flex-direction:column;}
-#map-container{flex:1;position:relative;}
-#map-el{position:absolute;inset:0;}
+/* ── Content area ── */
+#content { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 
-#map-legend{position:absolute;bottom:28px;left:10px;z-index:10;
-  background:rgba(0,0,0,.85);border:1px solid var(--b1);padding:8px 10px;min-width:150px;}
-.leg-title{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--t2);
-  text-transform:uppercase;margin-bottom:6px;}
-.leg-row{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer;transition:opacity .1s;}
-.leg-row.off{opacity:.25;}
-.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.leg-label{font-family:var(--mono);font-size:8px;color:var(--t1);flex:1;}
-.leg-count{font-family:var(--mono);font-size:7px;color:var(--t2);}
+/* ── Modules ── */
+.module { display: none; flex: 1; min-height: 0; }
+.module.on { display: flex; }
 
-#map-regions{position:absolute;top:10px;right:10px;z-index:10;
-  display:flex;flex-wrap:wrap;gap:3px;max-width:280px;}
-.reg-btn{background:rgba(0,0,0,.8);border:1px solid var(--b1);color:var(--t1);
-  padding:3px 7px;font-size:8px;cursor:pointer;font-family:var(--mono);white-space:nowrap;transition:all .1s;}
-.reg-btn:hover{background:rgba(0,0,0,.95);border-color:var(--b2);color:var(--t0);}
+/* ── FEEDS module ── */
+#mod-feed { flex-direction: row; }
 
-#map-filter-modes{position:absolute;bottom:28px;right:10px;z-index:10;display:flex;flex-direction:column;gap:3px;}
+.feed-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; }
+.feed-col:last-child { border-right: none; }
 
-#map-stats-bar{height:26px;flex-shrink:0;background:rgba(0,0,0,.9);
-  border-top:1px solid var(--b0);display:flex;align-items:center;overflow:hidden;}
-.ms-item{display:flex;align-items:center;gap:5px;padding:0 12px;
-  border-right:1px solid var(--b0);height:100%;font-family:var(--mono);font-size:7px;color:var(--t2);}
-.ms-val{color:var(--t0);margin-left:2px;}
+.feed-col-header {
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+}
+.feed-col-title {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--text);
+}
+.feed-col-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-left: auto;
+}
+.feed-col-status { font-size: 10px; color: var(--text3); }
 
-.dark-popup .maplibregl-popup-content{background:#0f0f0f!important;color:#e4e4e7!important;
-  padding:0!important;border:1px solid rgba(255,255,255,.15)!important;
-  box-shadow:0 8px 32px rgba(0,0,0,.8)!important;border-radius:0!important;}
-.dark-popup .maplibregl-popup-close-button{color:#555!important;font-size:16px!important;padding:3px 7px!important;}
-.dark-popup .maplibregl-popup-close-button:hover{color:#fff!important;}
-.dark-popup .maplibregl-popup-tip{border-top-color:#0f0f0f!important;border-bottom-color:#0f0f0f!important;}
+/* Filter pills */
+.feed-filters {
+  display: flex;
+  gap: 4px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  background: var(--bg);
+}
+.feed-filters::-webkit-scrollbar { display: none; }
+.fpill {
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  cursor: pointer;
+  border-radius: 20px;
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+.fpill:hover { color: var(--text2); border-color: var(--border2); }
+.fpill.on { background: var(--text); border-color: var(--text); color: #fff; }
+.fpill.hot.on { background: var(--red); border-color: var(--red); color: #fff; }
 
-/* ── BREAKING BAR ── */
-#breaking-bar{height:22px;flex-shrink:0;background:var(--bg);
-  border-top:1px solid var(--b1);display:flex;align-items:center;overflow:hidden;z-index:10;}
-.brk-label{flex-shrink:0;padding:0 10px;font-size:7px;font-weight:700;
-  letter-spacing:2.5px;text-transform:uppercase;color:#000;background:var(--red);
-  height:100%;display:flex;align-items:center;font-family:var(--head);}
-.brk-track{flex:1;overflow:hidden;position:relative;height:100%;}
-#brk-inner{display:flex;align-items:center;position:absolute;top:0;height:100%;
-  white-space:nowrap;animation:brk 90s linear infinite;}
-#brk-inner:hover{animation-play-state:paused;}
-.brk-item{padding:0 16px;font-size:8px;color:var(--t1);border-right:1px solid var(--b0);
-  height:22px;display:inline-flex;align-items:center;cursor:pointer;font-family:var(--mono);}
-.brk-item:hover{color:var(--t0);}
-.brk-sep{color:var(--b1);padding:0 4px;font-size:7px;}
+/* Feed scroll area */
+.feed-scroll { flex: 1; overflow-y: auto; }
 
-/* ── SIDE PANELS ── */
-#panel-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.55);display:none;}
-.side-panel{position:fixed;top:0;right:0;bottom:0;width:300px;z-index:1201;
-  background:#040404;border-left:1px solid var(--b1);display:flex;flex-direction:column;
-  transform:translateX(100%);transition:transform .18s cubic-bezier(.4,0,.2,1);}
-.side-panel.open{transform:translateX(0);}
-.sp-hdr{height:42px;flex-shrink:0;padding:0 14px;background:var(--bg);
-  border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;}
-.sp-title{font-family:var(--head);font-size:8px;font-weight:700;letter-spacing:3px;
-  color:var(--t1);text-transform:uppercase;flex:1;}
-.sp-close{width:24px;height:24px;background:transparent;border:1px solid var(--b1);
-  color:var(--t2);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.sp-close:hover{background:var(--b0);color:var(--t0);}
-.sp-body{flex:1;overflow-y:auto;padding:14px;}
-.sp-section{margin-bottom:16px;}
-.sp-label{display:block;font-size:7px;font-weight:700;letter-spacing:1.8px;
-  color:var(--t2);text-transform:uppercase;margin-bottom:6px;font-family:var(--mono);}
-.sp-input{width:100%;padding:7px 9px;background:var(--b0);border:1px solid var(--b1);
-  color:var(--t0);font-size:10px;outline:none;transition:border-color .1s;font-family:var(--mono);}
-.sp-input:focus{border-color:var(--b2);}
-.sp-btn{width:100%;padding:8px;background:var(--t0);border:none;color:#000;
-  font-size:8px;font-weight:700;cursor:pointer;transition:opacity .1s;margin-top:5px;
-  font-family:var(--head);letter-spacing:2px;text-transform:uppercase;}
-.sp-btn:hover{opacity:.8;}
-.sp-btn-ghost{width:100%;padding:7px;background:transparent;border:1px solid var(--b1);
-  color:var(--t2);font-size:8px;cursor:pointer;transition:all .1s;margin-top:5px;font-family:var(--mono);}
-.sp-btn-ghost:hover{border-color:var(--b2);color:var(--t0);}
-.adm-tab{flex:1;padding:9px 4px;background:none;border:none;border-bottom:2px solid transparent;
-  color:var(--t2);font-size:9px;cursor:pointer;transition:all .1s;font-family:var(--mono);}
-.adm-tab.on{color:var(--t0);border-bottom-color:var(--t0);}
+/* Feed items */
+.fstatus {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+  font-family: var(--mono);
+  line-height: 2;
+}
+.spin-ring {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--border2);
+  border-top-color: var(--text2);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.fitem {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  animation: fade-in 0.2s ease both;
+  position: relative;
+}
+.fitem:hover { background: var(--bg); }
+.fitem.read { opacity: 0.4; }
+.fitem-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.ftag {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--mono);
+}
+.tag-r { background: var(--red-soft); color: var(--red); }
+.tag-o { background: var(--amber-soft); color: var(--amber); }
+.tag-b { background: #eef3fb; color: var(--blue); }
+.tag-n { background: var(--bg); color: var(--text3); border: 1px solid var(--border); }
+.fsrc { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.ftime { margin-left: auto; font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.ftitle { font-size: 13px; color: var(--text); line-height: 1.5; font-weight: 400; }
+.fdesc { font-size: 11px; color: var(--text2); line-height: 1.5; margin-top: 4px; }
+
+/* ── MAP module ── */
+#mod-map { flex-direction: column; }
+#map-container { flex: 1; position: relative; }
+#map-el { position: absolute; inset: 0; }
+
+#map-overlay {
+  position: absolute;
+  top: 16px; left: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#map-legend {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  min-width: 160px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.leg-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.leg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+.leg-row.off { opacity: 0.25; }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.leg-label { font-size: 11px; color: var(--text2); flex: 1; }
+.leg-count { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+
+#map-regions {
+  position: absolute;
+  top: 16px; right: 16px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 300px;
+  justify-content: flex-end;
+}
+.reg-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.1s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.reg-btn:hover { border-color: var(--border2); color: var(--text); background: var(--bg); }
+
+#map-mode-btns {
+  position: absolute;
+  bottom: 36px; right: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+}
+
+#map-stats {
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+}
+.ms-item { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.ms-val { color: var(--text); font-weight: 500; margin-left: 4px; }
+
+/* Map popups light theme */
+.light-popup .maplibregl-popup-content {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  padding: 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  font-family: var(--sans) !important;
+}
+.light-popup .maplibregl-popup-close-button { color: var(--text3) !important; font-size: 16px !important; padding: 4px 8px !important; }
+.light-popup .maplibregl-popup-close-button:hover { color: var(--text) !important; }
+.light-popup .maplibregl-popup-tip { border-top-color: var(--surface) !important; border-bottom-color: var(--surface) !important; }
+
+/* ── Breaking ticker ── */
+#ticker {
+  height: 32px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+#ticker-label {
+  flex-shrink: 0;
+  padding: 0 14px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--red);
+  border-right: 1px solid var(--border);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+#ticker-track { flex: 1; overflow: hidden; height: 100%; position: relative; }
+#ticker-inner {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: 0; height: 100%;
+  white-space: nowrap;
+  animation: ticker 90s linear infinite;
+}
+#ticker-inner:hover { animation-play-state: paused; }
+.tick-item {
+  padding: 0 20px;
+  font-size: 11px;
+  color: var(--text2);
+  border-right: 1px solid var(--border);
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.tick-item:hover { color: var(--text); }
+
+/* ── Side panel (admin) ── */
+#overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.2); display: none; backdrop-filter: blur(2px); }
+.side-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 320px;
+  z-index: 201;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  display: flex; flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+}
+.side-panel.open { transform: translateX(0); }
+.sp-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  flex-shrink: 0;
+}
+.sp-title { font-family: var(--serif); font-size: 16px; color: var(--text); flex: 1; }
+.sp-close {
+  width: 28px; height: 28px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  transition: all 0.1s;
+}
+.sp-close:hover { color: var(--text); border-color: var(--border2); }
+.sp-body { flex: 1; overflow-y: auto; padding: 20px; }
+.sp-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 6px;
+}
+.sp-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.1s;
+}
+.sp-input:focus { border-color: var(--text); }
+.sp-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--text);
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 8px;
+  transition: opacity 0.1s;
+}
+.sp-btn:hover { opacity: 0.8; }
+.sp-btn-ghost {
+  width: 100%;
+  padding: 9px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 6px;
+  transition: all 0.1s;
+}
+.sp-btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+.sp-section { margin-bottom: 20px; }
+#admin-err { font-size: 11px; color: var(--red); text-align: center; margin-top: 6px; display: none; }
+#admin-sync-status { font-family: var(--mono); font-size: 10px; text-align: center; color: var(--text3); margin-top: 6px; min-height: 14px; }
+
 </style>
 </head>
 <body>
@@ -232,158 +589,168 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
   <!-- TOPBAR -->
   <div id="topbar">
-    <div id="logo"><span class="logo-sq"></span>CONFLICT·TRACKER</div>
-    <div class="tb-div"></div>
+    <div id="logo">
+      <div id="logo-dot"></div>
+      <span id="logo-text">Conflict Tracker</span>
+    </div>
     <span id="clock">--:--:-- UTC</span>
-    <div class="live-badge"><span></span>LIVE</div>
-    <div class="tb-div"></div>
-    <button class="mod-pill on" onclick="switchModule('feed',this)">FEEDS</button>
-    <button class="mod-pill" onclick="switchModule('map',this)">MAP</button>
-    <div id="tb-right">
-      <span id="last-upd" style="font-family:var(--mono);font-size:7px;color:var(--t2);">—</span>
-      <div style="width:1px;height:14px;background:var(--b0);"></div>
+
+    <div id="nav">
+      <button class="nav-btn on" onclick="switchModule('feed',this)">Feeds</button>
+      <button class="nav-btn" onclick="switchModule('map',this)">Map</button>
+    </div>
+
+    <div id="tb-actions">
+      <span id="last-upd"></span>
       <button class="tb-btn" onclick="doRefresh()">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M13 2.5A6.5 6.5 0 1 1 8 1.5"/><path d="M13 2.5V6h-3.5"/></svg>
-        SYNC
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5A6.5 6.5 0 1 1 8 1.5"/><path d="M13.5 2.5V6.5h-4"/></svg>
+        Sync
       </button>
-      <button class="tb-btn" onclick="openPanel('admin')" style="border-color:rgba(255,32,32,.25);color:var(--red);">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M8 1l6 3v4c0 4-3 6.5-6 7.5C5 14.5 2 12 2 8V4l6-3z"/></svg>
+      <button class="tb-btn" onclick="openPanel('admin')" style="color:var(--red);border-color:var(--red);opacity:0.7;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l5.5 2.75v4C13.5 11.5 11 14 8 15c-3-1-5.5-3.5-5.5-7.25v-4L8 1z"/></svg>
+        Admin
       </button>
     </div>
   </div>
+
   <div id="prog"><div id="prog-fill"></div></div>
 
-  <!-- MAIN -->
-  <div id="main">
+  <!-- BODY -->
+  <div id="body">
 
-    <!-- ══ MODULE: FEEDS ══ -->
-    <div class="module on" id="mod-feed" style="flex-direction:row;">
-
-      <!-- News -->
-      <div class="col">
-        <div class="col-hdr">
-          <div class="ph-dot"></div>
-          <span class="col-title">Noticias</span>
-          <span class="col-badge" id="ft-media">—</span>
-          <span class="col-status" id="cs-media"></span>
-        </div>
-        <div class="fbar" id="filters-media">
-          <button class="fbtn on" onclick="filterFeed('all',this,'media')">ALL</button>
-          <button class="fbtn" onclick="filterFeed('conflict',this,'media')">CONFLICT</button>
-          <button class="fbtn" onclick="filterFeed('ukraine',this,'media')">UKRAINE</button>
-          <button class="fbtn" onclick="filterFeed('mideast',this,'media')">M·EAST</button>
-          <button class="fbtn" onclick="filterFeed('africa',this,'media')">AFRICA</button>
-          <button class="fbtn" onclick="filterFeed('asia',this,'media')">ASIA</button>
-          <button class="fbtn hot" onclick="filterFeed('breaking',this,'media')">⬤ FLASH</button>
-        </div>
-        <div class="feed" id="feed-media">
-          <div class="fstatus"><span class="spin-sq"></span>Aggregating feeds...</div>
+    <!-- Sidebar: conflicts -->
+    <div id="sidebar">
+      <div id="sidebar-header">
+        <div id="sidebar-title">Active Conflicts</div>
+        <div id="cf-filters">
+          <button class="cf-filter-btn on" onclick="cfFilter('all',this)">All</button>
+          <button class="cf-filter-btn" onclick="cfFilter('Europa',this)">Europe</button>
+          <button class="cf-filter-btn" onclick="cfFilter('M.Este',this)">M. East</button>
+          <button class="cf-filter-btn" onclick="cfFilter('África',this)">Africa</button>
+          <button class="cf-filter-btn" onclick="cfFilter('Asia',this)">Asia</button>
         </div>
       </div>
-
-      <!-- OSINT -->
-      <div class="col">
-        <div class="col-hdr">
-          <span class="col-title">OSINT</span>
-          <span class="col-badge" id="ft-osint">—</span>
-          <span class="col-status" id="cs-osint"></span>
-        </div>
-        <div class="fbar" id="filters-osint">
-          <button class="fbtn on" onclick="filterFeed('all',this,'osint')">ALL</button>
-          <button class="fbtn" onclick="filterFeed('ukraine',this,'osint')">UKRAINE</button>
-          <button class="fbtn" onclick="filterFeed('mideast',this,'osint')">M·EAST</button>
-          <button class="fbtn" onclick="filterFeed('africa',this,'osint')">AFRICA</button>
-          <button class="fbtn" onclick="filterFeed('asia',this,'osint')">ASIA</button>
-        </div>
-        <div class="feed" id="feed-osint">
-          <div class="fstatus"><span class="spin-sq"></span>Loading OSINT...</div>
-        </div>
-      </div>
-
-      <!-- Conflicts -->
-      <div class="col" style="width:220px;flex-shrink:0;max-width:220px;">
-        <div class="col-hdr">
-          <span style="width:6px;height:6px;background:var(--red);display:inline-block;animation:mrkPulse 1.5s ease infinite;flex-shrink:0;"></span>
-          <span class="col-title">Conflicts</span>
-          <span class="col-badge" id="cf-count">17</span>
-        </div>
-        <div class="fbar" id="cf-filters">
-          <button class="fbtn on" onclick="cfFilter('all',this)">ALL</button>
-          <button class="fbtn" onclick="cfFilter('Europa',this)">EU</button>
-          <button class="fbtn" onclick="cfFilter('M.Este',this)">ME</button>
-          <button class="fbtn" onclick="cfFilter('África',this)">AF</button>
-          <button class="fbtn" onclick="cfFilter('Asia',this)">AS</button>
-        </div>
-        <div class="feed" id="cf-list"></div>
-      </div>
-
-    </div><!-- /mod-feed -->
-
-    <!-- ══ MODULE: MAP ══ -->
-    <div class="module" id="mod-map">
-      <div id="map-container">
-        <div id="map-el"></div>
-        <div id="map-legend">
-          <div class="leg-title">BY CONFLICT</div>
-          <div id="map-legend-items"></div>
-        </div>
-        <div id="map-regions"></div>
-        <div id="map-filter-modes">
-          <button class="tb-btn on" id="btn-by-conflict" onclick="setMapMode('conflict',this)" style="width:100px;justify-content:center;">BY CONFLICT</button>
-          <button class="tb-btn" id="btn-by-type" onclick="setMapMode('type',this)" style="width:100px;justify-content:center;">BY TYPE</button>
-        </div>
-      </div>
-      <div id="map-stats-bar">
-        <div class="ms-item">EVENTS <span class="ms-val" id="st-events">—</span></div>
-        <div class="ms-item">CONFLICTS <span class="ms-val" id="st-conflicts">—</span></div>
-        <div class="ms-item">HIDDEN <span class="ms-val" id="st-hidden">0</span></div>
-      </div>
+      <div id="cf-list"></div>
     </div>
 
-  </div><!-- /main -->
+    <!-- Content -->
+    <div id="content">
 
-  <!-- BREAKING BAR -->
-  <div id="breaking-bar">
-    <div class="brk-label">BREAKING</div>
-    <div class="brk-track">
-      <div id="brk-inner"><span class="brk-item" style="color:var(--t2);">Aggregating feeds...</span></div>
+      <!-- FEEDS -->
+      <div class="module on" id="mod-feed">
+        <div class="feed-col">
+          <div class="feed-col-header">
+            <span class="feed-col-title">News</span>
+            <span class="feed-col-status" id="cs-media"></span>
+            <span class="feed-col-count" id="ft-media"></span>
+          </div>
+          <div class="feed-filters" id="filters-media">
+            <button class="fpill on" onclick="filterFeed('all',this,'media')">All</button>
+            <button class="fpill" onclick="filterFeed('conflict',this,'media')">Conflict</button>
+            <button class="fpill" onclick="filterFeed('ukraine',this,'media')">Ukraine</button>
+            <button class="fpill" onclick="filterFeed('mideast',this,'media')">M. East</button>
+            <button class="fpill" onclick="filterFeed('africa',this,'media')">Africa</button>
+            <button class="fpill" onclick="filterFeed('asia',this,'media')">Asia</button>
+            <button class="fpill hot" onclick="filterFeed('breaking',this,'media')">● Breaking</button>
+          </div>
+          <div class="feed-scroll" id="feed-media">
+            <div class="fstatus"><span class="spin-ring"></span>Loading feeds…</div>
+          </div>
+        </div>
+
+        <div class="feed-col">
+          <div class="feed-col-header">
+            <span class="feed-col-title">OSINT</span>
+            <span class="feed-col-status" id="cs-osint"></span>
+            <span class="feed-col-count" id="ft-osint"></span>
+          </div>
+          <div class="feed-filters" id="filters-osint">
+            <button class="fpill on" onclick="filterFeed('all',this,'osint')">All</button>
+            <button class="fpill" onclick="filterFeed('ukraine',this,'osint')">Ukraine</button>
+            <button class="fpill" onclick="filterFeed('mideast',this,'osint')">M. East</button>
+            <button class="fpill" onclick="filterFeed('africa',this,'osint')">Africa</button>
+            <button class="fpill" onclick="filterFeed('asia',this,'osint')">Asia</button>
+          </div>
+          <div class="feed-scroll" id="feed-osint">
+            <div class="fstatus"><span class="spin-ring"></span>Loading OSINT…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="module" id="mod-map">
+        <div id="map-container">
+          <div id="map-el"></div>
+          <div id="map-overlay">
+            <div id="map-legend">
+              <div class="leg-title" id="leg-title">By Conflict</div>
+              <div id="map-legend-items"></div>
+            </div>
+            <div style="display:flex;gap:4px;" id="map-mode-btns">
+              <button class="tb-btn on" id="btn-conflict" onclick="setMapMode('conflict',this)" style="font-size:10px;height:28px;background:var(--text);color:#fff;border-color:var(--text);">By Conflict</button>
+              <button class="tb-btn" id="btn-type" onclick="setMapMode('type',this)" style="font-size:10px;height:28px;">By Type</button>
+            </div>
+          </div>
+          <div id="map-regions"></div>
+        </div>
+        <div id="map-stats">
+          <div class="ms-item">Events <span class="ms-val" id="st-events">—</span></div>
+          <div class="ms-item">Conflicts <span class="ms-val" id="st-conflicts">—</span></div>
+          <div class="ms-item">Hidden <span class="ms-val" id="st-hidden">0</span></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /body -->
+
+  <!-- TICKER -->
+  <div id="ticker">
+    <div id="ticker-label">Breaking</div>
+    <div id="ticker-track">
+      <div id="ticker-inner">
+        <span class="tick-item" style="color:var(--text3);">Aggregating intelligence feeds…</span>
+      </div>
     </div>
   </div>
 
 </div><!-- /app -->
 
-<!-- PANEL OVERLAY -->
-<div id="panel-overlay" onclick="closePanel()"></div>
+<!-- OVERLAY -->
+<div id="overlay" onclick="closePanel()"></div>
 
 <!-- ADMIN PANEL -->
-<div class="side-panel" id="panel-admin" style="width:340px;">
-  <div class="sp-hdr">
+<div class="side-panel" id="panel-admin">
+  <div class="sp-header">
     <span class="sp-title">Admin</span>
     <button class="sp-close" onclick="closePanel()">✕</button>
   </div>
-  <div id="admin-login" style="padding:20px;">
-    <div style="text-align:center;font-family:var(--mono);font-size:10px;color:var(--t2);padding-bottom:12px;">RESTRICTED ACCESS</div>
-    <input id="admin-pwd" type="password" placeholder="Password" class="sp-input"
-      onkeydown="if(event.key==='Enter')adminLogin()" style="margin-bottom:8px;"/>
-    <button onclick="adminLogin()" class="sp-btn">AUTHENTICATE</button>
-    <div id="admin-err" style="font-size:9px;color:var(--red);text-align:center;margin-top:6px;display:none;">INCORRECT PASSWORD</div>
-  </div>
-  <div id="admin-workspace" style="display:none;flex:1;flex-direction:column;padding:14px;">
-    <div style="display:flex;gap:2px;margin-bottom:10px;">
-      <button class="adm-tab on" id="atab-list" onclick="admTab('list',this)">CONFLICTS</button>
-      <button class="adm-tab" id="atab-add" onclick="admTab('add',this)">ADD/EDIT</button>
+  <div class="sp-body">
+    <div id="admin-login">
+      <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">Enter password to access admin controls.</p>
+      <label class="sp-label">Password</label>
+      <input id="admin-pwd" type="password" class="sp-input" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')adminLogin()"/>
+      <button onclick="adminLogin()" class="sp-btn">Authenticate</button>
+      <div id="admin-err">Incorrect password</div>
     </div>
-    <div id="admin-conflict-list" style="flex:1;overflow-y:auto;font-size:9px;"></div>
-    <button onclick="adminPublish()" id="admin-publish-btn" class="sp-btn"
-      style="margin-top:8px;background:rgba(0,224,64,.1);border:1px solid rgba(0,224,64,.25);color:var(--grn);">
-      ↑ PUBLISH TO GITHUB
-    </button>
-    <div id="admin-sync-status" style="font-family:var(--mono);font-size:8px;text-align:center;color:var(--t2);margin-top:5px;min-height:12px;"></div>
+    <div id="admin-workspace" style="display:none;">
+      <div class="sp-section">
+        <label class="sp-label">GitHub Sync</label>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6;">Publish conflict data to <strong>lokiff/worldmonitor</strong>. All users will receive updates within 5 minutes.</p>
+        <button onclick="adminPublish()" id="admin-publish-btn" class="sp-btn" style="background:var(--green);">
+          ↑ Publish to GitHub
+        </button>
+        <div id="admin-sync-status"></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
 <script>
+'use strict';
+
+
 'use strict';
 
 
@@ -803,7 +1170,7 @@ function filterFeed(f, btn, which){
 
 
   if(which==='media') activeCatMedia=f; else activeCatOsint=f;
-  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.closest('.filters').querySelectorAll('.fpill').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   if(which==='media') renderFeed(mediaCache.data, 'feed-media');
   else renderFeed(osintCache.data, 'feed-osint');
@@ -998,7 +1365,7 @@ function renderConflicts(){
 
 function cfFilter(region, btn){
   _cfFilter = region;
-  document.querySelectorAll('#cf-filters .fbtn').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('#cf-filters .cf-filter-btn').forEach(b => b.classList.remove('on'));
   if(btn) btn.classList.add('on');
   renderConflicts();
 }
@@ -1308,17 +1675,7 @@ function toggleMapKey(k){if(_mapHidden.has(k))_mapHidden.delete(k);else _mapHidd
 function setMapMode(mode,btn){_mapMode=mode;_mapHidden.clear();document.querySelectorAll('#map-filter-modes .tb-btn').forEach(x=>x.classList.remove('on'));btn.classList.add('on');const t=document.querySelector('#map-legend .leg-title');if(t)t.textContent=mode==='conflict'?'BY CONFLICT':'BY TYPE';drawMapEvents();buildMapLegend();}
 
 
-function switchModule(name,btn){document.querySelectorAll('.module').forEach(m=>m.classList.remove('on'));document.querySelectorAll('.mod-pill').forEach(x=>x.classList.remove('on'));const mod=document.getElementById('mod-'+name);if(mod)mod.classList.add('on');btn.classList.add('on');if(name==='map'&&!_map)initMap();}
-function openPanel(id){document.getElementById('panel-overlay').style.display='block';document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));const p=document.getElementById('panel-'+id);if(p)p.classList.add('open');}
-function closePanel(){document.getElementById('panel-overlay').style.display='none';document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));}
-function progSet(pct){const fill=document.getElementById('prog-fill'),bar=document.getElementById('prog');if(!fill||!bar)return;bar.classList.remove('idle');fill.style.width=pct+'%';if(pct>=100)setTimeout(()=>{bar.classList.add('idle');setTimeout(()=>{bar.classList.remove('idle');fill.style.width='0%';},700);},200);}
-function colStatus(id,state,text=''){const el=document.getElementById('cs-'+id);if(!el)return;if(state==='loading')el.innerHTML='<span class="spin-sq"></span>';else if(state==='ok')el.innerHTML='<span style="color:var(--grn)">✓</span>'+(text?' '+text:'');else if(state==='err')el.innerHTML='<span style="color:var(--red)">✗</span>';else el.innerHTML='';}
-function setLastUpdated(){const el=document.getElementById('last-upd');if(el)el.textContent=new Date().toISOString().slice(11,16)+' UTC';}
-function doRefresh(){mediaCache={ts:0,data:[]};osintCache={ts:0,data:[]};loadMedia();loadOSINT();}
-function updateBreakingBar(items){if(!items||!items.length)return;const h=items.map(x=>`<span class="brk-item" onclick="openItem('${x.link}')">${x.title}</span><span class="brk-sep">◆</span>`).join('');const el=document.getElementById('brk-inner');if(el)el.innerHTML=h+h;}
-function openAdminPanel(){openPanel('admin');}
 function admTab(t,btn){document.querySelectorAll('.adm-tab').forEach(x=>x.classList.remove('on'));btn.classList.add('on');}
-function adminLogin(){const pwd=document.getElementById('admin-pwd')?.value||'';crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd)).then(buf=>{const hex=[...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');if(hex===ADMIN_PWD_HASH){document.getElementById('admin-login').style.display='none';document.getElementById('admin-workspace').style.display='flex';}else{const e=document.getElementById('admin-err');if(e)e.style.display='block';setTimeout(()=>{if(e)e.style.display='none';},2000);}});}
 
 
 function startClock(){
@@ -1399,7 +1756,6 @@ function init(){
   startAutoRefresh();
   setInterval(_pollRemoteConflicts,300000);
 }
-document.addEventListener('DOMContentLoaded',init);
 
 
 const sortByDate = arr => arr.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
@@ -1421,14 +1777,90 @@ function prependNew(items, feedId){
   el.insertBefore(frag, badge.nextSibling);
 }
 
-function syncMobBadges(){
+
+
+
+// ── UI HELPERS ────────────────────────────────────────────
+function switchModule(name, btn) {
+  document.querySelectorAll('.module').forEach(m => m.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  const mod = document.getElementById('mod-' + name);
+  if (mod) mod.classList.add('on');
+  btn.classList.add('on');
+  if (name === 'map' && !_map) initMap();
+}
+function openPanel(id) {
+  document.getElementById('overlay').style.display = 'block';
+  document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open'));
+  const p = document.getElementById('panel-' + id);
+  if (p) p.classList.add('open');
+}
+function closePanel() {
+  document.getElementById('overlay').style.display = 'none';
+  document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open'));
+}
+function openAdminPanel() { openPanel('admin'); }
+function progSet(pct) {
+  const fill = document.getElementById('prog-fill');
+  const bar  = document.getElementById('prog');
+  if (!fill || !bar) return;
+  bar.classList.remove('idle');
+  fill.style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => {
+    bar.classList.add('idle');
+    setTimeout(() => { bar.classList.remove('idle'); fill.style.width = '0%'; }, 700);
+  }, 300);
+}
+function colStatus(id, state, text = '') {
+  const el = document.getElementById('cs-' + id);
+  if (!el) return;
+  if (state === 'loading') el.innerHTML = '<span class="spin-ring" style="width:10px;height:10px;border-width:1.5px;margin:0;"></span>';
+  else if (state === 'ok')  el.innerHTML = '<span style="color:var(--green);font-size:11px;">✓</span>' + (text ? ' ' + text : '');
+  else if (state === 'err') el.innerHTML = '<span style="color:var(--red);font-size:11px;">✗</span>';
+  else el.innerHTML = '';
+}
+function setLastUpdated() {
+  const el = document.getElementById('last-upd');
+  if (el) el.textContent = new Date().toISOString().slice(11, 16) + ' UTC';
+}
+function doRefresh() {
+  mediaCache = {ts:0, data:[]};
+  osintCache  = {ts:0, data:[]};
+  loadMedia();
+  loadOSINT();
+}
+function updateBreakingBar(items) {
+  if (!items || !items.length) return;
+  const html = items.map(x =>
+    `<span class="tick-item" onclick="openItem('${x.link}')">${x.title}</span>`
+  ).join('');
+  const inner = document.getElementById('ticker-inner');
+  if (inner) inner.innerHTML = html + html;
+}
+function adminLogin() {
+  const pwd = document.getElementById('admin-pwd')?.value || '';
+  crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd)).then(buf => {
+    const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+    if (hex === ADMIN_PWD_HASH) {
+      document.getElementById('admin-login').style.display = 'none';
+      document.getElementById('admin-workspace').style.display = 'block';
+    } else {
+      const err = document.getElementById('admin-err');
+      if (err) err.style.display = 'block';
+      setTimeout(() => { if (err) err.style.display = 'none'; }, 2000);
+    }
+  });
+}
+function syncMobBadges() {
   const mn = document.getElementById('ft-media');
   const mo = document.getElementById('ft-osint');
-  const bn = document.getElementById('mbadge-news');
-  const bo = document.getElementById('mbadge-osint');
-  if(mn && bn) bn.textContent = mn.textContent || '—';
-  if(mo && bo) bo.textContent = mo.textContent || '—';
+  const bn = document.getElementById('ft-media');
+  const bo = document.getElementById('ft-osint');
+  if (mn && bn) bn.textContent = mn.textContent || '';
+  if (mo && bo) bo.textContent = mo.textContent || '';
 }
+
+document.addEventListener('DOMContentLoaded', init);
 
 </script>
 </body>
