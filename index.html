@@ -3,18 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>CONFLICT·TRACKER — World Intelligence Dashboard</title>
+<title>CONFLICT·TRACKER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Mono:wght@400;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════
-   CONFLICT·TRACKER — Nothing OS Design System
-   9 Intelligence Modules in one deployable file
-═══════════════════════════════════════════════════════════ */
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#000;--s1:#0a0a0a;--s2:#111;--s3:#1a1a1a;
+  --bg:#000;--s1:#0a0a0a;--s2:#111;
   --b0:rgba(255,255,255,.055);--b1:rgba(255,255,255,.10);--b2:rgba(255,255,255,.20);
   --t0:#fff;--t1:rgba(255,255,255,.52);--t2:rgba(255,255,255,.22);--t3:rgba(255,255,255,.09);
   --red:#ff2020;--r2:rgba(255,32,32,.07);
@@ -26,16 +22,13 @@
   --body:'Roboto Mono',monospace;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t0);font-family:var(--body);}
-button,input,select,textarea{font-family:inherit;}
+button,input,select{font-family:inherit;}
 ::-webkit-scrollbar{width:2px;height:2px;}
 ::-webkit-scrollbar-thumb{background:var(--b1);}
-
-/* Dot matrix */
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:radial-gradient(circle,rgba(255,255,255,.018) 1px,transparent 1px);
   background-size:4px 4px;}
 
-/* Keyframes */
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.15}}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
 @keyframes dot{0%,100%{opacity:1}50%{opacity:.1}}
@@ -43,7 +36,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes brk{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 @keyframes mrkPulse{0%,100%{opacity:1}50%{opacity:.12}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ── APP SHELL ── */
 #app{display:flex;flex-direction:column;height:100vh;position:relative;z-index:1;}
@@ -52,7 +44,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 #topbar{
   height:40px;flex-shrink:0;background:rgba(0,0,0,.97);
   border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 14px;gap:10px;
+  display:flex;align-items:center;padding:0 14px;gap:8px;
   position:relative;z-index:200;
 }
 #logo{font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:4px;
@@ -72,19 +64,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   display:flex;align-items:center;gap:4px;
   font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase;}
 .tb-btn:hover{background:var(--b0);border-color:var(--b2);color:var(--t0);}
-.tb-btn.on{background:var(--b1);border-color:var(--b2);color:var(--t0);}
 .tb-btn svg{width:11px;height:11px;flex-shrink:0;}
-.tb-sep{width:1px;height:14px;background:var(--b0);}
-
-/* Module nav pills */
 .mod-pill{height:22px;padding:0 8px;background:transparent;border:1px solid var(--b0);
   color:var(--t2);font-size:7px;cursor:pointer;font-family:var(--mono);
   letter-spacing:1px;text-transform:uppercase;transition:all .1s;}
 .mod-pill:hover{color:var(--t1);border-color:var(--b1);}
 .mod-pill.on{background:var(--b1);border-color:var(--b2);color:var(--t0);}
 
-/* Progress */
-#prog{height:1px;flex-shrink:0;background:transparent;}
+/* Progress bar */
+#prog{height:1px;flex-shrink:0;}
 #prog-fill{height:100%;width:0;background:var(--t2);transition:width .2s;}
 #prog.idle #prog-fill{opacity:0;transition:opacity .4s .1s;}
 
@@ -95,15 +83,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .module{display:none;flex:1;min-height:0;overflow:hidden;}
 .module.on{display:flex;}
 
-/* ── PANEL HEADER ── */
-.ph{height:34px;flex-shrink:0;display:flex;align-items:center;padding:0 11px;gap:7px;
-  background:var(--bg);border-bottom:1px solid var(--b1);}
-.ph-title{font-family:var(--head);font-size:7px;font-weight:700;letter-spacing:3px;
+/* ── COLUMN LAYOUT ── */
+.col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--b0);}
+.col:last-child{border-right:none;}
+.col-hdr{height:34px;flex-shrink:0;padding:0 11px;background:var(--bg);
+  border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:7px;}
+.col-title{font-family:var(--head);font-size:7px;font-weight:700;letter-spacing:3px;
   color:var(--t2);text-transform:uppercase;}
-.ph-badge{padding:0 5px;height:13px;line-height:13px;font-family:var(--mono);font-size:7px;
-  background:var(--b0);color:var(--t2);border:1px solid var(--b0);letter-spacing:.5px;margin-left:auto;}
+.col-badge{padding:0 5px;height:13px;line-height:13px;font-family:var(--mono);font-size:7px;
+  background:var(--b0);color:var(--t2);margin-left:auto;letter-spacing:.5px;border:1px solid var(--b0);}
+.col-status{font-family:var(--mono);font-size:7px;color:var(--t2);}
 .ph-dot{width:5px;height:5px;background:var(--red);flex-shrink:0;animation:pulse 2.5s ease infinite;}
-.ph-status{font-family:var(--mono);font-size:7px;color:var(--t2);}
 
 /* ── FILTER BAR ── */
 .fbar{display:flex;gap:2px;padding:4px 9px;flex-shrink:0;
@@ -127,7 +117,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   border-left:2px solid transparent;cursor:pointer;transition:background .06s;
   animation:fi-in .12s ease both;}
 .fitem:hover{background:var(--s1);}
-.fitem.read{opacity:.15;}
+.fitem.read{opacity:.18;}
 .fitem-top{display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
 .ftag{font-size:6px;font-weight:700;padding:1px 4px;letter-spacing:1.2px;
   text-transform:uppercase;font-family:var(--mono);border:1px solid;flex-shrink:0;}
@@ -142,45 +132,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ftitle{font-size:11px;color:var(--t0);line-height:1.5;font-weight:400;}
 .fdesc{font-size:9px;color:var(--t2);line-height:1.4;margin-top:2px;font-family:var(--mono);}
 
-/* ── BREAKING BAR ── */
-#breaking-bar{height:22px;flex-shrink:0;background:var(--bg);
-  border-top:1px solid var(--b1);display:flex;align-items:center;overflow:hidden;z-index:10;}
-.brk-label{flex-shrink:0;padding:0 10px;font-size:7px;font-weight:700;
-  letter-spacing:2.5px;text-transform:uppercase;color:#000;background:var(--red);
-  height:100%;display:flex;align-items:center;font-family:var(--head);}
-.brk-track{flex:1;overflow:hidden;position:relative;height:100%;}
-#brk-inner{display:flex;align-items:center;position:absolute;top:0;height:100%;
-  white-space:nowrap;animation:brk 90s linear infinite;}
-#brk-inner:hover{animation-play-state:paused;}
-.brk-item{padding:0 16px;font-size:8px;color:var(--t1);border-right:1px solid var(--b0);
-  height:22px;display:inline-flex;align-items:center;cursor:pointer;
-  font-family:var(--mono);}
-.brk-item:hover{color:var(--t0);}
-.brk-sep{color:var(--b1);padding:0 4px;font-size:7px;}
-
-/* ── COL LAYOUT (for multi-col modules) ── */
-.col-layout{flex:1;display:flex;min-width:0;overflow:hidden;}
-.col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--b0);}
-.col:last-child{border-right:none;}
-.col-hdr{height:34px;flex-shrink:0;padding:0 11px;background:var(--bg);
-  border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:7px;}
-.col-title{font-family:var(--head);font-size:7px;font-weight:700;letter-spacing:3px;
-  color:var(--t2);text-transform:uppercase;}
-.col-badge{padding:0 5px;height:13px;line-height:13px;font-family:var(--mono);font-size:7px;
-  background:var(--b0);color:var(--t2);margin-left:auto;letter-spacing:.5px;border:1px solid var(--b0);}
-.col-status{font-family:var(--mono);font-size:7px;color:var(--t2);}
-.cs-ok{color:var(--grn)!important;}
-.cs-err{color:var(--red)!important;}
-
-/* ══════════════════════════════════════════════════════════
-   MODULE 1: INTELLIGENCE FEED (news + osint + conflicts)
-══════════════════════════════════════════════════════════ */
-#mod-feed{flex-direction:row;}
-#col-news-feed{width:240px;flex-shrink:0;}
-#col-osint-feed{width:230px;flex-shrink:0;}
-#col-conflicts{width:220px;flex-shrink:0;}
-
-/* Conflicts panel */
+/* ── CONFLICTS COLUMN ── */
 .cf-group-hdr{padding:4px 10px 3px;font-size:7px;font-weight:700;letter-spacing:.9px;
   font-family:var(--mono);border-bottom:1px solid rgba(255,255,255,.05);text-transform:uppercase;}
 .cf-item{padding:7px 10px;border-bottom:1px solid var(--b0);cursor:pointer;transition:background .06s;}
@@ -192,14 +144,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .cf-status-text{font-size:9px;color:var(--t1);line-height:1.5;margin-bottom:5px;}
 .cf-meta{font-family:var(--mono);font-size:7px;color:var(--t2);display:flex;gap:8px;}
 
-/* ══════════════════════════════════════════════════════════
-   MODULE 2: EVENTS MAP (MapLibre)
-══════════════════════════════════════════════════════════ */
+/* ── MAP MODULE ── */
 #mod-map{flex-direction:column;}
 #map-container{flex:1;position:relative;}
 #map-el{position:absolute;inset:0;}
 
-/* Map overlays */
 #map-legend{position:absolute;bottom:28px;left:10px;z-index:10;
   background:rgba(0,0,0,.85);border:1px solid var(--b1);padding:8px 10px;min-width:150px;}
 .leg-title{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--t2);
@@ -213,202 +162,40 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 #map-regions{position:absolute;top:10px;right:10px;z-index:10;
   display:flex;flex-wrap:wrap;gap:3px;max-width:280px;}
 .reg-btn{background:rgba(0,0,0,.8);border:1px solid var(--b1);color:var(--t1);
-  padding:3px 7px;font-size:8px;cursor:pointer;font-family:var(--mono);white-space:nowrap;
-  transition:all .1s;}
+  padding:3px 7px;font-size:8px;cursor:pointer;font-family:var(--mono);white-space:nowrap;transition:all .1s;}
 .reg-btn:hover{background:rgba(0,0,0,.95);border-color:var(--b2);color:var(--t0);}
 
+#map-filter-modes{position:absolute;bottom:28px;right:10px;z-index:10;display:flex;flex-direction:column;gap:3px;}
+
 #map-stats-bar{height:26px;flex-shrink:0;background:rgba(0,0,0,.9);
-  border-top:1px solid var(--b0);display:flex;align-items:center;gap:0;overflow:hidden;}
+  border-top:1px solid var(--b0);display:flex;align-items:center;overflow:hidden;}
 .ms-item{display:flex;align-items:center;gap:5px;padding:0 12px;
   border-right:1px solid var(--b0);height:100%;font-family:var(--mono);font-size:7px;color:var(--t2);}
 .ms-val{color:var(--t0);margin-left:2px;}
 
-/* Map filter modes */
-#map-filter-modes{position:absolute;bottom:28px;right:10px;z-index:10;
-  display:flex;flex-direction:column;gap:3px;}
-
-/* Popup styles */
 .dark-popup .maplibregl-popup-content{background:#0f0f0f!important;color:#e4e4e7!important;
   padding:0!important;border:1px solid rgba(255,255,255,.15)!important;
   box-shadow:0 8px 32px rgba(0,0,0,.8)!important;border-radius:0!important;}
-.dark-popup .maplibregl-popup-close-button{color:#555!important;font-size:16px!important;
-  padding:3px 7px!important;}
+.dark-popup .maplibregl-popup-close-button{color:#555!important;font-size:16px!important;padding:3px 7px!important;}
 .dark-popup .maplibregl-popup-close-button:hover{color:#fff!important;}
-.dark-popup .maplibregl-popup-tip{border-top-color:#0f0f0f!important;
-  border-bottom-color:#0f0f0f!important;}
+.dark-popup .maplibregl-popup-tip{border-top-color:#0f0f0f!important;border-bottom-color:#0f0f0f!important;}
 
-/* ══════════════════════════════════════════════════════════
-   MODULE 3: SATELLITE IMAGERY
-══════════════════════════════════════════════════════════ */
-#mod-satellite{flex-direction:column;}
-#sat-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;
-  gap:2px;padding:2px;background:var(--b0);}
-.sat-card{position:relative;aspect-ratio:16/10;overflow:hidden;cursor:pointer;
-  border:1px solid var(--b0);background:#050505;transition:border-color .15s;}
-.sat-card:hover{border-color:var(--b2);}
-.sat-tile-container{position:absolute;inset:0;}
-.sat-tile-img{position:absolute;image-rendering:auto;}
-.sat-overlay{position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.5) 40%,rgba(0,0,0,.1) 100%);}
-.sat-scanlines{position:absolute;inset:0;pointer-events:none;opacity:.04;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.1) 2px,rgba(255,255,255,.1) 3px);}
-.sat-crosshair{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
-.sat-info{position:absolute;bottom:0;left:0;right:0;padding:7px 8px;}
-.sat-status{position:absolute;top:5px;left:5px;display:flex;align-items:center;gap:4px;}
-.sat-status-badge{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:1.5px;
-  padding:1px 5px;text-transform:uppercase;}
-.sat-live{position:absolute;top:5px;right:5px;}
-.sat-ping{width:5px;height:5px;border-radius:50%;display:block;position:relative;}
-.sat-name{font-size:10px;font-weight:600;color:#fff;margin-bottom:2px;}
-.sat-region{font-size:8px;color:var(--t2);font-family:var(--mono);}
-.sat-coords{font-size:7px;color:var(--t2);font-family:var(--mono);margin-top:2px;}
-.sat-expand-hint{font-size:7px;color:var(--t2);float:right;}
-
-/* Sat detail overlay */
-#sat-detail{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.95);
-  display:none;flex-direction:column;}
-#sat-detail.on{display:flex;}
-#sat-detail-hdr{height:42px;display:flex;align-items:center;padding:0 14px;gap:10px;
-  border-bottom:1px solid var(--b1);flex-shrink:0;}
-#sat-detail-map{flex:1;position:relative;}
-#sat-detail-map-el{position:absolute;inset:0;}
-#sat-detail-footer{padding:5px 14px;border-top:1px solid var(--b0);flex-shrink:0;
-  font-family:var(--mono);font-size:8px;color:var(--t2);display:flex;justify-content:space-between;}
-
-/* ══════════════════════════════════════════════════════════
-   MODULE 4: DEATH TRACKER
-══════════════════════════════════════════════════════════ */
-#mod-deaths{flex-direction:column;overflow-y:auto;}
-#deaths-header{flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--b1);}
-.deaths-stats{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--b0);}
-.deaths-stat{padding:10px 12px;border-right:1px solid var(--b0);}
-.deaths-stat:last-child{border-right:none;}
-.deaths-stat-label{font-family:var(--mono);font-size:7px;letter-spacing:1.5px;
-  text-transform:uppercase;color:var(--t2);margin-bottom:3px;}
-.deaths-stat-val{font-family:var(--head);font-size:20px;font-weight:700;}
-#deaths-list{padding:8px;}
-.dc-item{border:1px solid var(--b0);margin-bottom:4px;cursor:pointer;transition:background .06s;}
-.dc-item:hover{background:var(--s1);}
-.dc-row{display:flex;align-items:center;gap:8px;padding:7px 10px;}
-.dc-deaths{flex-shrink:0;width:44px;text-align:center;}
-.dc-deaths-num{font-family:var(--head);font-size:16px;font-weight:700;}
-.dc-deaths-lbl{font-family:var(--mono);font-size:7px;color:var(--t2);}
-.dc-info{flex:1;min-width:0;}
-.dc-name{font-size:11px;font-weight:600;color:var(--t0);}
-.dc-sub{font-size:8px;color:var(--t2);font-family:var(--mono);margin-top:2px;}
-.dc-spark{display:flex;align-items:flex-end;gap:1px;height:16px;flex-shrink:0;}
-.dc-bar{width:4px;min-height:2px;}
-.dc-expand{display:none;padding:0 10px 8px;border-top:1px solid var(--b0);}
-.dc-expand.on{display:block;}
-.dc-expand-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:6px;}
-.dc-stat-box{background:rgba(255,255,255,.03);padding:5px;border:1px solid var(--b0);}
-.dc-stat-box-label{font-family:var(--mono);font-size:7px;color:var(--t2);letter-spacing:.5px;}
-.dc-stat-box-val{font-size:11px;font-weight:600;margin-top:1px;}
-.dc-desc{font-size:9px;color:var(--t1);line-height:1.5;margin-bottom:5px;}
-.badge-war{color:var(--red);border:1px solid rgba(255,32,32,.25);}
-.badge-conflict{color:var(--amb);border:1px solid rgba(255,140,0,.25);}
-.badge-lowlevel{color:var(--t1);border:1px solid var(--b1);}
-.trend-up{color:var(--red);}
-.trend-dn{color:var(--grn);}
-.trend-st{color:var(--t2);}
-
-/* ══════════════════════════════════════════════════════════
-   MODULE 5: COMMODITIES & MARKETS
-══════════════════════════════════════════════════════════ */
-#mod-markets{flex-direction:column;overflow-y:auto;}
-#markets-header{flex-shrink:0;padding:8px 12px 0;border-bottom:1px solid var(--b1);}
-.mkt-section{padding:8px 12px 4px;}
-.mkt-section-title{font-family:var(--mono);font-size:7px;letter-spacing:2px;
-  color:var(--t2);text-transform:uppercase;margin-bottom:5px;}
-.mkt-table{width:100%;border-collapse:collapse;}
-.mkt-table th{font-family:var(--mono);font-size:7px;color:var(--t2);letter-spacing:.5px;
-  text-transform:uppercase;padding:3px 6px;text-align:right;font-weight:400;border-bottom:1px solid var(--b0);}
-.mkt-table th:first-child{text-align:left;}
-.mkt-table td{padding:4px 6px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03);}
-.mkt-table tr:hover td{background:var(--b0);}
-.mkt-name{color:var(--t0);font-family:var(--mono);}
-.mkt-cat{font-size:7px;padding:1px 4px;border:1px solid;font-family:var(--mono);letter-spacing:.5px;}
-.cat-metal{color:#facc15;border-color:rgba(250,204,21,.25);}
-.cat-energy{color:var(--red);border-color:rgba(255,32,32,.25);}
-.cat-agri{color:var(--grn);border-color:rgba(0,224,64,.2);}
-.cat-crypto{color:var(--blu);border-color:rgba(68,136,255,.2);}
-.cat-fx{color:var(--t1);border-color:var(--b1);}
-.mkt-val{color:var(--t0);text-align:right;font-family:var(--mono);}
-.mkt-chg{text-align:right;font-family:var(--mono);font-size:9px;}
-.mkt-up{color:var(--grn);}
-.mkt-dn{color:var(--red);}
-.mkt-flat{color:var(--t2);}
-.mkt-badge-up{background:rgba(0,224,64,.08);color:var(--grn);padding:1px 4px;font-size:8px;}
-.mkt-badge-dn{background:var(--r2);color:var(--red);padding:1px 4px;font-size:8px;}
-
-/* ══════════════════════════════════════════════════════════
-   MODULE 6: TELEGRAM OSINT
-══════════════════════════════════════════════════════════ */
-#mod-telegram{flex-direction:column;}
-.tg-post{padding:7px 11px;border-bottom:1px solid var(--b0);border-left:2px solid transparent;}
-.tg-post:hover{background:var(--s1);}
-.tg-hdr{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap;}
-.tg-channel{font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;
-  letter-spacing:.5px;text-transform:uppercase;}
-.tg-region{font-size:7px;color:var(--t2);background:var(--b0);padding:1px 4px;}
-.tg-time{font-size:7px;color:var(--t2);font-family:var(--mono);margin-left:auto;}
-.tg-text{font-size:11px;color:rgba(255,255,255,.82);line-height:1.5;}
-.tg-link{font-size:8px;color:var(--t2);font-family:var(--mono);margin-top:3px;
-  display:block;text-decoration:none;}
-.tg-link:hover{color:var(--t0);}
-.tg-new{background:var(--red);color:#000;font-size:7px;font-weight:700;
-  padding:1px 4px;animation:blink 1.5s step-end infinite;}
-.tg-filter-bar{display:flex;gap:2px;padding:4px 8px;flex-shrink:0;
-  border-bottom:1px solid var(--b0);background:var(--s1);overflow-x:auto;}
-.tg-filter-bar::-webkit-scrollbar{display:none;}
-
-/* ══════════════════════════════════════════════════════════
-   MODULE 7: AIRSPACE / NOTAM
-══════════════════════════════════════════════════════════ */
-#mod-airspace{flex-direction:column;}
-.notam-alert-bar{flex-shrink:0;padding:5px 12px;
-  display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--b1);}
-.notam-alert-crit{background:rgba(255,32,32,.08);border-color:rgba(255,32,32,.3);}
-.notam-item{padding:7px 11px;border-bottom:1px solid var(--b0);
-  border-left:3px solid transparent;cursor:pointer;transition:background .06s;}
-.notam-item:hover{background:var(--s1);}
-.notam-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap;}
-.notam-type{font-family:var(--mono);font-size:7px;font-weight:700;padding:1px 4px;letter-spacing:1px;}
-.notam-id{font-family:var(--mono);font-size:9px;color:var(--t0);font-weight:700;}
-.notam-new{background:var(--amb);color:#000;font-size:7px;font-weight:700;padding:1px 4px;}
-.notam-crit{background:var(--red);color:#fff;font-size:7px;font-weight:700;padding:1px 4px;}
-.notam-loc{font-size:10px;color:var(--t0);}
-.notam-meta{font-family:var(--mono);font-size:7px;color:var(--t2);display:flex;gap:10px;margin-top:3px;}
-.notam-desc{font-size:8px;color:var(--t2);font-family:var(--mono);margin-top:3px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.notam-expand{display:none;padding:6px 0;border-top:1px solid var(--b0);margin-top:5px;}
-.notam-expand.on{display:block;}
-.notam-raw{font-family:var(--mono);font-size:8px;color:rgba(255,140,0,.85);
-  white-space:pre-wrap;background:rgba(0,0,0,.3);padding:6px;border:1px solid var(--b0);}
-.notam-kw{font-size:7px;padding:1px 4px;background:var(--b0);color:var(--t2);
-  border:1px solid var(--b0);display:inline-block;margin:1px;}
-
-/* Ticker */
-#notam-ticker{height:22px;flex-shrink:0;background:var(--bg);
-  border-top:1px solid var(--b0);display:flex;align-items:center;overflow:hidden;}
-.ntick-label{flex-shrink:0;padding:0 10px;font-size:7px;font-weight:700;
-  letter-spacing:2px;color:#000;background:var(--amb);
+/* ── BREAKING BAR ── */
+#breaking-bar{height:22px;flex-shrink:0;background:var(--bg);
+  border-top:1px solid var(--b1);display:flex;align-items:center;overflow:hidden;z-index:10;}
+.brk-label{flex-shrink:0;padding:0 10px;font-size:7px;font-weight:700;
+  letter-spacing:2.5px;text-transform:uppercase;color:#000;background:var(--red);
   height:100%;display:flex;align-items:center;font-family:var(--head);}
-.ntick-track{flex:1;overflow:hidden;position:relative;height:100%;}
-#ntick-inner{display:flex;align-items:center;position:absolute;top:0;height:100%;
-  white-space:nowrap;animation:brk 100s linear infinite;}
-.ntick-item{padding:0 14px;font-size:8px;color:rgba(255,140,0,.7);
-  border-right:1px solid var(--b0);height:22px;display:inline-flex;align-items:center;
-  font-family:var(--mono);}
+.brk-track{flex:1;overflow:hidden;position:relative;height:100%;}
+#brk-inner{display:flex;align-items:center;position:absolute;top:0;height:100%;
+  white-space:nowrap;animation:brk 90s linear infinite;}
+#brk-inner:hover{animation-play-state:paused;}
+.brk-item{padding:0 16px;font-size:8px;color:var(--t1);border-right:1px solid var(--b0);
+  height:22px;display:inline-flex;align-items:center;cursor:pointer;font-family:var(--mono);}
+.brk-item:hover{color:var(--t0);}
+.brk-sep{color:var(--b1);padding:0 4px;font-size:7px;}
 
-/* ══════════════════════════════════════════════════════════
-   SHARED UTILITIES
-══════════════════════════════════════════════════════════ */
-.spin-ring{display:inline-block;width:12px;height:12px;
-  border:1.5px solid var(--b1);border-top-color:var(--t1);
-  border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px;}
-
-/* Side panel (admin/settings) */
+/* ── SIDE PANELS ── */
 #panel-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.55);display:none;}
 .side-panel{position:fixed;top:0;right:0;bottom:0;width:300px;z-index:1201;
   background:#040404;border-left:1px solid var(--b1);display:flex;flex-direction:column;
@@ -435,12 +222,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .sp-btn-ghost{width:100%;padding:7px;background:transparent;border:1px solid var(--b1);
   color:var(--t2);font-size:8px;cursor:pointer;transition:all .1s;margin-top:5px;font-family:var(--mono);}
 .sp-btn-ghost:hover{border-color:var(--b2);color:var(--t0);}
-
-/* Tabs in side panels */
 .adm-tab{flex:1;padding:9px 4px;background:none;border:none;border-bottom:2px solid transparent;
   color:var(--t2);font-size:9px;cursor:pointer;transition:all .1s;font-family:var(--mono);}
 .adm-tab.on{color:var(--t0);border-bottom-color:var(--t0);}
-
 </style>
 </head>
 <body>
@@ -453,25 +237,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <span id="clock">--:--:-- UTC</span>
     <div class="live-badge"><span></span>LIVE</div>
     <div class="tb-div"></div>
-    <!-- Module navigation -->
     <button class="mod-pill on" onclick="switchModule('feed',this)">FEEDS</button>
     <button class="mod-pill" onclick="switchModule('map',this)">MAP</button>
-    <button class="mod-pill" onclick="switchModule('satellite',this)">SAT</button>
-    <button class="mod-pill" onclick="switchModule('deaths',this)">DEATHS</button>
-    <button class="mod-pill" onclick="switchModule('markets',this)">MARKETS</button>
-    <button class="mod-pill" onclick="switchModule('telegram',this)">TELEGRAM</button>
-    <button class="mod-pill" onclick="switchModule('airspace',this)">AIRSPACE</button>
     <div id="tb-right">
       <span id="last-upd" style="font-family:var(--mono);font-size:7px;color:var(--t2);">—</span>
-      <div class="tb-sep"></div>
-      <button class="tb-btn" onclick="refreshAll()">
+      <div style="width:1px;height:14px;background:var(--b0);"></div>
+      <button class="tb-btn" onclick="doRefresh()">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M13 2.5A6.5 6.5 0 1 1 8 1.5"/><path d="M13 2.5V6h-3.5"/></svg>
         SYNC
       </button>
-      <button class="tb-btn" onclick="openPanel('settings')">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg>
-      </button>
-      <button class="tb-btn" onclick="openAdminPanel()" style="border-color:rgba(255,32,32,.25);color:var(--red);">
+      <button class="tb-btn" onclick="openPanel('admin')" style="border-color:rgba(255,32,32,.25);color:var(--red);">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M8 1l6 3v4c0 4-3 6.5-6 7.5C5 14.5 2 12 2 8V4l6-3z"/></svg>
       </button>
     </div>
@@ -481,10 +256,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <!-- MAIN -->
   <div id="main">
 
-    <!-- ══ MODULE 1: FEEDS ══ -->
-    <div class="module on" id="mod-feed">
+    <!-- ══ MODULE: FEEDS ══ -->
+    <div class="module on" id="mod-feed" style="flex-direction:row;">
+
       <!-- News -->
-      <div class="col" id="col-news-feed">
+      <div class="col">
         <div class="col-hdr">
           <div class="ph-dot"></div>
           <span class="col-title">Noticias</span>
@@ -501,11 +277,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
           <button class="fbtn hot" onclick="filterFeed('breaking',this,'media')">⬤ FLASH</button>
         </div>
         <div class="feed" id="feed-media">
-          <div class="fstatus"><span class="spin-sq"></span>Aggregating...</div>
+          <div class="fstatus"><span class="spin-sq"></span>Aggregating feeds...</div>
         </div>
       </div>
+
       <!-- OSINT -->
-      <div class="col" id="col-osint-feed">
+      <div class="col">
         <div class="col-hdr">
           <span class="col-title">OSINT</span>
           <span class="col-badge" id="ft-osint">—</span>
@@ -522,8 +299,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
           <div class="fstatus"><span class="spin-sq"></span>Loading OSINT...</div>
         </div>
       </div>
-      <!-- Conflicts column -->
-      <div class="col" id="col-conflicts" style="width:220px;flex-shrink:0;max-width:220px;">
+
+      <!-- Conflicts -->
+      <div class="col" style="width:220px;flex-shrink:0;max-width:220px;">
         <div class="col-hdr">
           <span style="width:6px;height:6px;background:var(--red);display:inline-block;animation:mrkPulse 1.5s ease infinite;flex-shrink:0;"></span>
           <span class="col-title">Conflicts</span>
@@ -538,14 +316,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         </div>
         <div class="feed" id="cf-list"></div>
       </div>
+
     </div><!-- /mod-feed -->
 
-    <!-- ══ MODULE 2: EVENTS MAP ══ -->
+    <!-- ══ MODULE: MAP ══ -->
     <div class="module" id="mod-map">
       <div id="map-container">
         <div id="map-el"></div>
         <div id="map-legend">
-          <div class="leg-title">EVENT TYPE</div>
+          <div class="leg-title">BY CONFLICT</div>
           <div id="map-legend-items"></div>
         </div>
         <div id="map-regions"></div>
@@ -559,163 +338,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         <div class="ms-item">CONFLICTS <span class="ms-val" id="st-conflicts">—</span></div>
         <div class="ms-item">HIDDEN <span class="ms-val" id="st-hidden">0</span></div>
       </div>
-    </div><!-- /mod-map -->
-
-    <!-- ══ MODULE 3: SATELLITE ══ -->
-    <div class="module" id="mod-satellite">
-      <div class="ph">
-        <div class="ph-dot" style="background:var(--blu);"></div>
-        <span class="ph-title">Satellite Imagery — Conflict Zones</span>
-        <div style="display:flex;gap:3px;margin-left:auto;" id="sat-filter-row">
-          <button class="fbtn on" onclick="satFilter(null,this)">ALL</button>
-          <button class="fbtn" onclick="satFilter('critical',this)">CRITICAL</button>
-          <button class="fbtn" onclick="satFilter('intense',this)">INTENSE</button>
-          <button class="fbtn" onclick="satFilter('escalating',this)">ESCALATING</button>
-          <button class="fbtn" onclick="satFilter('active',this)">ACTIVE</button>
-        </div>
-      </div>
-      <div id="sat-grid"></div>
     </div>
-    <!-- Satellite detail overlay -->
-    <div id="sat-detail">
-      <div id="sat-detail-hdr">
-        <div id="sat-detail-dot" style="width:10px;height:10px;border-radius:50%;flex-shrink:0;"></div>
-        <div style="flex:1;">
-          <div id="sat-detail-name" style="font-size:13px;font-weight:600;color:var(--t0);"></div>
-          <div id="sat-detail-sub" style="font-family:var(--mono);font-size:9px;color:var(--t2);"></div>
-        </div>
-        <button class="tb-btn" onclick="closeSatDetail()">✕ CLOSE</button>
-      </div>
-      <div id="sat-detail-map" style="flex:1;position:relative;">
-        <div id="sat-detail-map-el" style="position:absolute;inset:0;"></div>
-        <div style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;z-index:5;">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" opacity=".25">
-            <line x1="14" y1="0" x2="14" y2="28" stroke="#ef4444" stroke-width="1"/>
-            <line x1="0" y1="14" x2="28" y2="14" stroke="#ef4444" stroke-width="1"/>
-            <circle cx="14" cy="14" r="4" stroke="#ef4444" stroke-width="1" fill="none"/>
-          </svg>
-        </div>
-      </div>
-      <div id="sat-detail-footer">
-        <span id="sat-detail-desc" style="color:var(--t1);"></span>
-        <span>Scroll to zoom · Drag to pan</span>
-      </div>
-    </div><!-- /sat-detail -->
-
-    <!-- ══ MODULE 4: DEATH TRACKER ══ -->
-    <div class="module" id="mod-deaths">
-      <div id="deaths-header">
-        <div class="deaths-stats">
-          <div class="deaths-stat">
-            <div class="deaths-stat-label">Est. Deaths Today</div>
-            <div class="deaths-stat-val" id="dt-today" style="color:var(--red);">—</div>
-          </div>
-          <div class="deaths-stat">
-            <div class="deaths-stat-label">Active Zones</div>
-            <div class="deaths-stat-val" id="dt-zones" style="color:var(--blu);">—</div>
-          </div>
-          <div class="deaths-stat">
-            <div class="deaths-stat-label">Escalating</div>
-            <div class="deaths-stat-val" id="dt-escalating" style="color:var(--amb);">—</div>
-          </div>
-        </div>
-        <div style="padding:4px 12px;font-family:var(--mono);font-size:7px;color:var(--t2);border-bottom:1px solid var(--b0);">
-          Estimates based on ACLED, UCDP & ICG methodologies · Daily variation model-generated
-        </div>
-        <div class="fbar" id="deaths-filter">
-          <button class="fbtn on" onclick="deathsFilter('all',this)">ALL</button>
-          <button class="fbtn" onclick="deathsFilter('major_war',this)">MAJOR WAR</button>
-          <button class="fbtn" onclick="deathsFilter('war',this)">WAR</button>
-          <button class="fbtn" onclick="deathsFilter('conflict',this)">CONFLICT</button>
-          <button class="fbtn" onclick="deathsFilter('escalating',this)">↑ ESCALATING</button>
-        </div>
-      </div>
-      <div id="deaths-list" style="flex:1;overflow-y:auto;padding:6px;"></div>
-    </div><!-- /mod-deaths -->
-
-    <!-- ══ MODULE 5: MARKETS ══ -->
-    <div class="module" id="mod-markets">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 12px;flex-shrink:0;border-bottom:1px solid var(--b0);">
-        <span style="font-family:var(--mono);font-size:7px;color:var(--t2);letter-spacing:1px;">SOURCE: YAHOO FINANCE · FUTURES · AUTO-REFRESH 60s</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span id="mkt-countdown" style="font-family:var(--mono);font-size:8px;color:var(--t2);">—</span>
-          <button class="tb-btn" onclick="refreshMarkets(true)">REFRESH</button>
-        </div>
-      </div>
-      <div style="flex:1;overflow-y:auto;">
-        <div class="mkt-section">
-          <div class="mkt-section-title">Commodities — Energy & Metals</div>
-          <table class="mkt-table"><thead><tr>
-            <th style="text-align:left;">Asset</th><th>Type</th><th>Price</th><th>Change</th><th>%</th>
-          </tr></thead><tbody id="mkt-commodities"></tbody></table>
-        </div>
-        <div class="mkt-section" style="border-top:1px solid var(--b0);">
-          <div class="mkt-section-title">Equity Indices</div>
-          <table class="mkt-table"><thead><tr>
-            <th style="text-align:left;">Index</th><th></th><th>Price</th><th>Change</th><th>%</th>
-          </tr></thead><tbody id="mkt-indices"></tbody></table>
-        </div>
-        <div class="mkt-section" style="border-top:1px solid var(--b0);">
-          <div class="mkt-section-title">Crypto</div>
-          <table class="mkt-table"><thead><tr>
-            <th style="text-align:left;">Asset</th><th></th><th>Price</th><th>Change</th><th>%</th>
-          </tr></thead><tbody id="mkt-crypto"></tbody></table>
-        </div>
-        <div class="mkt-section" style="border-top:1px solid var(--b0);">
-          <div class="mkt-section-title">FX — Major Pairs</div>
-          <table class="mkt-table"><thead><tr>
-            <th style="text-align:left;">Pair</th><th></th><th>Rate</th><th>Change</th><th>%</th>
-          </tr></thead><tbody id="mkt-fx"></tbody></table>
-        </div>
-      </div>
-    </div><!-- /mod-markets -->
-
-    <!-- ══ MODULE 6: TELEGRAM OSINT ══ -->
-    <div class="module" id="mod-telegram">
-      <div class="ph">
-        <div class="ph-dot" style="background:var(--red);"></div>
-        <span class="ph-title">Telegram OSINT Monitor</span>
-        <span id="tg-count" class="ph-badge">—</span>
-        <button class="tb-btn" style="margin-left:4px;" onclick="refreshTelegram()">REFRESH</button>
-      </div>
-      <div class="tg-filter-bar" id="tg-region-bar">
-        <button class="fbtn on" onclick="tgFilter(null,null,this)">ALL</button>
-      </div>
-      <div class="tg-filter-bar" id="tg-channel-bar" style="padding-top:0;">
-      </div>
-      <div class="feed" id="tg-feed">
-        <div class="fstatus"><span class="spin-sq"></span>Scanning channels...</div>
-      </div>
-    </div><!-- /mod-telegram -->
-
-    <!-- ══ MODULE 7: AIRSPACE / NOTAM ══ -->
-    <div class="module" id="mod-airspace">
-      <div id="notam-alert-bar" class="notam-alert-bar">
-        <span id="notam-level-badge" style="font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 7px;letter-spacing:1px;"></span>
-        <span id="notam-summary" style="font-family:var(--mono);font-size:8px;color:var(--t1);"></span>
-      </div>
-      <div class="fbar" id="notam-filter-bar">
-        <span style="font-family:var(--mono);font-size:7px;color:var(--t2);letter-spacing:1px;margin-right:4px;">RGN</span>
-        <button class="fbtn on" onclick="notamFilter('region','Global',this)">ALL</button>
-        <button class="fbtn" onclick="notamFilter('region','Europe',this)">EUROPE</button>
-        <button class="fbtn" onclick="notamFilter('region','Middle East',this)">ME</button>
-        <button class="fbtn" onclick="notamFilter('region','Asia-Pacific',this)">APAC</button>
-        <button class="fbtn" onclick="notamFilter('region','Americas',this)">AMER</button>
-        <button class="fbtn" onclick="notamFilter('region','Africa',this)">AF</button>
-        <div class="tb-sep" style="margin:0 4px;"></div>
-        <span style="font-family:var(--mono);font-size:7px;color:var(--t2);letter-spacing:1px;margin-right:4px;">TYPE</span>
-        <button class="fbtn on" onclick="notamFilter('type','All',this)">ALL</button>
-        <button class="fbtn" onclick="notamFilter('type','CONFLICT',this)">CONFLICT</button>
-        <button class="fbtn" onclick="notamFilter('type','MIL',this)">MIL</button>
-        <button class="fbtn" onclick="notamFilter('type','TFR',this)">TFR</button>
-        <button class="fbtn" onclick="notamFilter('type','LAUNCH',this)">LAUNCH</button>
-      </div>
-      <div class="feed" id="notam-list"></div>
-      <div id="notam-ticker">
-        <div class="ntick-label">NOTAM</div>
-        <div class="ntick-track"><div id="ntick-inner"></div></div>
-      </div>
-    </div><!-- /mod-airspace -->
 
   </div><!-- /main -->
 
@@ -723,44 +346,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <div id="breaking-bar">
     <div class="brk-label">BREAKING</div>
     <div class="brk-track">
-      <div id="brk-inner">
-        <span class="brk-item" style="color:var(--t2);">Aggregating intelligence feeds...</span>
-      </div>
+      <div id="brk-inner"><span class="brk-item" style="color:var(--t2);">Aggregating feeds...</span></div>
     </div>
   </div>
 
 </div><!-- /app -->
 
-<!-- SETTINGS PANEL -->
+<!-- PANEL OVERLAY -->
 <div id="panel-overlay" onclick="closePanel()"></div>
-<div class="side-panel" id="panel-settings">
-  <div class="sp-hdr">
-    <span class="sp-title">Settings</span>
-    <button class="sp-close" onclick="closePanel()">✕</button>
-  </div>
-  <div class="sp-body">
-    <div class="sp-section">
-      <span class="sp-label">Display</span>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:10px;color:var(--t1);">Light mode</span>
-        <button class="tb-btn" onclick="toggleTheme()" id="theme-btn">TOGGLE</button>
-      </div>
-    </div>
-    <div class="sp-section">
-      <span class="sp-label">Last Updated</span>
-      <div id="settings-lastupdated" style="font-family:var(--mono);font-size:9px;color:var(--t2);">—</div>
-    </div>
-    <div class="sp-section">
-      <span class="sp-label">About</span>
-      <div style="font-size:9px;color:var(--t2);line-height:1.7;font-family:var(--mono);">
-        CONFLICT·TRACKER<br>
-        7 Intelligence Modules<br>
-        Built on infinite-monitor widgets<br>
-        Static · GitHub Pages deployable
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ADMIN PANEL -->
 <div class="side-panel" id="panel-admin" style="width:340px;">
@@ -768,28 +361,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <span class="sp-title">Admin</span>
     <button class="sp-close" onclick="closePanel()">✕</button>
   </div>
-  <div id="admin-login" class="sp-body">
-    <div style="padding:16px 0 8px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--t2);">
-      RESTRICTED ACCESS
-    </div>
+  <div id="admin-login" style="padding:20px;">
+    <div style="text-align:center;font-family:var(--mono);font-size:10px;color:var(--t2);padding-bottom:12px;">RESTRICTED ACCESS</div>
     <input id="admin-pwd" type="password" placeholder="Password" class="sp-input"
       onkeydown="if(event.key==='Enter')adminLogin()" style="margin-bottom:8px;"/>
     <button onclick="adminLogin()" class="sp-btn">AUTHENTICATE</button>
-    <div id="admin-err" style="font-size:9px;color:var(--red);text-align:center;margin-top:6px;display:none;">
-      INCORRECT PASSWORD
-    </div>
+    <div id="admin-err" style="font-size:9px;color:var(--red);text-align:center;margin-top:6px;display:none;">INCORRECT PASSWORD</div>
   </div>
-  <div id="admin-workspace" style="display:none;flex:1;flex-direction:column;">
-    <div style="padding:10px 14px;font-size:9px;color:var(--t2);font-family:var(--mono);">
-      Admin panel — manage conflict data, publish to GitHub
+  <div id="admin-workspace" style="display:none;flex:1;flex-direction:column;padding:14px;">
+    <div style="display:flex;gap:2px;margin-bottom:10px;">
+      <button class="adm-tab on" id="atab-list" onclick="admTab('list',this)">CONFLICTS</button>
+      <button class="adm-tab" id="atab-add" onclick="admTab('add',this)">ADD/EDIT</button>
     </div>
-    <div style="padding:0 14px;">
-      <button onclick="adminPublish()" id="admin-publish-btn" class="sp-btn"
-        style="background:rgba(0,224,64,.1);border:1px solid rgba(0,224,64,.25);color:var(--grn);">
-        ↑ PUBLISH TO GITHUB
-      </button>
-      <div id="admin-sync-status" style="font-family:var(--mono);font-size:8px;text-align:center;color:var(--t2);margin-top:5px;min-height:12px;"></div>
-    </div>
+    <div id="admin-conflict-list" style="flex:1;overflow-y:auto;font-size:9px;"></div>
+    <button onclick="adminPublish()" id="admin-publish-btn" class="sp-btn"
+      style="margin-top:8px;background:rgba(0,224,64,.1);border:1px solid rgba(0,224,64,.25);color:var(--grn);">
+      ↑ PUBLISH TO GITHUB
+    </button>
+    <div id="admin-sync-status" style="font-family:var(--mono);font-size:8px;text-align:center;color:var(--t2);margin-top:5px;min-height:12px;"></div>
   </div>
 </div>
 
@@ -797,34 +386,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════════
-// CONFLICT·TRACKER — Full Dashboard JavaScript
-// 7 Modules: Feeds · Map · Satellite · Deaths · Markets · Telegram · Airspace
-// ═══════════════════════════════════════════════════════════
 
-// ── Config ──────────────────────────────────────────────
 const WORKER = 'https://conflicttracker.itugil-xabi.workers.dev';
-
 const GH_OWNER = 'lokiff';
 const GH_REPO  = 'worldmonitor';
 const GH_FILE  = 'conflicts.json';
-const GH_TOKEN = '';  // ← paste your GitHub fine-grained token here
-
+const GH_TOKEN = '';
 const GH_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
 const GH_RAW  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${GH_FILE}`;
-let _ghFileSha = '';
+const ADMIN_PWD_HASH = 'f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
+const SK_CONFLICTS = 'ct_map_conflicts';
+const SK_DRAWINGS  = 'ct_map_drawings';
+const CF_INTENSITY = {
+  3:{label:'GUERRA',col:'var(--red)',dot:'var(--red)',pulse:true},
+  2:{label:'CONFLICTO',col:'var(--amb)',dot:'var(--amb)',pulse:false},
+  1:{label:'TENSIÓN',col:'var(--t1)',dot:'var(--t1)',pulse:false},
+};
+let _ghFileSha=''; let mediaCache={ts:0,data:[]}; let osintCache={ts:0,data:[]};
+let brkLoaded=false; let activeCatMedia='all'; let activeCatOsint='all';
+let readSet=new Set(JSON.parse(localStorage.getItem('ct_read')||'[]'));
+let savedItems=JSON.parse(localStorage.getItem('ct_saved')||'[]');
+let customSources=JSON.parse(localStorage.getItem('ct_custom')||'[]');
+let _cfFilter='all'; let _drawLayers=[]; let _refreshing=false;
 
-// ── State ────────────────────────────────────────────────
-let mediaCache = {ts:0,data:[]};
-let osintCache = {ts:0,data:[]};
-let readSet = new Set(JSON.parse(localStorage.getItem('ct_read')||'[]'));
-let customSources = JSON.parse(localStorage.getItem('ct_custom')||'[]');
-let activeCatMedia = 'all';
-let activeCatOsint = 'all';
-let _refreshing = false;
-let brkLoaded = false;
 
-// ── NEWS SOURCES ──────────────────────────────────────────
 const MEDIA_SOURCES = [
   // ── CORS-open (load directly, instant) ──────────────────
   {url:'https://www.aljazeera.com/xml/rss/all.xml',                        n:'Al Jazeera',       cat:'general'},
@@ -855,6 +440,7 @@ const MEDIA_SOURCES = [
   {url:'https://thewarzone.com/feed/',                                     n:'The War Zone',     cat:'general'},
 ];
 
+
 const OSINT_SOURCES = [
   // ── OSINT / análisis ────────────────────────────────────
   {url:'https://www.understandingwar.org/feed',                            n:'ISW',              cat:'ukraine'},
@@ -868,9 +454,6 @@ const OSINT_SOURCES = [
   {url:'https://www.worldpoliticsreview.com/rss',                          n:'World Politics',   cat:'general'},
 ];
 
-// Breaking news RSS — world conflicts focus
-
-// ── CURATED CONFLICT LIST ─────────────────────────────────
 
 const CONFLICTS = [
   // ── EUROPA ──────────────────────────────────────────────
@@ -1035,20 +618,320 @@ const CONFLICTS = [
   },
 ];
 
-let _cfFilter = 'all';
 
-
-const CF_INTENSITY = {
-  3: {label:'GUERRA',     col:'var(--red)', dot:'var(--red)', pulse:true},
-  2: {label:'CONFLICTO',  col:'var(--amb)', dot:'var(--amb)', pulse:false},
-  1: {label:'TENSIÓN',    col:'var(--t1)',  dot:'var(--t1)',  pulse:false},
+const KEYWORDS = {
+  breaking: /\b(breaking|urgent|alert|flash|explosion|attack|killed|strike|missile|bomb|crisis|war|invasion|offensive)\b/i,
+  ukraine:  /\b(ukraine|russia|kyiv|moscow|donetsk|zaporizhzhia|kharkiv|crimea|nato|zelensky|putin|kursk)\b/i,
+  mideast:  /\b(israel|gaza|hamas|iran|lebanon|hezbollah|syria|iraq|yemen|houthi|saudi|west bank|rafah|idf)\b/i,
+  africa:   /\b(africa|sudan|mali|burkina|niger|somalia|ethiopia|congo|drc|kenya|nigeria|sahel|rwanda|m23)\b/i,
+  asia:     /\b(china|taiwan|north korea|dprk|myanmar|pakistan|afghanistan|india|japan|korea|south china sea)\b/i,
 };
+const TAG_MAP = {
+  breaking:['tag-r','FLASH'], ukraine:['tag-b','UCRANIA'], mideast:['tag-o','M.ESTE'],
+  africa:['tag-g','ÁFRICA'], asia:['tag-p','ASIA'], general:['tag-b','INTEL']
+};
+function classify(t){
+  if(!t) return 'general';
+  for(const[k,re] of Object.entries(KEYWORDS)) if(re.test(t)) return k;
+  return 'general';
+}
 
-function cfFilter(region, btn){
-  _cfFilter = region;
-  document.querySelectorAll('#cf-filters .fbtn').forEach(b => b.classList.remove('on'));
-  if(btn) btn.classList.add('on');
-  renderConflicts();
+// ═══════════════════════════════════════════════════════════
+// FETCH
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// FETCH ENGINE — sequential proxies, no simultaneous races
+// ═══════════════════════════════════════════════════════════
+
+// Concurrency pool
+
+async function pool(tasks, n=6){
+  let i=0;
+  const run = async()=>{ while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} };
+  await Promise.all(Array.from({length:Math.min(n,tasks.length)},run));
+}
+
+async function fetchRSS(url){
+  const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
+  const enc   = encodeURIComponent(url);
+  const ctrl  = new AbortController();
+  const sig   = ctrl.signal;
+
+  const rss = fn => fn().then(x => { if(!isRSS(x)) throw 0; ctrl.abort(); return x; });
+  const tf  = (ms, fn) => new Promise((res,rej) => {
+    const id = setTimeout(() => rej('to'), ms);
+    fn(sig).then(x=>{clearTimeout(id);res(x);}).catch(e=>{clearTimeout(id);rej(e);});
+  });
+  const after = ms => new Promise(r => setTimeout(r, ms));
+
+  try {
+    return await Promise.any([
+
+      // 1. Worker Cloudflare — proxy sin CORS, cacheado 5min — PRIMERO Y SIN DELAY
+      rss(() => tf(5000, s =>
+        fetch(WORKER+'/rss?url='+enc, {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.text(); })
+      )),
+
+      // 2. Directo — feeds con CORS abierto (BBC, Al Jazeera, DW...)
+      rss(() => tf(3000, s =>
+        fetch(url, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); })
+      )),
+
+      // 3. corsproxy.io — 400ms delay
+      rss(() => after(400).then(() => tf(5000, s =>
+        fetch('https://corsproxy.io/?'+enc, {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.text(); })
+      ))),
+
+      // 4. rss2json — 700ms delay, convierte JSON→XML
+      rss(() => after(700).then(() => tf(6000, s =>
+        fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&count=25', {signal:s})
+          .then(r => { if(!r.ok) throw 0; return r.json(); })
+          .then(j => {
+            if(!j.items?.length) throw 0;
+            const items = j.items.map(i =>
+              '<item><title><![CDATA['+(i.title||'')+']]></title>'+
+              '<link>'+(i.link||'')+'</link>'+
+              '<pubDate>'+(i.pubDate||'')+'</pubDate>'+
+              '<description><![CDATA['+(i.description||i.content||'')+']]></description></item>'
+            ).join('');
+            return '<rss><channel><title>'+(j.feed?.title||'')+'</title>'+items+'</channel></rss>';
+          })
+      ))),
+
+    ]);
+  } catch(e) { return null; }
+}
+
+function parseRSS(xml, src, cat){
+  const items = [];
+
+  // Extract text from a tag — strips all HTML, CDATA, entities
+  const get = (b, tag) => {
+    const m = b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+    if(!m) return '';
+    return m[1]
+      .replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '') // CDATA
+      .replace(/<[^>]+>/g, ' ')                            // strip tags
+      .replace(/&lt;[^&]*&gt;/g, '')                       // encoded tags
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
+      .replace(/\s+/g, ' ').trim();
+  };
+
+  // Clean desc — remove any remaining html-like junk, truncate cleanly
+  const cleanDesc = raw => {
+    if(!raw) return '';
+    // Strip anything that looks like html attribute junk
+    let s = raw.replace(/\w+=["'][^"']*["']/g, '').replace(/\s+/g,' ').trim();
+    if(s.length < 20) return ''; // too short to be useful
+    return s.slice(0, 160);
+  };
+
+  let re = /<item[^>]*>([\s\S]*?)<\/item>/gi, m;
+  while((m=re.exec(xml))!==null){
+    const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
+    const link=get(b,'link')||get(b,'guid');
+    const pubDate=get(b,'pubDate')||get(b,'dc:date')||new Date().toUTCString();
+    const desc=cleanDesc(get(b,'description'));
+    items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
+  }
+  if(!items.length){
+    re = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
+    while((m=re.exec(xml))!==null){
+      const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
+      const link=(b.match(/<link[^>]+href="([^"]+)"/)||[])[1]||'';
+      const pubDate=get(b,'published')||get(b,'updated')||new Date().toUTCString();
+      const desc=cleanDesc(get(b,'summary')||get(b,'content'));
+      items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
+    }
+  }
+  return items;
+}
+
+function itemHTML(item){
+  const cat = item.type==='tg' ? 'tg' : classify(item.title);
+  const [tcls,tlbl] =
+    item.type==='twitter' ? ['tag-tw','𝕏 OSINT'] :
+    item.type==='gdelt'   ? ['tag-gd','GDELT']   :
+    item.type==='osint'   ? ['tag-tg','OSINT']   :
+    (TAG_MAP[cat]||TAG_MAP.general);
+  const href = (item.link||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const isRead = readSet.has(item.link||'');
+  const si = JSON.stringify({title:item.title,link:item.link,src:item.src,pubDate:item.pubDate}).replace(/"/g,'&quot;');
+  return `<div class="fitem${isRead?' read':''}${item._new?' isnew':''}" ${href?`onclick="openItem('${href}')"`:''}><div class="ftop">
+    <span class="ftag ${tcls}">${tlbl}</span>
+    <span class="fsrc">${item.src}</span>
+    <span class="ftime">${timeAgo(item.pubDate)}</span>
+    <div class="fitem-btns">
+      ${href?`<button class="ibtn rbtn${isRead?' read-on':''}" onclick="event.stopPropagation();toggleRead(this,'${href}')" title="Marcar leída">◉</button>`:''}
+      ${href?`<button class="ibtn" onclick="event.stopPropagation();saveItem(${si})" title="Guardar">🔖</button>`:''}
+    </div>
+  </div>
+  <div class="ftitle">${item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  ${item.desc?`<div class="fdesc">${item.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
+  </div>`;
+}
+
+function renderFeed(items, feedId){
+  const el = document.getElementById(feedId); if(!el) return;
+  const filt = feedId==='feed-media' ? activeCatMedia : activeCatOsint;
+  let filtered = items;
+  if(filt!=='all'){
+    if(filt==='breaking') filtered = items.filter(i=>KEYWORDS.breaking.test(i.title));
+    else filtered = items.filter(i=>(i.cat||'')==filt||(KEYWORDS[filt]&&KEYWORDS[filt].test(i.title)));
+  }
+  if(!filtered.length){
+    el.innerHTML='<div class="fstatus">Sin resultados para este filtro.</div>'; return;
+  }
+  // Build in fragment then swap — preserves scroll, no flash
+  const scrollTop = el.scrollTop;
+  const frag = document.createDocumentFragment();
+  const badge = el.querySelector('.nbadge');
+  if(badge) frag.appendChild(badge.cloneNode(true));
+  filtered.forEach(item => {
+    const d = document.createElement('div');
+    d.innerHTML = itemHTML(item);
+    if(d.firstChild) frag.appendChild(d.firstChild);
+  });
+  el.innerHTML = '';
+  el.appendChild(frag);
+  el.scrollTop = scrollTop;
+}
+
+function filterFeed(f, btn, which){
+
+
+  if(which==='media') activeCatMedia=f; else activeCatOsint=f;
+  btn.closest('.filters').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(which==='media') renderFeed(mediaCache.data, 'feed-media');
+  else renderFeed(osintCache.data, 'feed-osint');
+}
+
+async function loadMedia(){
+  colStatus('media','loading');
+  const srcs=[...MEDIA_SOURCES,...customSources];
+  let done=0, firstRender=false;
+  const all=[];
+  const isFirst=!mediaCache.data.length;
+
+  await pool(srcs.map(src=>async()=>{
+    const xml = await fetchRSS(src.url);
+    if(xml){
+      parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
+      // Show first results as soon as 5+ items arrive — don't wait for all sources
+      if(isFirst && !firstRender && all.length >= 5){
+        firstRender=true;
+        sortByDate(all);
+        mediaCache={ts:Date.now(),data:[...all]};
+        renderFeed(all,'feed-media');
+        colStatus('media','ok',all.length+' items');
+        const e=document.getElementById('ft-media'); if(e) e.textContent=all.length;
+      }
+    }
+    done++;
+    progSet(Math.round((done/srcs.length)*50));
+  }),15);
+
+  sortByDate(all);
+  if(!all.length){
+    if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
+    colStatus('media','err'); return;
+  }
+  if(isFirst){
+    mediaCache={ts:Date.now(),data:all};
+    renderFeed(all,'feed-media');
+  } else {
+    const {merged,newCount}=merge(mediaCache.data,all);
+    mediaCache={ts:Date.now(),data:merged};
+    if(newCount) prependNew(merged.slice(0,newCount),'feed-media');
+    else renderFeed(merged,'feed-media');
+  }
+  const e=document.getElementById('ft-media'); if(e) e.textContent=mediaCache.data.length;
+  colStatus('media','ok',mediaCache.data.length+' items');
+  syncMobBadges();
+}
+
+async function loadOSINT(){
+  colStatus('osint','loading');
+  let done=0;
+  const all=[];
+  const isFirst=!osintCache.data.length;
+  let firstRender=false;
+  await pool(OSINT_SOURCES.map(src=>async()=>{
+    const xml=await fetchRSS(src.url);
+    if(xml){
+      const items = parseRSS(xml,src.n,src.cat);
+      items.forEach(i=>{i.type='osint';all.push(i);});
+      if(isFirst && !firstRender && all.length >= 3){
+        firstRender = true;
+        sortByDate(all);
+        osintCache={ts:Date.now(),data:[...all]};
+        renderFeed(all,'feed-osint');
+        colStatus('osint','ok', all.length+' items');
+      }
+    }
+    done++;
+    progSet(50+Math.round((done/OSINT_SOURCES.length)*50));
+  }),10);
+  sortByDate(all);
+  if(!all.length&&isFirst){
+    document.getElementById('feed-osint').innerHTML='<div class="fstatus">Sin datos OSINT disponibles.</div>';
+    colStatus('osint','err'); return;
+  }
+  if(isFirst){
+    osintCache={ts:Date.now(),data:all};
+    renderFeed(all,'feed-osint');
+  } else {
+    const {merged,newCount}=merge(osintCache.data,all);
+    osintCache={ts:Date.now(),data:merged};
+    if(newCount) prependNew(merged.slice(0,newCount),'feed-osint');
+    else renderFeed(merged,'feed-osint');
+  }
+  const e=document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
+  colStatus('osint','ok',osintCache.data.length+' items');
+  progSet(100);
+}
+
+async function loadBreakingBar(){
+  // Reuse media cache if available — no extra fetches
+  if(brkLoaded&&mediaCache.data.length){ _renderBreakingBar(mediaCache.data); return; }
+  const all=[];
+  await pool(BREAKING_RSS.map(url=>async()=>{
+    const xml=await fetchRSS(url); if(!xml) return;
+    parseRSS(xml,'','general').slice(0,10).forEach(i=>all.push(i));
+  }),3);
+  sortByDate(all);
+  if(all.length){ brkLoaded=true; _renderBreakingBar(all); }
+}
+
+function openItem(href){ window.open(href,'_blank'); markRead(href); }
+
+function timeAgo(d){
+  if(!d) return '';
+  const s = Math.floor((Date.now()-new Date(d))/1000);
+  if(s<60) return s+'s';
+  if(s<3600) return Math.floor(s/60)+'m';
+  if(s<86400) return Math.floor(s/3600)+'h';
+  return Math.floor(s/86400)+'d';
+}
+
+function markRead(href){
+  if(!href) return;
+  readSet.add(href);
+  try{ localStorage.setItem('ct_read', JSON.stringify([...readSet].slice(-500))); }catch(e){}
+  // Visually mark
+  document.querySelectorAll('.fitem').forEach(el => {
+    if(el.getAttribute('onclick')?.includes(href)) el.classList.add('read');
+  });
+}
+
+function merge(existing, incoming){
+  const seen = new Set(existing.map(i => i.link||i.title));
+  const fresh = incoming.filter(i => { const k=i.link||i.title; return k&&!seen.has(k); });
+  fresh.forEach(i => i._new=true);
+  return { merged: sortByDate([...fresh,...existing]).slice(0,400), newCount: fresh.length };
 }
 
 function renderConflicts(){
@@ -1113,287 +996,13 @@ function renderConflicts(){
   }
 }
 
-function cfExpand(id){
-  const el = document.getElementById('cf-expand-'+id);
-  if(!el) return;
-  const open = el.style.display !== 'none';
-  // Close all others
-  document.querySelectorAll('[id^="cf-expand-"]').forEach(e => e.style.display='none');
-  if(!open) el.style.display = 'block';
+function cfFilter(region, btn){
+  _cfFilter = region;
+  document.querySelectorAll('#cf-filters .fbtn').forEach(b => b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  renderConflicts();
 }
 
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-// PROGRESS + STATUS HELPERS
-// ═══════════════════════════════════════════════════════════
-function progSet(pct){
-  const f=document.getElementById('prog-fill');
-  const b=document.getElementById('prog-bar');
-  if(!f||!b) return;
-  b.classList.remove('idle');
-  f.style.width=pct+'%';
-  if(pct>=100){
-    setTimeout(()=>{b.classList.add('idle');setTimeout(()=>{b.classList.remove('idle');f.style.width='0%';},700);},200);
-  }
-}
-function colStatus(id,state,text=''){
-  const el=document.getElementById('cs-'+id); if(!el) return;
-  if(state==='loading') el.innerHTML='<span class="cs-spin"></span>';
-  else if(state==='ok')  el.innerHTML='<span class="cs-ok">✓</span>'+(text?' <span>'+text+'</span>':'');
-  else if(state==='err') el.innerHTML='<span class="cs-err">✗</span>';
-  else el.innerHTML='';
-}
-function setLastUpdated(){
-  const el=document.getElementById('last-updated'); if(!el) return;
-  const n=new Date();
-  el.textContent='Actualizado '+String(n.getUTCHours()).padStart(2,'0')+':'+String(n.getUTCMinutes()).padStart(2,'0')+' UTC';
-}
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MEDIA
-// ═══════════════════════════════════════════════════════════
-async function loadMedia(){
-  colStatus('media','loading');
-  const srcs=[...MEDIA_SOURCES,...customSources];
-  let done=0, firstRender=false;
-  const all=[];
-  const isFirst=!mediaCache.data.length;
-
-  await pool(srcs.map(src=>async()=>{
-    const xml = await fetchRSS(src.url);
-    if(xml){
-      parseRSS(xml,src.n,src.cat).forEach(i=>all.push(i));
-      // Show first results as soon as 5+ items arrive — don't wait for all sources
-      if(isFirst && !firstRender && all.length >= 5){
-        firstRender=true;
-        sortByDate(all);
-        mediaCache={ts:Date.now(),data:[...all]};
-        renderFeed(all,'feed-media');
-        colStatus('media','ok',all.length+' items');
-        const e=document.getElementById('ft-media'); if(e) e.textContent=all.length;
-      }
-    }
-    done++;
-    progSet(Math.round((done/srcs.length)*50));
-  }),15);
-
-  sortByDate(all);
-  if(!all.length){
-    if(isFirst) document.getElementById('feed-media').innerHTML='<div class="fstatus">Sin resultados. Comprueba tu conexión.</div>';
-    colStatus('media','err'); return;
-  }
-  if(isFirst){
-    mediaCache={ts:Date.now(),data:all};
-    renderFeed(all,'feed-media');
-  } else {
-    const {merged,newCount}=merge(mediaCache.data,all);
-    mediaCache={ts:Date.now(),data:merged};
-    if(newCount) prependNew(merged.slice(0,newCount),'feed-media');
-    else renderFeed(merged,'feed-media');
-  }
-  const e=document.getElementById('ft-media'); if(e) e.textContent=mediaCache.data.length;
-  colStatus('media','ok',mediaCache.data.length+' items');
-  syncMobBadges();
-}
-
-// ═══════════════════════════════════════════════════════════
-// LOAD OSINT
-// ═══════════════════════════════════════════════════════════
-async function loadOSINT(){
-  colStatus('osint','loading');
-  let done=0;
-  const all=[];
-  const isFirst=!osintCache.data.length;
-  let firstRender=false;
-  await pool(OSINT_SOURCES.map(src=>async()=>{
-    const xml=await fetchRSS(src.url);
-    if(xml){
-      const items = parseRSS(xml,src.n,src.cat);
-      items.forEach(i=>{i.type='osint';all.push(i);});
-      if(isFirst && !firstRender && all.length >= 3){
-        firstRender = true;
-        sortByDate(all);
-        osintCache={ts:Date.now(),data:[...all]};
-        renderFeed(all,'feed-osint');
-        colStatus('osint','ok', all.length+' items');
-      }
-    }
-    done++;
-    progSet(50+Math.round((done/OSINT_SOURCES.length)*50));
-  }),10);
-  sortByDate(all);
-  if(!all.length&&isFirst){
-    document.getElementById('feed-osint').innerHTML='<div class="fstatus">Sin datos OSINT disponibles.</div>';
-    colStatus('osint','err'); return;
-  }
-  if(isFirst){
-    osintCache={ts:Date.now(),data:all};
-    renderFeed(all,'feed-osint');
-  } else {
-    const {merged,newCount}=merge(osintCache.data,all);
-    osintCache={ts:Date.now(),data:merged};
-    if(newCount) prependNew(merged.slice(0,newCount),'feed-osint');
-    else renderFeed(merged,'feed-osint');
-  }
-  const e=document.getElementById('ft-osint'); if(e) e.textContent=osintCache.data.length;
-  colStatus('osint','ok',osintCache.data.length+' items');
-  progSet(100);
-}
-
-// Load Twitter/X via RSSHub — silently merges into OSINT
-
-// ═══════════════════════════════════════════════════════════
-// BREAKING BAR
-// ═══════════════════════════════════════════════════════════
-async function loadBreakingBar(){
-  // Reuse media cache if available — no extra fetches
-  if(brkLoaded&&mediaCache.data.length){ _renderBreakingBar(mediaCache.data); return; }
-  const all=[];
-  await pool(BREAKING_RSS.map(url=>async()=>{
-    const xml=await fetchRSS(url); if(!xml) return;
-    parseRSS(xml,'','general').slice(0,10).forEach(i=>all.push(i));
-  }),3);
-  sortByDate(all);
-  if(all.length){ brkLoaded=true; _renderBreakingBar(all); }
-}
-function _renderBreakingBar(items){
-  const inner=document.getElementById('brk-inner'); if(!inner) return;
-  const kw=/war|conflict|attack|killed|missile|strike|troops|offensive|bomb|crisis|explosion/i;
-  const filtered=items.filter(i=>kw.test(i.title));
-  const display=(filtered.length>=5?filtered:items).slice(0,40);
-  const html=display.map(i=>{
-    const href=(i.link||'').replace(/'/g,"\\'");
-    return `<span class="brk-item" onclick="window.open('${href}','_blank')">${i.title}</span><span class="brk-sep">◆</span>`;
-  }).join('');
-  inner.innerHTML=html+html;
-  requestAnimationFrame(()=>{
-    inner.style.animationDuration=Math.max(40,inner.scrollWidth/2/110)+'s';
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// PREFS
-// ═══════════════════════════════════════════════════════════
-function applyFont(v){
-  // v is the raw option value e.g. "Inter" or "'JetBrains Mono'"
-  document.documentElement.style.setProperty('--font', v + ',sans-serif');
-  localStorage.setItem('ct_font', v);
-  const s = document.getElementById('pref-font');
-  if(s) s.value = v;
-}
-function applySize(v){
-  v = parseInt(v);
-  document.documentElement.style.fontSize = v+'px';
-  const sv = document.getElementById('size-val'); if(sv) sv.textContent=v+'px';
-  const sl = document.getElementById('pref-size'); if(sl) sl.value=v;
-  localStorage.setItem('ct_size', v);
-}
-function applyAccent(v, dot){
-  document.documentElement.style.setProperty('--blue', v);
-  document.documentElement.style.setProperty('--accent', v);
-  localStorage.setItem('ct_accent', v);
-  document.querySelectorAll('.cdot').forEach(d=>d.classList.remove('on'));
-  if(dot) dot.classList.add('on');
-}
-function toggleTheme(){
-  document.body.classList.toggle('light');
-  const isLight = document.body.classList.contains('light');
-  const btn = document.getElementById('theme-btn');
-  const tog = document.getElementById('tog-dark');
-  if(tog) tog.classList.toggle('on', !isLight);
-  localStorage.setItem('ct_theme', isLight?'light':'dark');
-}
-function resetPrefs(){
-  ['ct_font','ct_size','ct_accent','ct_theme'].forEach(k=>localStorage.removeItem(k));
-  location.reload();
-}
-function loadPrefs(){
-  const font = localStorage.getItem('ct_font');
-  if(font) applyFont(font);
-  const size = localStorage.getItem('ct_size');
-  if(size) applySize(size);
-  const accent = localStorage.getItem('ct_accent');
-  if(accent){
-    document.documentElement.style.setProperty('--blue', accent);
-    document.querySelectorAll('.cdot').forEach(d => {
-      if(d.style.background===accent||d.getAttribute('onclick')?.includes(accent)){
-        d.classList.add('on');
-      } else d.classList.remove('on');
-    });
-  }
-  if(localStorage.getItem('ct_theme')==='light'){
-    document.body.classList.add('light');
-    const tog=document.getElementById('tog-dark'); if(tog) tog.classList.remove('on');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// CUSTOM SOURCES
-// ═══════════════════════════════════════════════════════════
-function addSource(){
-  const name = document.getElementById('src-name').value.trim();
-  const url  = document.getElementById('src-url').value.trim();
-  const cat  = document.getElementById('src-cat').value;
-  if(!name||!url) return;
-  customSources.push({n:name, url, cat});
-  localStorage.setItem('ct_custom', JSON.stringify(customSources));
-  document.getElementById('src-name').value = '';
-  document.getElementById('src-url').value  = '';
-  renderCustomList();
-}
-function removeSource(i){
-  customSources.splice(i,1);
-  localStorage.setItem('ct_custom', JSON.stringify(customSources));
-  renderCustomList();
-}
-function renderCustomList(){
-  const el = document.getElementById('custom-list'); if(!el) return;
-  if(!customSources.length){ el.innerHTML='<div style="font-size:11px;color:var(--t2);">Sin fuentes personalizadas.</div>'; return; }
-  el.innerHTML = customSources.map((s,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b0);">
-      <span style="flex:1;font-size:12px;color:var(--t1);">${s.n}</span>
-      <span style="font-size:10px;color:var(--t2);">${s.cat}</span>
-      <button onclick="removeSource(${i})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;">✕</button>
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// CLOCK
-// ═══════════════════════════════════════════════════════════
-function startClock(){
-  const el = document.getElementById('clock');
-  setInterval(()=>{
-    const n=new Date();
-    if(el) el.textContent =
-      String(n.getUTCHours()).padStart(2,'0')+':'+
-      String(n.getUTCMinutes()).padStart(2,'0')+':'+
-      String(n.getUTCSeconds()).padStart(2,'0')+' UTC';
-  },1000);
-}
-
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-
-
-
-
-
-// ═══════════════════════════════════════════════════════════
-// ADMIN — Map editor (password protected)
-// ═══════════════════════════════════════════════════════════
-
-// Admin password — stored as SHA-256 hash
-// Default password: "conflicttracker2025"
-// To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-const ADMIN_PWD_HASH = 'f7e29ca28134088a79623d800bf1204d14032dd0c445bf569e91fcdd23f1c4d4';
-
-let _drawLayers   = []; // saved drawing layers
-
-// ── Admin: Publish & Sync ─────────────────────────────────
 async function adminPublish(){
   const btn = document.getElementById('admin-publish-btn');
   const resetBtn = () => {
@@ -1431,261 +1040,6 @@ function _showSyncStatus(msg, col){
   el.style.color = col;
   setTimeout(() => { if(el.textContent===msg) el.textContent=''; }, 5000);
 }
-
-async function _pollRemoteConflicts(){
-  if(_adminAuthed) return;
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000), {
-      signal: AbortSignal.timeout(6000),
-    });
-    if(!r.ok) return;
-    const data = await r.json();
-    if(!Array.isArray(data)) return;
-    if(!Array.isArray(data) || !data.length) return;
-    const current = JSON.stringify(_conflicts);
-    if(JSON.stringify(data) !== current){
-      _conflicts = data;
-      localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-      _drawConflicts();
-    }
-  }catch(e){}
-}
-
-
-// Storage keys
-const SK_CONFLICTS = 'ct_map_conflicts';
-const SK_DRAWINGS  = 'ct_map_drawings';
-
-// ── Open admin panel ──────────────────────────────────────
-function openAdminPanel(){
-  openPanel('admin');
-  if(_adminAuthed){
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  }
-}
-
-// ── Login ─────────────────────────────────────────────────
-async function adminLogin(){
-  const pwd = document.getElementById('admin-pwd').value;
-  const err = document.getElementById('admin-err');
-  if(!pwd){ err.style.display='block'; return; }
-
-  // Hash the input and compare
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-  if(hash === ADMIN_PWD_HASH){
-    _adminAuthed = true;
-    err.style.display = 'none';
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  } else {
-    err.style.display = 'block';
-    document.getElementById('admin-pwd').value = '';
-  }
-}
-
-// ── Admin tabs ────────────────────────────────────────────
-function admTab(tab, btn){
-  document.querySelectorAll('.adm-tab').forEach(b => {
-    b.style.borderBottomColor = 'transparent';
-    b.style.color = 'var(--t2)';
-    b.classList.remove('on');
-  });
-  btn.style.borderBottomColor = 'var(--t0)';
-  btn.style.color = 'var(--t1)';
-  btn.classList.add('on');
-
-  ['list','add','draw'].forEach(t => {
-    const el = document.getElementById('adm-'+t);
-    if(el) el.style.display = t===tab ? 'block' : 'none';
-  });
-
-  if(tab==='list') _renderAdminList();
-  if(tab==='draw') _loadDrawingsFromStorage();
-}
-
-// ── Conflict list ─────────────────────────────────────────
-function _renderAdminList(){
-  const el = document.getElementById('admin-conflict-list');
-  if(!el) return;
-  const data = _getConflicts();
-  el.innerHTML = data.map(d => {
-    const col = ['#4d8cf5','#f0a832','#e8445a'][d.i] || '#4d8cf5';
-    return `<div onclick="adminEditConflict('${d.id}')" style="
-      display:flex;align-items:center;gap:10px;
-      padding:9px 10px;border-radius:0px;
-      cursor:pointer;margin-bottom:4px;
-      background:var(--s2);
-      border:1px solid var(--b0);
-      transition:border-color .15s;
-    " onmouseover="this.style.borderColor='var(--b1)'"
-       onmouseout="this.style.borderColor='var(--b0)'">
-      <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;
-        box-shadow:0 0 4px ${col};"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:11px;font-weight:500;color:var(--t0);
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
-        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);">
-          ${d.lat.toFixed(1)}, ${d.lng.toFixed(1)} · ${d.since||''}
-        </div>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </div>`;
-  }).join('');
-}
-
-// ── Edit conflict ─────────────────────────────────────────
-function adminEditConflict(id){
-  const data = _getConflicts();
-  const d = data.find(x => x.id === id);
-  if(!d) return;
-
-  _editingId = id;
-  document.getElementById('ae-id').value      = id;
-  document.getElementById('ae-name').value    = d.name;
-  document.getElementById('ae-lat').value     = d.lat;
-  document.getElementById('ae-lng').value     = d.lng;
-  document.getElementById('ae-intensity').value = d.i;
-  document.getElementById('ae-since').value   = d.since || '';
-  document.getElementById('ae-parties').value = d.parties || '';
-  document.getElementById('ae-deaths').value  = d.deaths || '';
-  document.getElementById('ae-summary').value = d.summary || '';
-  document.getElementById('ae-delete-btn').style.display = 'block';
-
-  // Fly to conflict on map
-
-  // Switch to add/edit tab
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── New conflict ──────────────────────────────────────────
-function adminNewConflict(){
-  _editingId = null;
-  ['ae-id','ae-name','ae-lat','ae-lng','ae-since','ae-parties','ae-deaths','ae-summary']
-    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('ae-intensity').value = '1';
-  document.getElementById('ae-delete-btn').style.display = 'none';
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── Save conflict ─────────────────────────────────────────
-function adminSaveConflict(){
-  const name    = document.getElementById('ae-name').value.trim();
-  const lat     = parseFloat(document.getElementById('ae-lat').value);
-  const lng     = parseFloat(document.getElementById('ae-lng').value);
-  const intensity = parseInt(document.getElementById('ae-intensity').value);
-  const since   = document.getElementById('ae-since').value.trim();
-  const parties = document.getElementById('ae-parties').value.trim();
-  const deaths  = document.getElementById('ae-deaths').value.trim();
-  const summary = document.getElementById('ae-summary').value.trim();
-
-  if(!name || isNaN(lat) || isNaN(lng)){
-    _showAEMsg('Nombre, latitud y longitud son obligatorios.', 'var(--red)');
-    return;
-  }
-  if(lat < -90||lat > 90||lng < -180||lng > 180){
-    _showAEMsg('Coordenadas fuera de rango.', 'var(--red)');
-    return;
-  }
-
-  const data = _getConflicts();
-  const id   = _editingId || 'custom_' + Date.now();
-
-  const entry = {id, name, lat, lng, i:intensity, since, parties, deaths, summary, cat:'general', _custom:true};
-
-  if(_editingId){
-    const idx = data.findIndex(x => x.id === _editingId);
-    if(idx >= 0) data[idx] = entry;
-  } else {
-    data.push(entry);
-  }
-
-  _saveConflicts(data).then(()=>{}); // async shared storage
-  _conflicts = data;
-  _drawConflicts();
-
-  _showAEMsg('✓ Guardado (compartido)', 'var(--grn)');
-  setTimeout(() => admTab('list', document.getElementById('atab-list')), 800);
-}
-
-// ── Delete conflict ───────────────────────────────────────
-function adminDeleteConflict(){
-  if(!_editingId) return;
-  if(!confirm('¿Eliminar este conflicto?')) return;
-  const data = _getConflicts().filter(x => x.id !== _editingId);
-  _saveConflicts(data); // async
-  _conflicts = data;
-  _drawConflicts();
-  _editingId = null;
-  admTab('list', document.getElementById('atab-list'));
-}
-
-// ── Reset to defaults ─────────────────────────────────────
-function adminResetToDefault(){
-  if(!confirm('¿Restaurar el dataset original? Se perderán todos los cambios.')) return;
-  localStorage.removeItem(SK_CONFLICTS);
-  try{ window.storage.delete('map_conflicts', true); }catch(e){}
-  _conflicts = _getConflicts();
-  _drawConflicts();
-  _renderAdminList();
-}
-
-// ── Pick coordinates on map ───────────────────────────────
-function adminPickOnMap(){
-  alert('El mapa ha sido desactivado.'); return;
-  _pickingCoord = true;
-
-  const btn = document.getElementById('pick-map-btn');
-  btn.textContent = '🎯 Clic en el mapa...';
-  btn.style.background = 'rgba(232,68,90,.1)';
-  btn.style.borderColor = 'var(--red)';
-
-  const handler = e => {
-    document.getElementById('ae-lat').value = e.latlng.lat.toFixed(4);
-    document.getElementById('ae-lng').value = e.latlng.lng.toFixed(4);
-        btn.textContent = `📍 ${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`;
-    btn.style.background = 'rgba(45,212,160,.1)';
-    btn.style.borderColor = 'var(--grn)';
-    btn.style.color = 'var(--grn)';
-    _pickingCoord = false;
-    // Revert after 3s
-    setTimeout(() => {
-      btn.textContent = '📍 Clicar en el mapa para seleccionar coordenadas';
-      btn.style.background = '';
-      btn.style.borderColor = 'var(--b0)';
-      btn.style.color = 'var(--t0)';
-    }, 3000);
-  };
-}
-
-// ── DRAW MODE ─────────────────────────────────────────────
-function setDrawColor(el, col){
-  _drawColor = col;
-  document.querySelectorAll('.draw-col-btn').forEach(b => b.style.border = '2px solid transparent');
-  el.style.border = '2px solid #fff';
-}
-
-
-
-
-
-
-
-
-
-// ── GitHub — shared storage via repo file ─────────────────
-// Setup: github.com → Settings → Developer settings → Personal access tokens
-//        → Fine-grained token → repo: lokiff/worldmonitor → permisos: Contents (read+write)
-// GitHub config moved to Cloudflare Worker environment variables
 
 async function _getConflictsAsync(){
   // 1. Worker GET /conflicts — sin auth, datos en GitHub via Worker
@@ -1744,232 +1098,24 @@ async function _saveConflicts(data){
   }
 }
 
-function _showAEMsg(msg, col){
-  const el = document.getElementById('ae-msg');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = col;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display='none'; }, 2500);
-}
-
-
-
-// ═══════════════════════════════════════════════════════════
-// MOBILE TAB NAVIGATION
-// ═══════════════════════════════════════════════════════════
-function mobTab(which, btn){
-  // Update tab buttons
-  document.querySelectorAll('.mob-tab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  // Show correct column
-  document.querySelectorAll('.col').forEach(c => c.classList.remove('mob-active'));
-  const col = document.getElementById('col-' + which);
-  if(col) col.classList.add('mob-active');
-}
-
-// Keep mobile badges in sync with col badges
-function syncMobBadges(){
-  const mn = document.getElementById('ft-media');
-  const mo = document.getElementById('ft-osint');
-  const bn = document.getElementById('mbadge-news');
-  const bo = document.getElementById('mbadge-osint');
-  if(mn && bn) bn.textContent = mn.textContent || '—';
-  if(mo && bo) bo.textContent = mo.textContent || '—';
-}
-
-async function pool(tasks, n=6){
-  let i=0;
-  const run = async()=>{ while(i<tasks.length){const j=i++;try{await tasks[j]();}catch(e){}} };
-  await Promise.all(Array.from({length:Math.min(n,tasks.length)},run));
-}
-
-// Fetch a single RSS — tries Worker first, then direct, then proxies
-// No simultaneous race: sequential so we don't hammer proxies needlessly
-async function fetchRSS(url){
-  const isRSS = x => x && (x.includes('<item') || x.includes('<entry'));
-  const enc   = encodeURIComponent(url);
-  const ctrl  = new AbortController();
-  const sig   = ctrl.signal;
-
-  const rss = fn => fn().then(x => { if(!isRSS(x)) throw 0; ctrl.abort(); return x; });
-  const tf  = (ms, fn) => new Promise((res,rej) => {
-    const id = setTimeout(() => rej('to'), ms);
-    fn(sig).then(x=>{clearTimeout(id);res(x);}).catch(e=>{clearTimeout(id);rej(e);});
-  });
-  const after = ms => new Promise(r => setTimeout(r, ms));
-
-  try {
-    return await Promise.any([
-
-      // 1. Worker Cloudflare — proxy sin CORS, cacheado 5min — PRIMERO Y SIN DELAY
-      rss(() => tf(5000, s =>
-        fetch(WORKER+'/rss?url='+enc, {signal:s})
-          .then(r => { if(!r.ok) throw 0; return r.text(); })
-      )),
-
-      // 2. Directo — feeds con CORS abierto (BBC, Al Jazeera, DW...)
-      rss(() => tf(3000, s =>
-        fetch(url, {signal:s}).then(r => { if(!r.ok) throw 0; return r.text(); })
-      )),
-
-      // 3. corsproxy.io — 400ms delay
-      rss(() => after(400).then(() => tf(5000, s =>
-        fetch('https://corsproxy.io/?'+enc, {signal:s})
-          .then(r => { if(!r.ok) throw 0; return r.text(); })
-      ))),
-
-      // 4. rss2json — 700ms delay, convierte JSON→XML
-      rss(() => after(700).then(() => tf(6000, s =>
-        fetch('https://api.rss2json.com/v1/api.json?rss_url='+enc+'&count=25', {signal:s})
-          .then(r => { if(!r.ok) throw 0; return r.json(); })
-          .then(j => {
-            if(!j.items?.length) throw 0;
-            const items = j.items.map(i =>
-              '<item><title><![CDATA['+(i.title||'')+']]></title>'+
-              '<link>'+(i.link||'')+'</link>'+
-              '<pubDate>'+(i.pubDate||'')+'</pubDate>'+
-              '<description><![CDATA['+(i.description||i.content||'')+']]></description></item>'
-            ).join('');
-            return '<rss><channel><title>'+(j.feed?.title||'')+'</title>'+items+'</channel></rss>';
-          })
-      ))),
-
-    ]);
-  } catch(e) { return null; }
-}
-
-
-async function fetchTG(ch){
+async function _pollRemoteConflicts(){
+  if(_adminAuthed) return;
   try{
-    const r = await fetch(WORKER+'/telegram?ch='+encodeURIComponent(ch), {signal:AbortSignal.timeout(8000)});
-    if(!r.ok) return null;
-    const d = await r.json();
-    return (d.items?.length) ? d : null;
-  }catch(e){ return null; }
-}
-
-// ═══════════════════════════════════════════════════════════
-// PARSE RSS
-// ═══════════════════════════════════════════════════════════
-function parseRSS(xml, src, cat){
-  const items = [];
-
-  // Extract text from a tag — strips all HTML, CDATA, entities
-  const get = (b, tag) => {
-    const m = b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
-    if(!m) return '';
-    return m[1]
-      .replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '') // CDATA
-      .replace(/<[^>]+>/g, ' ')                            // strip tags
-      .replace(/&lt;[^&]*&gt;/g, '')                       // encoded tags
-      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
-      .replace(/\s+/g, ' ').trim();
-  };
-
-  // Clean desc — remove any remaining html-like junk, truncate cleanly
-  const cleanDesc = raw => {
-    if(!raw) return '';
-    // Strip anything that looks like html attribute junk
-    let s = raw.replace(/\w+=["'][^"']*["']/g, '').replace(/\s+/g,' ').trim();
-    if(s.length < 20) return ''; // too short to be useful
-    return s.slice(0, 160);
-  };
-
-  let re = /<item[^>]*>([\s\S]*?)<\/item>/gi, m;
-  while((m=re.exec(xml))!==null){
-    const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
-    const link=get(b,'link')||get(b,'guid');
-    const pubDate=get(b,'pubDate')||get(b,'dc:date')||new Date().toUTCString();
-    const desc=cleanDesc(get(b,'description'));
-    items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
-  }
-  if(!items.length){
-    re = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
-    while((m=re.exec(xml))!==null){
-      const b=m[1], title=get(b,'title').slice(0,180); if(!title) continue;
-      const link=(b.match(/<link[^>]+href="([^"]+)"/)||[])[1]||'';
-      const pubDate=get(b,'published')||get(b,'updated')||new Date().toUTCString();
-      const desc=cleanDesc(get(b,'summary')||get(b,'content'));
-      items.push({title,link,pubDate,desc,src,cat:cat==='general'?classify(title):cat,type:'rss'});
+    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000), {
+      signal: AbortSignal.timeout(6000),
+    });
+    if(!r.ok) return;
+    const data = await r.json();
+    if(!Array.isArray(data)) return;
+    if(!Array.isArray(data) || !data.length) return;
+    const current = JSON.stringify(_conflicts);
+    if(JSON.stringify(data) !== current){
+      _conflicts = data;
+      localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
+      _drawConflicts();
     }
-  }
-  return items;
+  }catch(e){}
 }
-
-// ═══════════════════════════════════════════════════════════
-// MERGE — always newest first
-// ═══════════════════════════════════════════════════════════
-const sortByDate = arr => arr.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
-
-function merge(existing, incoming){
-  const seen = new Set(existing.map(i => i.link||i.title));
-  const fresh = incoming.filter(i => { const k=i.link||i.title; return k&&!seen.has(k); });
-  fresh.forEach(i => i._new=true);
-  return { merged: sortByDate([...fresh,...existing]).slice(0,400), newCount: fresh.length };
-}
-
-// ═══════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════
-function timeAgo(d){
-  if(!d) return '';
-  const s = Math.floor((Date.now()-new Date(d))/1000);
-  if(s<60) return s+'s';
-  if(s<3600) return Math.floor(s/60)+'m';
-  if(s<86400) return Math.floor(s/3600)+'h';
-  return Math.floor(s/86400)+'d';
-}
-
-function itemHTML(item){
-  const cat = item.type==='tg' ? 'tg' : classify(item.title);
-  const [tcls,tlbl] =
-    item.type==='twitter' ? ['tag-tw','𝕏 OSINT'] :
-    item.type==='gdelt'   ? ['tag-gd','GDELT']   :
-    item.type==='osint'   ? ['tag-tg','OSINT']   :
-    (TAG_MAP[cat]||TAG_MAP.general);
-  const href = (item.link||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const isRead = readSet.has(item.link||'');
-  const si = JSON.stringify({title:item.title,link:item.link,src:item.src,pubDate:item.pubDate}).replace(/"/g,'&quot;');
-  return `<div class="fitem${isRead?' read':''}${item._new?' isnew':''}" ${href?`onclick="openItem('${href}')"`:''}><div class="ftop">
-    <span class="ftag ${tcls}">${tlbl}</span>
-    <span class="fsrc">${item.src}</span>
-    <span class="ftime">${timeAgo(item.pubDate)}</span>
-    <div class="fitem-btns">
-      ${href?`<button class="ibtn rbtn${isRead?' read-on':''}" onclick="event.stopPropagation();toggleRead(this,'${href}')" title="Marcar leída">◉</button>`:''}
-      ${href?`<button class="ibtn" onclick="event.stopPropagation();saveItem(${si})" title="Guardar">🔖</button>`:''}
-    </div>
-  </div>
-  <div class="ftitle">${item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-  ${item.desc?`<div class="fdesc">${item.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
-  </div>`;
-}
-
-
-function init(){
-  loadPrefs();
-  startClock();
-  renderSaved();
-  renderCustomList();
-
-  // Initial load
-  progSet(2);
-  setTimeout(async ()=>{
-    await Promise.all([loadMedia(), loadOSINT()]);
-    setLastUpdated();
-    setTimeout(loadBreakingBar,  300);
-    setTimeout(loadGDELT,       800);
-    setTimeout(loadOREF,       1200);
-  }, 300);
-
-  // Background refresh — tab-aware, no countdown
-  startAutoRefresh();
-  renderConflicts();
-  setInterval(loadOREF,       15000);
-  setInterval(loadGDELT,        15*60*1000);
-  setInterval(_pollRemoteConflicts, 5*60*1000);
-}
-
 // ── MAP EVENTS (from infinite-monitor world-conflicts template) ──
 const EVENT_TYPES = {
   "Airstrike": "#ef4444",
@@ -2113,1205 +1259,66 @@ const MAP_REGIONS = [
 ];
 
 // ── SATELLITE ZONES ───────────────────────────────────────
-const SAT_ZONES = [
-  // ── CRITICAL ──
-  {
-    id: "donetsk",
-    name: "Donetsk Frontline",
-    region: "Ukraine",
-    conflict: "Russia-Ukraine War",
-    lat: 48.02,
-    lon: 37.80,
-    zoom: 10,
-    status: "critical",
-    description: "Heavy fighting along Avdiivka-Pokrovsk highway. Russian forces pushing westward with intense artillery exchanges.",
-    lastEvent: "2026-03-12",
-    color: "#fbbf24",
-  },
-  {
-    id: "gaza",
-    name: "Gaza Strip",
-    region: "Palestine",
-    conflict: "Gaza Conflict",
-    lat: 31.45,
-    lon: 34.40,
-    zoom: 11,
-    status: "critical",
-    description: "Ongoing Israeli bombardment across northern and central Gaza. Massive civilian infrastructure destruction.",
-    lastEvent: "2026-03-12",
-    color: "#ef4444",
-  },
-  {
-    id: "khartoum",
-    name: "Khartoum",
-    region: "Sudan",
-    conflict: "Sudan Civil War",
-    lat: 15.59,
-    lon: 32.53,
-    zoom: 10,
-    status: "critical",
-    description: "RSF and SAF artillery exchanges in the capital. Urban warfare destroying residential neighborhoods.",
-    lastEvent: "2026-03-12",
-    color: "#a78bfa",
-  },
-  {
-    id: "lebanon",
-    name: "Southern Lebanon",
-    region: "Lebanon",
-    conflict: "Israel-Hezbollah",
-    lat: 33.27,
-    lon: 35.50,
-    zoom: 11,
-    status: "critical",
-    description: "Cross-border exchanges between IDF and Hezbollah. Israeli airstrikes on Dahieh suburbs and Bekaa Valley.",
-    lastEvent: "2026-03-12",
-    color: "#f43f5e",
-  },
-  // ── INTENSE ──
-  {
-    id: "iran",
-    name: "Tehran / Isfahan",
-    region: "Iran",
-    conflict: "Iran-Israel Tensions",
-    lat: 32.65,
-    lon: 51.68,
-    zoom: 9,
-    status: "intense",
-    description: "Heightened military activity around nuclear sites. Satellite imagery shows IRGC mobilizations and air defense redeployments.",
-    lastEvent: "2026-03-11",
-    color: "#f59e0b",
-  },
-  {
-    id: "sagaing",
-    name: "Sagaing Region",
-    region: "Myanmar",
-    conflict: "Myanmar Civil War",
-    lat: 22.10,
-    lon: 95.00,
-    zoom: 10,
-    status: "intense",
-    description: "Junta airstrikes on resistance-held towns. Resistance forces capturing military outposts across Shan State.",
-    lastEvent: "2026-03-11",
-    color: "#34d399",
-  },
-  {
-    id: "goma",
-    name: "Goma, North Kivu",
-    region: "DR Congo",
-    conflict: "DRC-M23 Conflict",
-    lat: -1.68,
-    lon: 29.22,
-    zoom: 11,
-    status: "intense",
-    description: "M23 rebels advancing near Goma with Rwandan backing. Government forces shelling rebel positions around Sake.",
-    lastEvent: "2026-03-12",
-    color: "#84cc16",
-  },
-  {
-    id: "west-bank",
-    name: "West Bank",
-    region: "Palestine",
-    conflict: "Israeli Occupation",
-    lat: 32.22,
-    lon: 35.25,
-    zoom: 10,
-    status: "intense",
-    description: "IDF raids in Jenin and Tulkarm refugee camps. Settler violence escalating across the occupied territories.",
-    lastEvent: "2026-03-12",
-    color: "#fb7185",
-  },
-  // ── ESCALATING ──
-  {
-    id: "sanaa",
-    name: "Sanaa / Hodeidah",
-    region: "Yemen",
-    conflict: "Yemen-Houthi / Red Sea",
-    lat: 15.35,
-    lon: 44.21,
-    zoom: 10,
-    status: "escalating",
-    description: "US-UK airstrikes on Houthi positions. Houthi anti-ship missile launches targeting Red Sea commercial shipping.",
-    lastEvent: "2026-03-11",
-    color: "#e879f9",
-  },
-  {
-    id: "tigray",
-    name: "Amhara / Tigray",
-    region: "Ethiopia",
-    conflict: "Ethiopia Internal",
-    lat: 12.60,
-    lon: 39.47,
-    zoom: 9,
-    status: "escalating",
-    description: "Fano militia clashes with federal forces in Amhara. Post-ceasefire tensions and disarmament disputes in Tigray.",
-    lastEvent: "2026-03-10",
-    color: "#22d3ee",
-  },
-  {
-    id: "sahel",
-    name: "Sahel / Mali-Burkina",
-    region: "West Africa",
-    conflict: "Sahel Insurgency",
-    lat: 14.50,
-    lon: -1.50,
-    zoom: 8,
-    status: "escalating",
-    description: "JNIM and ISGS attacks on military and civilian targets. Wagner/Africa Corps supporting junta operations.",
-    lastEvent: "2026-03-10",
-    color: "#c084fc",
-  },
-  {
-    id: "idlib",
-    name: "Idlib / NW Syria",
-    region: "Syria",
-    conflict: "Syria Conflict",
-    lat: 35.77,
-    lon: 36.73,
-    zoom: 10,
-    status: "escalating",
-    description: "HTS consolidating control in Idlib. Russian airstrikes continue. Kurdish-ISIS clashes in Deir ez-Zor.",
-    lastEvent: "2026-03-10",
-    color: "#fca5a5",
-  },
-  // ── ACTIVE ──
-  {
-    id: "mogadishu",
-    name: "Mogadishu / Lower Shabelle",
-    region: "Somalia",
-    conflict: "Somalia-Al Shabaab",
-    lat: 2.05,
-    lon: 45.32,
-    zoom: 10,
-    status: "active",
-    description: "Al-Shabaab car bombings and mortar attacks. Somali forces conducting clearing operations in Lower Shabelle.",
-    lastEvent: "2026-03-11",
-    color: "#fb923c",
-  },
-  {
-    id: "haiti",
-    name: "Port-au-Prince",
-    region: "Haiti",
-    conflict: "Gang Warfare",
-    lat: 18.54,
-    lon: -72.34,
-    zoom: 11,
-    status: "active",
-    description: "Armed gangs controlling 80% of the capital. UN-backed multinational force struggling to restore order.",
-    lastEvent: "2026-03-11",
-    color: "#60a5fa",
-  },
-  {
-    id: "libya",
-    name: "Tripoli / Sirte",
-    region: "Libya",
-    conflict: "Libyan Civil Division",
-    lat: 31.20,
-    lon: 16.60,
-    zoom: 8,
-    status: "active",
-    description: "Rival government militias skirmishing near oil facilities. Mercenary presence destabilizing southern regions.",
-    lastEvent: "2026-03-09",
-    color: "#fcd34d",
-  },
-  {
-    id: "borno",
-    name: "Borno State",
-    region: "Nigeria",
-    conflict: "Boko Haram / ISWAP",
-    lat: 11.83,
-    lon: 13.15,
-    zoom: 9,
-    status: "active",
-    description: "ISWAP attacks on military bases near Lake Chad. Boko Haram targeting civilian convoys in northeast Nigeria.",
-    lastEvent: "2026-03-09",
-    color: "#4ade80",
-  },
-  {
-    id: "balochistan",
-    name: "Balochistan",
-    region: "Pakistan",
-    conflict: "Baloch Insurgency",
-    lat: 29.00,
-    lon: 66.00,
-    zoom: 8,
-    status: "active",
-    description: "BLA attacks on Pakistani security forces and Chinese-linked infrastructure near Gwadar port.",
-    lastEvent: "2026-03-08",
-    color: "#38bdf8",
-  },
-  {
-    id: "nagorno",
-    name: "Armenia-Azerbaijan Border",
-    region: "South Caucasus",
-    conflict: "Post-Karabakh Tensions",
-    lat: 39.82,
-    lon: 46.75,
-    zoom: 10,
-    status: "active",
-    description: "Border skirmishes continue post-Karabakh. Azerbaijan military buildup near Armenian Syunik corridor.",
-    lastEvent: "2026-03-08",
-    color: "#2dd4bf",
-  },
-];
-
-// ── DEATH TRACKER DATA ────────────────────────────────────
-const DEATH_CONFLICTS = [
-  {
-    id: "sudan",
-    name: "Sudan Civil War",
-    region: "East Africa",
-    country: "Sudan",
-    parties: ["SAF", "RSF"],
-    avgDailyDeaths: 95,
-    cumulativeDeaths: 150000,
-    startYear: 2023,
-    severity: "major_war",
-    trend: "escalating",
-    description: "Civil war between the Sudanese Armed Forces and the Rapid Support Forces, causing massive civilian casualties and displacement."
-  },
-  {
-    id: "ukraine",
-    name: "Russia-Ukraine War",
-    region: "Eastern Europe",
-    country: "Ukraine",
-    parties: ["Ukraine", "Russia"],
-    avgDailyDeaths: 85,
-    cumulativeDeaths: 200000,
-    startYear: 2022,
-    severity: "major_war",
-    trend: "stable",
-    description: "Full-scale Russian invasion of Ukraine with intense trench warfare and artillery exchanges along the eastern front."
-  },
-  {
-    id: "gaza",
-    name: "Gaza War",
-    region: "Middle East",
-    country: "Palestine",
-    parties: ["Israel", "Hamas", "PIJ"],
-    avgDailyDeaths: 70,
-    cumulativeDeaths: 55000,
-    startYear: 2023,
-    severity: "major_war",
-    trend: "stable",
-    description: "Israeli military operations in Gaza following the October 7 attacks, resulting in devastating civilian casualties."
-  },
-  {
-    id: "myanmar",
-    name: "Myanmar Civil War",
-    region: "Southeast Asia",
-    country: "Myanmar",
-    parties: ["Military Junta", "NUG", "Ethnic Armies"],
-    avgDailyDeaths: 40,
-    cumulativeDeaths: 60000,
-    startYear: 2021,
-    severity: "war",
-    trend: "escalating",
-    description: "Nationwide armed resistance against the military junta following the 2021 coup, with multiple ethnic armed organizations involved."
-  },
-  {
-    id: "ethiopia-amhara",
-    name: "Ethiopia (Amhara)",
-    region: "East Africa",
-    country: "Ethiopia",
-    parties: ["Ethiopian Military", "Fano Militia"],
-    avgDailyDeaths: 18,
-    cumulativeDeaths: 12000,
-    startYear: 2023,
-    severity: "war",
-    trend: "escalating",
-    description: "Armed conflict in the Amhara region between federal forces and Fano militia fighters resisting disarmament."
-  },
-  {
-    id: "drc",
-    name: "Eastern DRC Conflict",
-    region: "Central Africa",
-    country: "DR Congo",
-    parties: ["DRC Army", "M23", "ADF", "FDLR"],
-    avgDailyDeaths: 30,
-    cumulativeDeaths: 120000,
-    startYear: 2004,
-    severity: "war",
-    trend: "escalating",
-    description: "Ongoing conflict in North Kivu and Ituri provinces involving multiple armed groups, with M23 offensive intensifying."
-  },
-  {
-    id: "sahel-burkina",
-    name: "Burkina Faso Insurgency",
-    region: "West Africa",
-    country: "Burkina Faso",
-    parties: ["Military Junta", "JNIM", "ISSP"],
-    avgDailyDeaths: 22,
-    cumulativeDeaths: 26000,
-    startYear: 2015,
-    severity: "war",
-    trend: "escalating",
-    description: "Jihadist insurgency across Burkina Faso with the military government struggling to contain armed groups."
-  },
-  {
-    id: "sahel-mali",
-    name: "Mali Conflict",
-    region: "West Africa",
-    country: "Mali",
-    parties: ["Military Junta", "JNIM", "IS Sahel", "Tuareg Groups"],
-    avgDailyDeaths: 15,
-    cumulativeDeaths: 22000,
-    startYear: 2012,
-    severity: "war",
-    trend: "stable",
-    description: "Multi-sided conflict involving jihadist groups, separatist movements, and the ruling military junta."
-  },
-  {
-    id: "sahel-niger",
-    name: "Niger Insurgency",
-    region: "West Africa",
-    country: "Niger",
-    parties: ["Military Junta", "JNIM", "IS Sahel"],
-    avgDailyDeaths: 8,
-    cumulativeDeaths: 7000,
-    startYear: 2015,
-    severity: "conflict",
-    trend: "stable",
-    description: "Jihadist violence in western and southeastern border regions of Niger."
-  },
-  {
-    id: "somalia",
-    name: "Somalia Conflict",
-    region: "East Africa",
-    country: "Somalia",
-    parties: ["Somali Government", "Al-Shabaab"],
-    avgDailyDeaths: 12,
-    cumulativeDeaths: 45000,
-    startYear: 2006,
-    severity: "war",
-    trend: "de-escalating",
-    description: "Long-running insurgency by al-Shabaab against the federal government, with ongoing military offensives."
-  },
-  {
-    id: "syria",
-    name: "Syria Conflict",
-    region: "Middle East",
-    country: "Syria",
-    parties: ["HTS", "SDF", "Turkey", "Various Factions"],
-    avgDailyDeaths: 8,
-    cumulativeDeaths: 500000,
-    startYear: 2011,
-    severity: "conflict",
-    trend: "de-escalating",
-    description: "Reduced but ongoing conflict following the fall of the Assad regime, with tensions between rival factions."
-  },
-  {
-    id: "yemen",
-    name: "Yemen Conflict",
-    region: "Middle East",
-    country: "Yemen",
-    parties: ["Houthis", "Saudi Coalition", "STC"],
-    avgDailyDeaths: 10,
-    cumulativeDeaths: 377000,
-    startYear: 2014,
-    severity: "conflict",
-    trend: "stable",
-    description: "Complex civil war and humanitarian crisis, with Houthi missile and drone attacks on Red Sea shipping."
-  },
-  {
-    id: "iran",
-    name: "Iran (Internal & Proxy Conflict)",
-    region: "Middle East",
-    country: "Iran",
-    parties: ["IRGC", "PJAK", "Jaish ul-Adl", "Baloch Militants", "Israel"],
-    avgDailyDeaths: 7,
-    cumulativeDeaths: 15000,
-    startYear: 2003,
-    severity: "conflict",
-    trend: "escalating",
-    description: "Ongoing militant insurgencies in border regions (Kurdistan, Sistan-Baluchestan), internal repression of dissent, and escalating shadow war with Israel including strikes on military infrastructure."
-  },
-  {
-    id: "mexico",
-    name: "Mexico Drug War",
-    region: "Latin America",
-    country: "Mexico",
-    parties: ["Mexican State", "Sinaloa Cartel", "CJNG", "Various Cartels"],
-    avgDailyDeaths: 80,
-    cumulativeDeaths: 450000,
-    startYear: 2006,
-    severity: "major_war",
-    trend: "stable",
-    description: "Widespread cartel violence and organized crime across Mexico, with daily killings rivaling active war zones."
-  },
-  {
-    id: "colombia",
-    name: "Colombia Armed Conflict",
-    region: "Latin America",
-    country: "Colombia",
-    parties: ["Colombian State", "ELN", "FARC Dissidents", "Drug Gangs"],
-    avgDailyDeaths: 12,
-    cumulativeDeaths: 260000,
-    startYear: 1964,
-    severity: "conflict",
-    trend: "stable",
-    description: "Ongoing violence from ELN guerrillas, FARC dissidents, and narco-trafficking groups despite peace process."
-  },
-  {
-    id: "haiti",
-    name: "Haiti Gang Violence",
-    region: "Latin America",
-    country: "Haiti",
-    parties: ["Gangs", "Multinational Force"],
-    avgDailyDeaths: 10,
-    cumulativeDeaths: 8000,
-    startYear: 2021,
-    severity: "conflict",
-    trend: "escalating",
-    description: "Rampant gang violence in Port-au-Prince and beyond, overwhelming the collapsing state."
-  },
-  {
-    id: "nigeria-ne",
-    name: "Nigeria (Northeast)",
-    region: "West Africa",
-    country: "Nigeria",
-    parties: ["Nigerian Military", "Boko Haram", "ISWAP"],
-    avgDailyDeaths: 10,
-    cumulativeDeaths: 40000,
-    startYear: 2009,
-    severity: "conflict",
-    trend: "de-escalating",
-    description: "Boko Haram and ISWAP insurgency in the Lake Chad basin, with ongoing military operations."
-  },
-  {
-    id: "pakistan",
-    name: "Pakistan (Balochistan/KP)",
-    region: "South Asia",
-    country: "Pakistan",
-    parties: ["Pakistani Military", "TTP", "BLA"],
-    avgDailyDeaths: 8,
-    cumulativeDeaths: 70000,
-    startYear: 2004,
-    severity: "conflict",
-    trend: "escalating",
-    description: "Resurgent militant violence from TTP in Khyber Pakhtunkhwa and BLA separatists in Balochistan."
-  },
-  {
-    id: "afghanistan",
-    name: "Afghanistan (IS-KP)",
-    region: "South Asia",
-    country: "Afghanistan",
-    parties: ["Taliban Government", "IS-KP", "NRF"],
-    avgDailyDeaths: 6,
-    cumulativeDeaths: 175000,
-    startYear: 2001,
-    severity: "conflict",
-    trend: "de-escalating",
-    description: "Reduced but continuing violence from IS-Khorasan Province attacks and sporadic resistance activity."
-  },
-  {
-    id: "lebanon",
-    name: "Lebanon-Israel Border",
-    region: "Middle East",
-    country: "Lebanon",
-    parties: ["Israel", "Hezbollah"],
-    avgDailyDeaths: 5,
-    cumulativeDeaths: 4500,
-    startYear: 2023,
-    severity: "conflict",
-    trend: "de-escalating",
-    description: "Cross-border exchanges between Hezbollah and Israel following the Gaza escalation, with fragile ceasefire."
-  },
-  {
-    id: "cameroon",
-    name: "Cameroon (Anglophone)",
-    region: "Central Africa",
-    country: "Cameroon",
-    parties: ["Cameroonian Military", "Ambazonia Separatists"],
-    avgDailyDeaths: 4,
-    cumulativeDeaths: 6000,
-    startYear: 2017,
-    severity: "conflict",
-    trend: "stable",
-    description: "Separatist conflict in the English-speaking Northwest and Southwest regions of Cameroon."
-  },
-  {
-    id: "mozambique",
-    name: "Mozambique (Cabo Delgado)",
-    region: "East Africa",
-    country: "Mozambique",
-    parties: ["Mozambican Military", "ASWJ/IS-Moz", "SADC Force"],
-    avgDailyDeaths: 3,
-    cumulativeDeaths: 5000,
-    startYear: 2017,
-    severity: "conflict",
-    trend: "de-escalating",
-    description: "Islamist insurgency in Cabo Delgado province with regional military support helping contain the violence."
-  },
-];
-
-function _seededRandom(seed) {
-  let hash = 0;
-  for(let i=0;i<seed.length;i++){const c=seed.charCodeAt(i);hash=((hash<<5)-hash)+c;hash|=0;}
-  const x=Math.sin(hash)*10000; return x-Math.floor(x);
-}
-function _getDailyDeaths(conflict, dateStr) {
-  const rand = _seededRandom(conflict.id+dateStr);
-  const variance = conflict.severity==='major_war'?0.5:conflict.severity==='war'?0.6:0.7;
-  const mult = 1+(rand*2-1)*variance;
-  return Math.max(0,Math.round(conflict.avgDailyDeaths*mult));
-}
-function _todayStr() { return new Date().toISOString().slice(0,10); }
-
-// ── TELEGRAM CHANNELS ─────────────────────────────────────
-const TG_CHANNELS = [
-  // ── Ukraine / Russia Conflict ──────────────────────
-  { name: "intel_slava_Z", label: "Intel Slava Z", color: "#f87171", bgColor: "rgba(248,113,113,0.15)", region: "🇺🇦 UKR/RUS" },
-  { name: "rybar", label: "Rybar", color: "#60a5fa", bgColor: "rgba(96,165,250,0.15)", region: "🇺🇦 UKR/RUS" },
-  { name: "mod_russia_en", label: "RU MoD EN", color: "#a78bfa", bgColor: "rgba(167,139,250,0.15)", region: "🇺🇦 UKR/RUS" },
-  { name: "operativnoZSU", label: "ZSU Ops", color: "#f472b6", bgColor: "rgba(244,114,182,0.15)", region: "🇺🇦 UKR/RUS" },
-  { name: "milinfolive", label: "MilInfo Live", color: "#e879f9", bgColor: "rgba(232,121,249,0.15)", region: "🇺🇦 UKR/RUS" },
-
-  // ── Middle East / Iran-Israel ──────────────────────
-  { name: "Middle_East_Spectator", label: "ME Spectator", color: "#34d399", bgColor: "rgba(52,211,153,0.15)", region: "🌍 MIDEAST" },
-  { name: "QudsNen", label: "Quds News", color: "#fbbf24", bgColor: "rgba(251,191,36,0.15)", region: "🌍 MIDEAST" },
-  { name: "beholdisrael", label: "Behold Israel", color: "#38bdf8", bgColor: "rgba(56,189,248,0.15)", region: "🌍 MIDEAST" },
-  { name: "Kofia_News", label: "Kofia News", color: "#fb923c", bgColor: "rgba(251,146,60,0.15)", region: "🌍 MIDEAST" },
-
-  // ── Global / Multi-Conflict ────────────────────────
-  { name: "ourwarstoday", label: "Our Wars Today", color: "#2dd4bf", bgColor: "rgba(45,212,191,0.15)", region: "🌐 GLOBAL" },
-  { name: "Aquila7011", label: "Aquila OSINT", color: "#818cf8", bgColor: "rgba(129,140,248,0.15)", region: "🌐 GLOBAL" },
-  { name: "SouthFrontENGL", label: "SouthFront EN", color: "#c084fc", bgColor: "rgba(192,132,252,0.15)", region: "🌐 GLOBAL" },
-  { name: "multipaborona", label: "Multipolar", color: "#22d3ee", bgColor: "rgba(34,211,238,0.15)", region: "🌐 GLOBAL" },
-
-  // ── Cyber / OSINT / Hacktivist ─────────────────────
-  { name: "CyberWarzone", label: "CyberWarzone", color: "#4ade80", bgColor: "rgba(74,222,128,0.15)", region: "🛡️ CYBER/OSINT" },
-  { name: "cyaborona", label: "Cyber Intel", color: "#f97316", bgColor: "rgba(249,115,22,0.15)", region: "🛡️ CYBER/OSINT" },
-  { name: "SiegedSec", label: "SiegedSec", color: "#ef4444", bgColor: "rgba(239,68,68,0.15)", region: "🛡️ CYBER/OSINT" },
-
-  // ── South Asia / Indo-Pacific ──────────────────────
-  { name: "OsintTv", label: "OSINT TV 🇮🇳", color: "#facc15", bgColor: "rgba(250,204,21,0.15)", region: "🇮🇳 S.ASIA" },
-  { name: "IndoPac_Intel", label: "IndoPac Intel", color: "#a3e635", bgColor: "rgba(163,230,53,0.15)", region: "🇮🇳 S.ASIA" },
-];
-
-// ── NOTAM DATA ────────────────────────────────────────────
-const NOTAM_TYPE_COLORS = {
-  CONFLICT:'#ef4444', MIL:'#f97316', TFR:'#eab308', LAUNCH:'#3b82f6', VIP:'#a855f7'
-};
-
-let _rawNotams = [];
-let _notamRegion = 'Global';
-let _notamType = 'All';
-
-function _generateNotams() {
-  const now = Date.now();
-  const h = hrs => new Date(now - hrs*3600000).toISOString();
-  const f = hrs => new Date(now + hrs*3600000).toISOString();
-  let id = 0;
-  const mk = (o) => ({
-    id: 'N'+(++id), notamId:o.notamId, type:o.type, severity:o.severity,
-    location:o.location, fir:o.fir, country:o.country, region:o.region,
-    lat:o.lat, lng:o.lng, lowerAlt:o.lowerAlt, upperAlt:o.upperAlt,
-    effectiveFrom:o.effectiveFrom, effectiveTo:o.effectiveTo, issuedAt:o.issuedAt,
-    description:o.description, keywords:o.keywords||[],
-    isConflictZone:['Ukraine','Gaza','Yemen','Sudan','Myanmar','Syria','Iran','Lebanon','Somalia','Iraq','Libya','Afghanistan'].some(z=>o.country.includes(z)||o.location.includes(z)),
-    isNew:(now-new Date(o.issuedAt).getTime())<6*3600000,
-  });
-  return [
-    mk({notamId:'A0147/26',type:'CONFLICT',severity:'critical',location:'UKRAINE EASTERN AIRSPACE',fir:'UKDV',country:'Ukraine',region:'Europe',lat:48.38,lng:37.62,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:h(720),effectiveTo:f(2160),issuedAt:h(2),description:'AIRSPACE PROHIBITED. ALL AIRCRAFT OPERATIONS PROHIBITED WITHIN EASTERN UKRAINE FIR DUE TO ONGOING ARMED CONFLICT. ANTI-AIRCRAFT SYSTEMS ACTIVE.',keywords:['PROHIBITED','CONFLICT','WAR','DANGER']}),
-    mk({notamId:'A0212/26',type:'CONFLICT',severity:'critical',location:'GAZA STRIP AIRSPACE',fir:'LLLL',country:'Gaza',region:'Middle East',lat:31.42,lng:34.40,lowerAlt:'SFC',upperAlt:'FL600',effectiveFrom:h(4320),effectiveTo:f(4320),issuedAt:h(4),description:'DANGER AREA. GAZA STRIP AND SURROUNDING AIRSPACE PROHIBITED. ACTIVE MILITARY OPERATIONS INCLUDING AIR AND GROUND COMBAT.',keywords:['PROHIBITED','CONFLICT','WAR']}),
-    mk({notamId:'B0089/26',type:'CONFLICT',severity:'critical',location:'YEMEN - HOUTHI CONTROLLED',fir:'OYSC',country:'Yemen',region:'Middle East',lat:15.35,lng:44.20,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:h(2160),effectiveTo:f(4320),issuedAt:h(12),description:'AIRSPACE RESTRICTED. YEMEN FIR WESTERN SECTOR PROHIBITED. ANTI-SHIP MISSILE AND DRONE LAUNCHES ONGOING.',keywords:['PROHIBITED','MISSILE','CONFLICT']}),
-    mk({notamId:'C0045/26',type:'CONFLICT',severity:'critical',location:'SUDAN KHARTOUM AREA',fir:'HSSS',country:'Sudan',region:'Africa',lat:15.60,lng:32.53,lowerAlt:'SFC',upperAlt:'FL450',effectiveFrom:h(4320),effectiveTo:f(2160),issuedAt:h(72),description:'AIRSPACE PROHIBITED. KHARTOUM FIR. ARMED CONFLICT BETWEEN SAF AND RSF. ALL CIVIL AVIATION PROHIBITED.',keywords:['PROHIBITED','CONFLICT','WAR']}),
-    mk({notamId:'D0033/26',type:'CONFLICT',severity:'high',location:'MYANMAR CENTRAL AIRSPACE',fir:'VYYY',country:'Myanmar',region:'Asia-Pacific',lat:19.75,lng:96.13,lowerAlt:'SFC',upperAlt:'FL400',effectiveFrom:h(4320),effectiveTo:f(4320),issuedAt:h(168),description:'DANGER AREA. MYANMAR FIR. MILITARY JUNTA AIRSTRIKES ONGOING.',keywords:['DANGER AREA','CONFLICT']}),
-    mk({notamId:'A0301/26',type:'CONFLICT',severity:'critical',location:'SYRIA EASTERN AIRSPACE',fir:'OSTT',country:'Syria',region:'Middle East',lat:35.20,lng:38.90,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:h(8760),effectiveTo:f(4320),issuedAt:h(240),description:'PROHIBITED AREA. SYRIA FIR. MULTIPLE MILITARY FORCES ACTIVE.',keywords:['PROHIBITED','CONFLICT']}),
-    mk({notamId:'A0500/26',type:'CONFLICT',severity:'high',location:'IRAN AIRSPACE',fir:'OIIX',country:'Iran',region:'Middle East',lat:32.43,lng:53.69,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:h(720),effectiveTo:f(2160),issuedAt:h(36),description:'RESTRICTED AREA. IRAN FIR. HEIGHTENED MILITARY ACTIVITY. IRGC AIR DEFENSE SYSTEMS ON MAXIMUM ALERT.',keywords:['RESTRICTED','CONFLICT']}),
-    mk({notamId:'M0234/26',type:'MIL',severity:'medium',location:'NATO EXERCISE - BALTIC SEA',fir:'EDMM',country:'Germany',region:'Europe',lat:55.50,lng:16.00,lowerAlt:'SFC',upperAlt:'FL450',effectiveFrom:h(24),effectiveTo:f(168),issuedAt:h(3),description:'MILITARY EXERCISE "BALTIC SENTINEL 26". LARGE SCALE NATO AIR AND NAVAL EXERCISE. SIMULATED FIRING AREAS ACTIVE.',keywords:['MIL','EXERCISE','FIRING']}),
-    mk({notamId:'M0302/26',type:'MIL',severity:'medium',location:'CHINESE MILITARY - SOUTH CHINA SEA',fir:'ZGZU',country:'China',region:'Asia-Pacific',lat:16.50,lng:112.50,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:h(72),effectiveTo:f(240),issuedAt:h(1),description:'DANGER AREA. PLA NAVY AND AIR FORCE EXERCISE. SOUTH CHINA SEA. LIVE FIRING INCLUDING ANTI-SHIP MISSILES.',keywords:['MIL','EXERCISE','FIRING','MISSILE']}),
-    mk({notamId:'M0303/26',type:'MIL',severity:'high',location:'CHINESE MILITARY - TAIWAN STRAIT',fir:'ZGZU',country:'China',region:'Asia-Pacific',lat:24.00,lng:118.50,lowerAlt:'SFC',upperAlt:'FL600',effectiveFrom:h(12),effectiveTo:f(72),issuedAt:h(2),description:'RESTRICTED AREA. TAIWAN STRAIT. PLA MILITARY EXERCISE. BALLISTIC MISSILE FIRING ZONES ACTIVE.',keywords:['MIL','EXERCISE','MISSILE']}),
-    mk({notamId:'T0891/26',type:'TFR',severity:'medium',location:'WASHINGTON DC AREA',fir:'KZDC',country:'United States',region:'Americas',lat:38.90,lng:-77.04,lowerAlt:'SFC',upperAlt:'FL180',effectiveFrom:h(2),effectiveTo:f(12),issuedAt:h(1),description:'TFR. TEMPORARY FLIGHT RESTRICTION. WASHINGTON DC SPECIAL FLIGHT RULES AREA. VIP MOVEMENT.',keywords:['TFR','VIP']}),
-    mk({notamId:'L0047/26',type:'LAUNCH',severity:'high',location:'NORTH KOREA - MISSILE TEST',fir:'ZKKP',country:'North Korea',region:'Asia-Pacific',lat:39.66,lng:124.71,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:h(2),effectiveTo:f(48),issuedAt:h(1),description:'DANGER AREA. DPRK MISSILE LAUNCH NOTIFICATION. BALLISTIC MISSILE TEST EXPECTED. SEA OF JAPAN IMPACT ZONE.',keywords:['MISSILE','LAUNCH','DANGER AREA']}),
-    mk({notamId:'L0045/26',type:'LAUNCH',severity:'medium',location:'BAIKONUR COSMODROME',fir:'UATT',country:'Kazakhstan',region:'Asia-Pacific',lat:45.96,lng:63.31,lowerAlt:'SFC',upperAlt:'UNL',effectiveFrom:f(6),effectiveTo:f(12),issuedAt:h(5),description:'LAUNCH WINDOW. SOYUZ ROCKET LAUNCH FROM BAIKONUR. DEBRIS FALL ZONES ACTIVE.',keywords:['LAUNCH','ROCKET']}),
-  ];
-}
-
-
-function filterFeed(f, btn, which) {
-  if(which==='media') activeCatMedia=f; else activeCatOsint=f;
-  document.querySelectorAll('#filters-'+which+' .fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const data = which==='media' ? mediaCache.data : osintCache.data;
-  const feedId = which==='media' ? 'feed-media' : 'feed-osint';
-  const filtered = f==='all' ? data
-    : f==='breaking' ? data.filter(x=>x.tag==='breaking'||x.tag==='conflict')
-    : data.filter(x=>x.cat===f||x.tag===f);
-  const feedEl = document.getElementById(feedId);
-  if(feedEl) feedEl.innerHTML = filtered.length
-    ? filtered.slice(0,80).map(itemHTML).join('')
-    : '<div class="fstatus">No results</div>';
-}
-function updateBreakingBar(items) {
-  if(!items||!items.length) return;
-  const brkHtml = items.map(x=>`<span class="brk-item" onclick="openItem('${x.link}')">${x.title}</span><span class="brk-sep">◆</span>`).join('');
-  const brkInner = document.getElementById('brk-inner');
-  if(brkInner) brkInner.innerHTML = brkHtml+brkHtml;
-}
-
-
-// ════════════════════════════════════════════════════════════
-// MODULE: EVENTS MAP (MapLibre)
-// ════════════════════════════════════════════════════════════
-let _map = null, _mapMarkers = [], _mapMode = 'conflict', _mapHidden = new Set();
-
-function initMap() {
-  if(_map) return;
-  const el = document.getElementById('map-el');
-  if(!el) return;
-  _map = new maplibregl.Map({
-    container: el,
-    style: {
-      version:8, sources:{carto:{type:'raster',
-        tiles:['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-               'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
-        tileSize:256, attribution:'© CARTO © OSM'}},
-      layers:[{id:'carto',type:'raster',source:'carto'}]
-    },
-    center:[20,15], zoom:2,
-  });
+let _map=null,_mapMarkers=[],_mapMode='conflict',_mapHidden=new Set();
+function initMap(){
+  if(_map)return; const e=document.getElementById('map-el');if(!e)return;
+  _map=new maplibregl.Map({container:e,style:{version:8,sources:{carto:{type:'raster',tiles:['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],tileSize:256,attribution:'© CARTO © OSM'}},layers:[{id:'carto',type:'raster',source:'carto'}]},center:[20,15],zoom:2});
   _map.addControl(new maplibregl.NavigationControl(),'bottom-right');
-  _map.on('load', ()=>{ drawMapEvents(); buildMapLegend(); buildMapRegions(); });
+  _map.on('load',()=>{drawMapEvents();buildMapLegend();buildMapRegions();});
 }
-
-function drawMapEvents() {
-  if(!_map) return;
-  _mapMarkers.forEach(m=>m.remove()); _mapMarkers=[];
-  const items = _mapMode==='conflict' ? EVENT_CONFLICTS : EVENT_TYPES;
-  const colorKey = _mapMode==='conflict' ? 'conflict' : 'type';
-  const visible = MAP_EVENTS.filter(e=>!_mapHidden.has(_mapMode==='conflict'?e.conflict:e.type));
-  document.getElementById('st-events').textContent = MAP_EVENTS.length;
-  document.getElementById('st-conflicts').textContent = Object.keys(EVENT_CONFLICTS).length;
-  document.getElementById('st-hidden').textContent = MAP_EVENTS.length - visible.length;
+function drawMapEvents(){
+  if(!_map)return; _mapMarkers.forEach(m=>m.remove());_mapMarkers=[];
+  const palette=_mapMode==='conflict'?EVENT_CONFLICTS:EVENT_TYPES;
+  const key=_mapMode==='conflict'?'conflict':'type';
+  const visible=MAP_EVENTS.filter(e=>!_mapHidden.has(e[key]));
+  document.getElementById('st-events').textContent=MAP_EVENTS.length;
+  document.getElementById('st-conflicts').textContent=Object.keys(EVENT_CONFLICTS).length;
+  document.getElementById('st-hidden').textContent=MAP_EVENTS.length-visible.length;
   visible.forEach(evt=>{
-    const color = items[evt[colorKey]]||'#ffffff';
-    const marker = new maplibregl.Marker({color, scale:0.65})
-      .setLngLat([evt.lng,evt.lat])
+    const color=palette[evt[key]]||'#ffffff';
+    const marker=new maplibregl.Marker({color,scale:0.65}).setLngLat([evt.lng,evt.lat])
       .setPopup(new maplibregl.Popup({closeButton:true,maxWidth:'300px',className:'dark-popup'})
         .setHTML(`<div style="font-family:monospace;font-size:11px;background:#0f0f0f;color:#e4e4e7;padding:10px 12px;line-height:1.5;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-            <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 5px ${color};"></span>
-            <strong style="color:#fff;">${evt.type}</strong>
-          </div>
-          <div style="color:#a1a1aa;font-size:10px;margin-bottom:3px;">${evt.conflict} · ${evt.date}</div>
-          <div style="color:#d4d4d8;">${evt.location}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span><strong>${evt.type}</strong></div>
+          <div style="color:#a1a1aa;font-size:10px;">${evt.conflict} · ${evt.date}</div>
+          <div style="color:#d4d4d8;margin-top:3px;">${evt.location}</div>
           <div style="color:#a1a1aa;font-size:10px;">${evt.description}</div>
           ${evt.casualties?`<div style="color:#f87171;font-size:10px;margin-top:3px;">⚠ ${evt.casualties}</div>`:''}
-        </div>`))
-      .addTo(_map);
-    const el=marker.getElement(); el.style.cursor='pointer'; el.style.transition='filter .15s';
-    el.addEventListener('mouseenter',()=>{el.style.filter=`drop-shadow(0 0 8px ${color})`;});
-    el.addEventListener('mouseleave',()=>{el.style.filter='none';});
+        </div>`)).addTo(_map);
+    const mEl=marker.getElement();mEl.style.cursor='pointer';
+    mEl.addEventListener('mouseenter',()=>{mEl.style.filter=`drop-shadow(0 0 8px ${color})`;});
+    mEl.addEventListener('mouseleave',()=>{mEl.style.filter='none';});
     _mapMarkers.push(marker);
   });
 }
-
-function buildMapLegend() {
-  const items = _mapMode==='conflict'?EVENT_CONFLICTS:EVENT_TYPES;
-  const colorKey = _mapMode==='conflict'?'conflict':'type';
-  const el = document.getElementById('map-legend-items'); if(!el) return;
-  el.innerHTML = Object.entries(items).map(([key,col])=>{
-    const count = MAP_EVENTS.filter(e=>e[colorKey]===key).length;
-    const hidden = _mapHidden.has(key);
-    return `<div class="leg-row${hidden?' off':''}" onclick="toggleMapFilter('${key}')">
-      <div class="leg-dot" style="background:${col};${hidden?'':'box-shadow:0 0 4px '+col}"></div>
-      <span class="leg-label">${key}</span>
-      <span class="leg-count">${count}</span>
-    </div>`;
+function buildMapLegend(){
+  const palette=_mapMode==='conflict'?EVENT_CONFLICTS:EVENT_TYPES;
+  const key=_mapMode==='conflict'?'conflict':'type';
+  const el=document.getElementById('map-legend-items');if(!el)return;
+  el.innerHTML=Object.entries(palette).map(([k,col])=>{
+    const cnt=MAP_EVENTS.filter(e=>e[key]===k).length;const off=_mapHidden.has(k);
+    return `<div class="leg-row${off?' off':''}" onclick="toggleMapKey('${k}')"><div class="leg-dot" style="background:${col};${off?'':'box-shadow:0 0 4px '+col}"></div><span class="leg-label">${k}</span><span class="leg-count">${cnt}</span></div>`;
   }).join('');
 }
-
-function buildMapRegions() {
-  const el=document.getElementById('map-regions'); if(!el) return;
-  el.innerHTML = MAP_REGIONS.map(r=>`<button class="reg-btn" onclick="mapFly(${r.center},${r.zoom})">${r.label}</button>`).join('');
+function buildMapRegions(){
+  const el=document.getElementById('map-regions');if(!el)return;
+  el.innerHTML=MAP_REGIONS.map(r=>`<button class="reg-btn" onclick="_map.flyTo({center:[${r.center}],zoom:${r.zoom},duration:1500})">${r.label}</button>`).join('');
 }
+function toggleMapKey(k){if(_mapHidden.has(k))_mapHidden.delete(k);else _mapHidden.add(k);drawMapEvents();buildMapLegend();}
+function setMapMode(mode,btn){_mapMode=mode;_mapHidden.clear();document.querySelectorAll('#map-filter-modes .tb-btn').forEach(x=>x.classList.remove('on'));btn.classList.add('on');const t=document.querySelector('#map-legend .leg-title');if(t)t.textContent=mode==='conflict'?'BY CONFLICT':'BY TYPE';drawMapEvents();buildMapLegend();}
 
-function mapFly(center, zoom) {
-  _map?.flyTo({center, zoom, duration:1500});
-}
 
-function toggleMapFilter(key) {
-  if(_mapHidden.has(key)) _mapHidden.delete(key); else _mapHidden.add(key);
-  drawMapEvents(); buildMapLegend();
-}
-
-function setMapMode(mode, btn) {
-  _mapMode = mode; _mapHidden.clear();
-  document.querySelectorAll('#map-filter-modes .tb-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  drawMapEvents(); buildMapLegend();
-}
-
-// ════════════════════════════════════════════════════════════
-// MODULE: SATELLITE IMAGERY
-// ════════════════════════════════════════════════════════════
-let _satFilter = null;
-let _satDetailMap = null;
-const SAT_STATUS = {
-  critical:  {bg:'rgba(255,32,32,.2)',text:'#ff2020',label:'CRITICAL'},
-  intense:   {bg:'rgba(255,140,0,.2)',text:'#ff8c00',label:'INTENSE'},
-  escalating:{bg:'rgba(255,204,0,.15)',text:'#ffcc00',label:'ESCALATING'},
-  active:    {bg:'rgba(0,224,64,.12)',text:'#00e040',label:'ACTIVE'},
-};
-
-function renderSatGrid() {
-  const grid = document.getElementById('sat-grid'); if(!grid) return;
-  const zones = _satFilter ? SAT_ZONES.filter(z=>z.status===_satFilter) : SAT_ZONES;
-  grid.innerHTML = zones.map(z=>{
-    const st = SAT_STATUS[z.status]||SAT_STATUS.active;
-    const tileZoom = Math.max(5,z.zoom-2);
-    const n = Math.pow(2,tileZoom);
-    const tx = Math.floor(((z.lon+180)/360)*n);
-    const latR = z.lat*Math.PI/180;
-    const ty = Math.floor((1-Math.log(Math.tan(latR)+1/Math.cos(latR))/Math.PI)/2*n);
-    const tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${tileZoom}/${ty}/${tx}`;
-    return `<div class="sat-card" onclick="openSatDetail('${z.id}')">
-      <div class="sat-tile-container">
-        <img src="${tileUrl}" style="width:100%;height:100%;object-fit:cover;filter:grayscale(100%) contrast(1.1) brightness(.8);" loading="lazy" onerror="this.style.display='none'"/>
-      </div>
-      <div class="sat-overlay"></div>
-      <div class="sat-scanlines"></div>
-      <div class="sat-crosshair">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" opacity=".5">
-          <line x1="10" y1="0" x2="10" y2="20" stroke="#ef4444" stroke-width="1"/>
-          <line x1="0" y1="10" x2="20" y2="10" stroke="#ef4444" stroke-width="1"/>
-        </svg>
-      </div>
-      <div class="sat-status">
-        <span class="sat-status-badge" style="background:${st.bg};color:${st.text};border:1px solid ${st.text}44;">${st.label}</span>
-      </div>
-      <div class="sat-live">
-        <span class="sat-ping" style="background:${z.color};">
-          <span style="position:absolute;top:-3px;left:-3px;width:12px;height:12px;border-radius:50%;background:${z.color};opacity:.4;animation:pulse 1.5s ease infinite;"></span>
-        </span>
-      </div>
-      <div class="sat-info">
-        <div class="sat-name">${z.name}</div>
-        <div class="sat-region">${z.region} · ${z.conflict}</div>
-        <div class="sat-coords">${z.lat.toFixed(2)}°, ${z.lon.toFixed(2)}° <span class="sat-expand-hint">↗ EXPAND</span></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function satFilter(status, btn) {
-  _satFilter = status;
-  document.querySelectorAll('#sat-filter-row .fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderSatGrid();
-}
-
-function openSatDetail(id) {
-  const z = SAT_ZONES.find(x=>x.id===id); if(!z) return;
-  const detail = document.getElementById('sat-detail');
-  document.getElementById('sat-detail-dot').style.background = z.color;
-  document.getElementById('sat-detail-name').textContent = z.name;
-  document.getElementById('sat-detail-sub').textContent = `${z.conflict} · ${z.region} · ${z.lat.toFixed(3)}°, ${z.lon.toFixed(3)}°`;
-  document.getElementById('sat-detail-desc').textContent = z.description;
-  detail.classList.add('on');
-
-  // Init detail map
-  setTimeout(()=>{
-    const container = document.getElementById('sat-detail-map-el');
-    if(_satDetailMap) { _satDetailMap.remove(); _satDetailMap=null; }
-    _satDetailMap = new maplibregl.Map({
-      container,
-      style:{version:8,sources:{esri:{type:'raster',
-        tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-        tileSize:256}},
-        layers:[{id:'esri',type:'raster',source:'esri',paint:{'raster-saturation':-1,'raster-contrast':.2}}]},
-      center:[z.lon,z.lat], zoom:z.zoom+1,
-    });
-    _satDetailMap.addControl(new maplibregl.NavigationControl(),'bottom-right');
-    const el=document.createElement('div');
-    el.style.cssText=`width:16px;height:16px;border-radius:50%;background:${z.color};border:2px solid rgba(0,0,0,.5);box-shadow:0 0 10px ${z.color}88;`;
-    new maplibregl.Marker({element:el}).setLngLat([z.lon,z.lat]).addTo(_satDetailMap);
-    setTimeout(()=>_satDetailMap.resize(),100);
-  },50);
-}
-
-function closeSatDetail() {
-  document.getElementById('sat-detail').classList.remove('on');
-  if(_satDetailMap){_satDetailMap.remove();_satDetailMap=null;}
-}
-
-// ════════════════════════════════════════════════════════════
-// MODULE: DEATH TRACKER
-// ════════════════════════════════════════════════════════════
-let _deathsFilter = 'all';
-
-function initDeaths() {
-  const today = _todayStr();
-  const total = DEATH_CONFLICTS.reduce((s,c)=>s+_getDailyDeaths(c,today),0);
-  const escalating = DEATH_CONFLICTS.filter(c=>c.trend==='escalating').length;
-  document.getElementById('dt-today').textContent = total.toLocaleString();
-  document.getElementById('dt-zones').textContent = DEATH_CONFLICTS.length;
-  document.getElementById('dt-escalating').textContent = escalating;
-  renderDeathsList();
-}
-
-function renderDeathsList() {
-  const today = _todayStr();
-  let data = DEATH_CONFLICTS.map(c=>({...c, todayDeaths:_getDailyDeaths(c,today)}))
-    .sort((a,b)=>b.todayDeaths-a.todayDeaths);
-  if(_deathsFilter==='major_war') data=data.filter(c=>c.severity==='major_war');
-  else if(_deathsFilter==='war') data=data.filter(c=>c.severity==='war');
-  else if(_deathsFilter==='conflict') data=data.filter(c=>c.severity==='conflict');
-  else if(_deathsFilter==='escalating') data=data.filter(c=>c.trend==='escalating');
-  const sevColors = {major_war:'var(--red)',war:'var(--amb)',conflict:'#ffcc00'};
-  const trendIcons = {escalating:'↑',stable:'→','de-escalating':'↓'};
-  const trendCols = {escalating:'var(--red)',stable:'var(--t2)','de-escalating':'var(--grn)'};
-  // Sparklines - 7 days
-  const spark = (c)=>{
-    const days=Array.from({length:7},(_,i)=>_getDailyDeaths(c,new Date(Date.now()-i*86400000).toISOString().slice(0,10))).reverse();
-    const max=Math.max(...days,1);
-    return days.map(v=>`<div class="dc-bar" style="height:${Math.max(2,v/max*16)}px;background:${sevColors[c.severity]||'var(--t1)'};opacity:.7;"></div>`).join('');
-  };
-  document.getElementById('deaths-list').innerHTML = data.map(c=>`
-    <div class="dc-item" onclick="toggleDcExpand('${c.id}')">
-      <div class="dc-row">
-        <div class="dc-deaths">
-          <div class="dc-deaths-num" style="color:${sevColors[c.severity]||'var(--t1)'};">${c.todayDeaths}</div>
-          <div class="dc-deaths-lbl">today</div>
-        </div>
-        <div class="dc-info">
-          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
-            <span class="dc-name">${c.name}</span>
-            <span style="font-size:7px;padding:1px 4px;border:1px solid;border-color:${sevColors[c.severity]};color:${sevColors[c.severity]};font-family:var(--mono);">${c.severity.replace('_',' ').toUpperCase()}</span>
-            <span style="font-size:8px;color:${trendCols[c.trend]};">${trendIcons[c.trend]||'→'} ${c.trend}</span>
-          </div>
-          <div class="dc-sub">${c.country} · ${c.parties.join(' vs ')}</div>
-        </div>
-        <div class="dc-spark">${spark(c)}</div>
-      </div>
-      <div class="dc-expand" id="dc-exp-${c.id}">
-        <div class="dc-desc">${c.description}</div>
-        <div class="dc-expand-grid">
-          <div class="dc-stat-box"><div class="dc-stat-box-label">TODAY</div><div class="dc-stat-box-val" style="color:${sevColors[c.severity]}">${c.todayDeaths}</div></div>
-          <div class="dc-stat-box"><div class="dc-stat-box-label">AVG/DAY</div><div class="dc-stat-box-val">${c.avgDailyDeaths}</div></div>
-          <div class="dc-stat-box"><div class="dc-stat-box-label">TOTAL EST.</div><div class="dc-stat-box-val">${(c.cumulativeDeaths/1000).toFixed(0)}K+</div></div>
-          <div class="dc-stat-box"><div class="dc-stat-box-label">SINCE</div><div class="dc-stat-box-val">${c.startYear}</div></div>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function toggleDcExpand(id) {
-  const el=document.getElementById('dc-exp-'+id); if(!el) return;
-  el.classList.toggle('on');
-}
-
-function deathsFilter(f, btn) {
-  _deathsFilter=f;
-  document.querySelectorAll('#deaths-filter .fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderDeathsList();
-}
-
-// ════════════════════════════════════════════════════════════
-// MODULE: MARKETS
-// ════════════════════════════════════════════════════════════
-const COMMODITIES = [
-  {symbol:'GC=F',name:'Gold',cat:'metal',unit:'/oz'},
-  {symbol:'SI=F',name:'Silver',cat:'metal',unit:'/oz'},
-  {symbol:'HG=F',name:'Copper',cat:'metal',unit:'/lb'},
-  {symbol:'CL=F',name:'WTI Crude',cat:'energy',unit:'/bbl'},
-  {symbol:'BZ=F',name:'Brent Crude',cat:'energy',unit:'/bbl'},
-  {symbol:'NG=F',name:'Natural Gas',cat:'energy',unit:'/MMBtu'},
-  {symbol:'ZW=F',name:'Wheat',cat:'agri',unit:'/bu'},
-  {symbol:'ZC=F',name:'Corn',cat:'agri',unit:'/bu'},
-  {symbol:'KC=F',name:'Coffee',cat:'agri',unit:'/lb'},
-];
-const INDICES = [
-  {symbol:'%5EGSPC',name:'S&P 500',cat:'idx'},
-  {symbol:'%5EIXIC',name:'NASDAQ',cat:'idx'},
-  {symbol:'%5EDAX',name:'DAX',cat:'idx'},
-  {symbol:'%5EN225',name:'NIKKEI',cat:'idx'},
-];
-const CRYPTO = [
-  {symbol:'BTC-USD',name:'Bitcoin',cat:'crypto'},
-  {symbol:'ETH-USD',name:'Ethereum',cat:'crypto'},
-  {symbol:'SOL-USD',name:'Solana',cat:'crypto'},
-];
-const FX = [
-  {symbol:'EURUSD=X',name:'EUR/USD',cat:'fx'},
-  {symbol:'GBPUSD=X',name:'GBP/USD',cat:'fx'},
-  {symbol:'JPY=X',name:'USD/JPY',cat:'fx'},
-  {symbol:'CNY=X',name:'USD/CNY',cat:'fx'},
-];
-
-let _mktCountdown = 60;
-let _mktTimer = null;
-
-async function fetchYahoo(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
-  try {
-    const r = await fetch('/api/proxy?url='+encodeURIComponent(url), {signal:AbortSignal.timeout(8000)});
-    if(!r.ok) throw 0;
-    const j = await r.json();
-    const meta = j?.chart?.result?.[0]?.meta;
-    if(!meta) throw 0;
-    const price = meta.regularMarketPrice;
-    const prev = meta.chartPreviousClose||meta.previousClose;
-    const change = price&&prev ? price-prev : null;
-    const changePct = change&&prev ? change/prev*100 : null;
-    return {price,change,changePct};
-  } catch { return null; }
-}
-
-function fmtPrice(p, sym) {
-  if(p==null) return '—';
-  const cents = ['ZC=F','ZW=F','ZS=F','KC=F','SB=F','CT=F','CC=F'];
-  if(cents.includes(sym)) return p.toFixed(2)+'¢';
-  if(p>10000) return '$'+p.toLocaleString('en',{maximumFractionDigits:0});
-  if(p>100) return '$'+p.toFixed(2);
-  return '$'+p.toFixed(4);
-}
-function fmtChg(v, pct) {
-  if(v==null) return '—';
-  const prefix=v>0?'+':'';
-  const cls=v>0?'mkt-up':v<0?'mkt-dn':'mkt-flat';
-  const badge=v>0?'mkt-badge-up':'mkt-badge-dn';
-  return `<span class="${cls}">${prefix}${v.toFixed(2)}</span> <span class="${badge}">${prefix}${pct?.toFixed(2)||'0.00'}%</span>`;
-}
-
-async function refreshMarkets(manual=false) {
-  if(manual) { clearInterval(_mktTimer); _mktCountdown=60; }
-  const catStyles = {
-    metal:'cat-metal',energy:'cat-energy',agri:'cat-agri',crypto:'cat-crypto',idx:'',fx:'cat-fx'
-  };
-  const mkRow = (sym,name,cat,data,unit='')=>`
-    <tr><td class="mkt-name">${name}</td>
-    <td><span class="mkt-cat ${catStyles[cat]||''}">${cat.toUpperCase()}</span></td>
-    <td class="mkt-val">${fmtPrice(data?.price,sym)}${unit?`<div style="font-size:7px;color:var(--t2);text-align:right;">${unit}</div>`:''}</td>
-    <td class="mkt-chg">${data?fmtChg(data.change,data.changePct):'<span class="mkt-flat">—</span>'}</td>
-    <td></td></tr>`;
-  const sets = [
-    {items:COMMODITIES,tbody:'mkt-commodities'},
-    {items:INDICES,tbody:'mkt-indices'},
-    {items:CRYPTO,tbody:'mkt-crypto'},
-    {items:FX,tbody:'mkt-fx'},
-  ];
-  // Show loading skeletons
-  sets.forEach(({tbody})=>{
-    const el=document.getElementById(tbody);
-    if(el) el.innerHTML=`<tr><td colspan="5" style="font-family:var(--mono);font-size:8px;color:var(--t2);padding:8px;text-align:center;">Loading...</td></tr>`;
-  });
-  // Fetch all in parallel
-  for(const {items,tbody} of sets) {
-    const results = await Promise.all(items.map(i=>fetchYahoo(i.symbol)));
-    const el = document.getElementById(tbody); if(!el) continue;
-    el.innerHTML = items.map((item,i)=>mkRow(item.symbol,item.name,item.cat,results[i],item.unit||'')).join('');
-  }
-  // Restart countdown
-  _mktCountdown = 60;
-  clearInterval(_mktTimer);
-  _mktTimer = setInterval(()=>{
-    _mktCountdown--;
-    const cd=document.getElementById('mkt-countdown');
-    if(cd) cd.textContent=_mktCountdown+'s';
-    if(_mktCountdown<=0) refreshMarkets();
-  },1000);
-}
-
-// ════════════════════════════════════════════════════════════
-// MODULE: TELEGRAM OSINT
-// ════════════════════════════════════════════════════════════
-let _tgPosts = [];
-let _tgRegion = null;
-let _tgChannel = null;
-let _tgSeenIds = new Set();
-
-async function fetchTGChannel(ch) {
-  const url = `https://t.me/s/${ch.name}`;
-  try {
-    const r = await fetch(WORKER+'/telegram?ch='+encodeURIComponent(ch.name),{signal:AbortSignal.timeout(8000)});
-    if(!r.ok) return [];
-    const d = await r.json();
-    return (d.items||[]).map(item=>({
-      id: ch.name+'_'+item.link,
-      channelName: ch.name, channelLabel: ch.label,
-      text: item.title||item.desc||'',
-      timestamp: new Date(item.pubDate||Date.now()),
-      link: item.link||`https://t.me/${ch.name}`,
-      region: ch.region,
-      color: ch.color, bgColor: ch.bgColor,
-      isNew: !_tgSeenIds.has(ch.name+'_'+item.link),
-    }));
-  } catch { return []; }
-}
-
-async function refreshTelegram() {
-  colStatus('tg-count','loading');
-  const all = [];
-  await Promise.allSettled(TG_CHANNELS.map(async ch=>{
-    const posts = await fetchTGChannel(ch);
-    posts.forEach(p=>all.push(p));
-  }));
-  all.sort((a,b)=>b.timestamp-a.timestamp);
-  _tgPosts = all;
-  all.forEach(p=>_tgSeenIds.add(p.id));
-  buildTgFilterBars();
-  renderTgFeed();
-  const el=document.getElementById('tg-count');
-  if(el) el.textContent = all.length;
-}
-
-function buildTgFilterBars() {
-  const regions = [...new Set(TG_CHANNELS.map(c=>c.region))];
-  const rbar = document.getElementById('tg-region-bar');
-  if(rbar) rbar.innerHTML = `<button class="fbtn${_tgRegion===null?' on':''}" onclick="tgFilter(null,null,this)">ALL</button>`
-    + regions.map(r=>`<button class="fbtn${_tgRegion===r?' on':''}" onclick="tgFilter('${r}',null,this)">${r}</button>`).join('');
-  const cbar = document.getElementById('tg-channel-bar');
-  const chsToShow = _tgRegion ? TG_CHANNELS.filter(c=>c.region===_tgRegion) : TG_CHANNELS;
-  if(cbar) cbar.innerHTML = chsToShow.map(ch=>`<button class="fbtn${_tgChannel===ch.name?' on':''}"
-    style="${_tgChannel===ch.name?`background:${ch.bgColor};color:${ch.color};border-color:${ch.color}44;`:''}"
-    onclick="tgFilter('${ch.region||null}','${ch.name}',this)">${ch.label}</button>`).join('');
-}
-
-function tgFilter(region, channel, btn) {
-  _tgRegion = region==='null'?null:region;
-  _tgChannel = channel==='null'?null:channel;
-  document.querySelectorAll('#tg-region-bar .fbtn,#tg-channel-bar .fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  buildTgFilterBars();
-  renderTgFeed();
-}
-
-function renderTgFeed() {
-  const feed=document.getElementById('tg-feed'); if(!feed) return;
-  let posts = _tgPosts;
-  if(_tgChannel) posts=posts.filter(p=>p.channelName===_tgChannel);
-  else if(_tgRegion) posts=posts.filter(p=>p.region===_tgRegion);
-  if(!posts.length){ feed.innerHTML='<div class="fstatus">No posts · Click REFRESH to load</div>'; return; }
-  feed.innerHTML = posts.slice(0,80).map(p=>{
-    const rel = Math.floor((Date.now()-p.timestamp)/60000);
-    const time = rel<60?rel+'m ago':Math.floor(rel/60)+'h ago';
-    return `<div class="tg-post" style="border-left-color:${p.color};">
-      <div class="tg-hdr">
-        <span class="tg-channel" style="color:${p.color};background:${p.bgColor};border:1px solid ${p.color}33;">${p.channelLabel}</span>
-        <span class="tg-region">${p.region}</span>
-        <span class="tg-time">${time}</span>
-        ${p.isNew?'<span class="tg-new">NEW</span>':''}
-      </div>
-      <div class="tg-text">${p.text.slice(0,280)}${p.text.length>280?'…':''}</div>
-      <a class="tg-link" href="${p.link}" target="_blank">↗ source</a>
-    </div>`;
-  }).join('');
-}
-
-// ════════════════════════════════════════════════════════════
-// MODULE: AIRSPACE / NOTAM
-// ════════════════════════════════════════════════════════════
-let _expandedNotam = null;
-
-function initAirspace() {
-  _rawNotams = _generateNotams();
-  renderNotams();
-  buildNotamTicker();
-}
-
-function notamFilter(what, val, btn) {
-  if(what==='region') { _notamRegion=val; document.querySelectorAll('#notam-filter-bar .fbtn').slice(0,6).forEach(b=>b.classList.remove('on')); }
-  else { _notamType=val; }
-  btn.classList.add('on');
-  renderNotams();
-}
-
-function renderNotams() {
-  const filtered = _rawNotams.filter(n=>{
-    if(_notamRegion!=='Global' && n.region!==_notamRegion) return false;
-    if(_notamType!=='All' && n.type!==_notamType) return false;
-    return true;
-  });
-  const critCount = _rawNotams.filter(n=>n.severity==='critical'||n.type==='CONFLICT').length;
-  const alertBar = document.getElementById('notam-alert-bar');
-  const badge = document.getElementById('notam-level-badge');
-  const summary = document.getElementById('notam-summary');
-  if(alertBar&&badge&&summary) {
-    const isCrit = critCount>0;
-    alertBar.style.background = isCrit?'rgba(255,32,32,.08)':'rgba(255,140,0,.05)';
-    alertBar.style.borderBottomColor = isCrit?'rgba(255,32,32,.3)':'rgba(255,140,0,.2)';
-    badge.textContent = isCrit?'● CRITICAL':'● ELEVATED';
-    badge.style.color = isCrit?'var(--red)':'var(--amb)';
-    summary.textContent = `${critCount} conflict zones · ${_rawNotams.filter(n=>n.type==='MIL').length} mil exercises · ${_rawNotams.length} active NOTAMs`;
-  }
-  const tc={CONFLICT:'var(--red)',MIL:'var(--amb)',TFR:'#eab308',LAUNCH:'var(--blu)',VIP:'#a855f7'};
-  const el = document.getElementById('notam-list'); if(!el) return;
-  el.innerHTML = filtered.map(n=>`
-    <div class="notam-item" style="border-left-color:${tc[n.type]||'var(--b1)'};" onclick="toggleNotam('${n.id}')">
-      <div class="notam-top">
-        <span class="notam-type" style="color:${tc[n.type]};background:${tc[n.type]}18;border:1px solid ${tc[n.type]}33;">${n.type}</span>
-        <span class="notam-id">${n.notamId}</span>
-        ${n.isNew?'<span class="notam-new">NEW</span>':''}
-        ${n.severity==='critical'?'<span class="notam-crit">CRITICAL</span>':''}
-      </div>
-      <div class="notam-loc">${n.location}</div>
-      <div class="notam-meta">
-        <span>📍 ${n.fir}</span>
-        <span>↕ ${n.lowerAlt}–${n.upperAlt}</span>
-        <span>${n.region}</span>
-      </div>
-      <div class="notam-desc">${n.description.slice(0,120)}...</div>
-      <div class="notam-expand${_expandedNotam===n.id?' on':''}" id="notam-exp-${n.id}">
-        <pre class="notam-raw">${n.description}</pre>
-        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:2px;">
-          ${(n.keywords||[]).map(k=>`<span class="notam-kw">${k}</span>`).join('')}
-          ${n.isConflictZone?'<span class="notam-kw" style="color:var(--red);border-color:rgba(255,32,32,.3);">CONFLICT ZONE</span>':''}
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function toggleNotam(id) {
-  _expandedNotam = _expandedNotam===id?null:id;
-  renderNotams();
-}
-
-function buildNotamTicker() {
-  const items = _rawNotams.slice(0,12);
-  const html = items.map(n=>`<span class="ntick-item">▸ [${n.notamId}] ${n.type} — ${n.location}: ${n.description.slice(0,60)}...</span>`).join('');
-  const inner = document.getElementById('ntick-inner');
-  if(inner) inner.innerHTML = html+html;
-}
-
-// ════════════════════════════════════════════════════════════
-// MODULE SWITCHING
-// ════════════════════════════════════════════════════════════
-let _currentModule = 'feed';
-const MODULE_INITS = {
-  map: ()=>{ if(!_map) initMap(); },
-  satellite: ()=>{ if(!document.querySelector('.sat-card')) renderSatGrid(); },
-  deaths: ()=>{ if(!document.querySelector('.dc-item')) initDeaths(); },
-  markets: ()=>{ if(!document.querySelector('.mkt-table td')) refreshMarkets(); },
-  telegram: ()=>{ if(!_tgPosts.length) refreshTelegram(); },
-  airspace: ()=>{ if(!_rawNotams.length) initAirspace(); },
-};
-
-function switchModule(name, btn) {
-  document.querySelectorAll('.module').forEach(m=>m.classList.remove('on'));
-  document.querySelectorAll('.mod-pill').forEach(b=>b.classList.remove('on'));
-  const mod = document.getElementById('mod-'+name);
-  if(mod) mod.classList.add('on');
-  btn.classList.add('on');
-  _currentModule = name;
-  if(MODULE_INITS[name]) MODULE_INITS[name]();
-}
-
-// ════════════════════════════════════════════════════════════
-// PANEL / SETTINGS
-// ════════════════════════════════════════════════════════════
-function openPanel(id) {
-  document.getElementById('panel-overlay').style.display='block';
-  document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
-  const p=document.getElementById('panel-'+id); if(p) p.classList.add('open');
-}
-function closePanel() {
-  document.getElementById('panel-overlay').style.display='none';
-  document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
-}
-function toggleTheme() { document.body.classList.toggle('light'); }
+function switchModule(name,btn){document.querySelectorAll('.module').forEach(m=>m.classList.remove('on'));document.querySelectorAll('.mod-pill').forEach(x=>x.classList.remove('on'));const mod=document.getElementById('mod-'+name);if(mod)mod.classList.add('on');btn.classList.add('on');if(name==='map'&&!_map)initMap();}
+function openPanel(id){document.getElementById('panel-overlay').style.display='block';document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));const p=document.getElementById('panel-'+id);if(p)p.classList.add('open');}
+function closePanel(){document.getElementById('panel-overlay').style.display='none';document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));}
+function progSet(pct){const fill=document.getElementById('prog-fill'),bar=document.getElementById('prog');if(!fill||!bar)return;bar.classList.remove('idle');fill.style.width=pct+'%';if(pct>=100)setTimeout(()=>{bar.classList.add('idle');setTimeout(()=>{bar.classList.remove('idle');fill.style.width='0%';},700);},200);}
+function colStatus(id,state,text=''){const el=document.getElementById('cs-'+id);if(!el)return;if(state==='loading')el.innerHTML='<span class="spin-sq"></span>';else if(state==='ok')el.innerHTML='<span style="color:var(--grn)">✓</span>'+(text?' '+text:'');else if(state==='err')el.innerHTML='<span style="color:var(--red)">✗</span>';else el.innerHTML='';}
+function setLastUpdated(){const el=document.getElementById('last-upd');if(el)el.textContent=new Date().toISOString().slice(11,16)+' UTC';}
+function doRefresh(){mediaCache={ts:0,data:[]};osintCache={ts:0,data:[]};loadMedia();loadOSINT();}
+function updateBreakingBar(items){if(!items||!items.length)return;const h=items.map(x=>`<span class="brk-item" onclick="openItem('${x.link}')">${x.title}</span><span class="brk-sep">◆</span>`).join('');const el=document.getElementById('brk-inner');if(el)el.innerHTML=h+h;}
+function openAdminPanel(){openPanel('admin');}
+function admTab(t,btn){document.querySelectorAll('.adm-tab').forEach(x=>x.classList.remove('on'));btn.classList.add('on');}
+function adminLogin(){const pwd=document.getElementById('admin-pwd')?.value||'';crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd)).then(buf=>{const hex=[...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');if(hex===ADMIN_PWD_HASH){document.getElementById('admin-login').style.display='none';document.getElementById('admin-workspace').style.display='flex';}else{const e=document.getElementById('admin-err');if(e)e.style.display='block';setTimeout(()=>{if(e)e.style.display='none';},2000);}});}
 
 
 function startClock(){
@@ -3324,432 +1331,6 @@ function startClock(){
       String(n.getUTCSeconds()).padStart(2,'0')+' UTC';
   },1000);
 }
-
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-
-
-
-
-
-// ═══════════════════════════════════════════════════════════
-// ADMIN — Map editor (password protected)
-// ═══════════════════════════════════════════════════════════
-
-// Admin password — stored as SHA-256 hash
-// Default password: "conflicttracker2025"
-// To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-
-
-// ── Admin: Publish & Sync ─────────────────────────────────
-async function adminPublish(){
-  const btn = document.getElementById('admin-publish-btn');
-  const resetBtn = () => {
-    if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
-  };
-
-  if(btn){ btn.disabled=true; btn.innerHTML='<span style="opacity:.6">Publicando...</span>'; }
-
-  if(!ADMIN_SECRET){
-    document.getElementById('admin-jsonbin-setup').style.display = 'block';
-    _showSyncStatus('⚠ ADMIN_SECRET no configurado', 'var(--amb)');
-    resetBtn(); return;
-  }
-
-  try{
-    const data = _getConflicts();
-    const ok = await _saveConflicts(data);
-    _showSyncStatus(
-      ok ? '✓ Publicado — '+data.length+' conflictos en GitHub' : '✗ Error — revisa la consola (F12)',
-      ok ? 'var(--grn)' : 'var(--red)'
-    );
-  }catch(e){
-    console.error('adminPublish error:', e);
-    _showSyncStatus('✗ Error: '+e.message, 'var(--red)');
-  } finally {
-    resetBtn();
-  }
-}
-
-function _showSyncStatus(msg, col){
-  col = col || 'var(--grn)';
-  const el = document.getElementById('admin-sync-status');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = col;
-  setTimeout(() => { if(el.textContent===msg) el.textContent=''; }, 5000);
-}
-
-async function _pollRemoteConflicts(){
-  if(_adminAuthed) return;
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000), {
-      signal: AbortSignal.timeout(6000),
-    });
-    if(!r.ok) return;
-    const data = await r.json();
-    if(!Array.isArray(data)) return;
-    if(!Array.isArray(data) || !data.length) return;
-    const current = JSON.stringify(_conflicts);
-    if(JSON.stringify(data) !== current){
-      _conflicts = data;
-      localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-      _drawConflicts();
-    }
-  }catch(e){}
-}
-
-
-// Storage keys
-
-// ── Open admin panel ──────────────────────────────────────
-function openAdminPanel(){
-  openPanel('admin');
-  if(_adminAuthed){
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  }
-}
-
-// ── Login ─────────────────────────────────────────────────
-async function adminLogin(){
-  const pwd = document.getElementById('admin-pwd').value;
-  const err = document.getElementById('admin-err');
-  if(!pwd){ err.style.display='block'; return; }
-
-  // Hash the input and compare
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-  if(hash === ADMIN_PWD_HASH){
-    _adminAuthed = true;
-    err.style.display = 'none';
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  } else {
-    err.style.display = 'block';
-    document.getElementById('admin-pwd').value = '';
-  }
-}
-
-// ── Admin tabs ────────────────────────────────────────────
-function admTab(tab, btn){
-  document.querySelectorAll('.adm-tab').forEach(b => {
-    b.style.borderBottomColor = 'transparent';
-    b.style.color = 'var(--t2)';
-    b.classList.remove('on');
-  });
-  btn.style.borderBottomColor = 'var(--t0)';
-  btn.style.color = 'var(--t1)';
-  btn.classList.add('on');
-
-  ['list','add','draw'].forEach(t => {
-    const el = document.getElementById('adm-'+t);
-    if(el) el.style.display = t===tab ? 'block' : 'none';
-  });
-
-  if(tab==='list') _renderAdminList();
-  if(tab==='draw') _loadDrawingsFromStorage();
-}
-
-// ── Conflict list ─────────────────────────────────────────
-function _renderAdminList(){
-  const el = document.getElementById('admin-conflict-list');
-  if(!el) return;
-  const data = _getConflicts();
-  el.innerHTML = data.map(d => {
-    const col = ['#4d8cf5','#f0a832','#e8445a'][d.i] || '#4d8cf5';
-    return `<div onclick="adminEditConflict('${d.id}')" style="
-      display:flex;align-items:center;gap:10px;
-      padding:9px 10px;border-radius:0px;
-      cursor:pointer;margin-bottom:4px;
-      background:var(--s2);
-      border:1px solid var(--b0);
-      transition:border-color .15s;
-    " onmouseover="this.style.borderColor='var(--b1)'"
-       onmouseout="this.style.borderColor='var(--b0)'">
-      <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;
-        box-shadow:0 0 4px ${col};"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:11px;font-weight:500;color:var(--t0);
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
-        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);">
-          ${d.lat.toFixed(1)}, ${d.lng.toFixed(1)} · ${d.since||''}
-        </div>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </div>`;
-  }).join('');
-}
-
-// ── Edit conflict ─────────────────────────────────────────
-function adminEditConflict(id){
-  const data = _getConflicts();
-  const d = data.find(x => x.id === id);
-  if(!d) return;
-
-  _editingId = id;
-  document.getElementById('ae-id').value      = id;
-  document.getElementById('ae-name').value    = d.name;
-  document.getElementById('ae-lat').value     = d.lat;
-  document.getElementById('ae-lng').value     = d.lng;
-  document.getElementById('ae-intensity').value = d.i;
-  document.getElementById('ae-since').value   = d.since || '';
-  document.getElementById('ae-parties').value = d.parties || '';
-  document.getElementById('ae-deaths').value  = d.deaths || '';
-  document.getElementById('ae-summary').value = d.summary || '';
-  document.getElementById('ae-delete-btn').style.display = 'block';
-
-  // Fly to conflict on map
-
-  // Switch to add/edit tab
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── New conflict ──────────────────────────────────────────
-function adminNewConflict(){
-  _editingId = null;
-  ['ae-id','ae-name','ae-lat','ae-lng','ae-since','ae-parties','ae-deaths','ae-summary']
-    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('ae-intensity').value = '1';
-  document.getElementById('ae-delete-btn').style.display = 'none';
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── Save conflict ─────────────────────────────────────────
-function adminSaveConflict(){
-  const name    = document.getElementById('ae-name').value.trim();
-  const lat     = parseFloat(document.getElementById('ae-lat').value);
-  const lng     = parseFloat(document.getElementById('ae-lng').value);
-  const intensity = parseInt(document.getElementById('ae-intensity').value);
-  const since   = document.getElementById('ae-since').value.trim();
-  const parties = document.getElementById('ae-parties').value.trim();
-  const deaths  = document.getElementById('ae-deaths').value.trim();
-  const summary = document.getElementById('ae-summary').value.trim();
-
-  if(!name || isNaN(lat) || isNaN(lng)){
-    _showAEMsg('Nombre, latitud y longitud son obligatorios.', 'var(--red)');
-    return;
-  }
-  if(lat < -90||lat > 90||lng < -180||lng > 180){
-    _showAEMsg('Coordenadas fuera de rango.', 'var(--red)');
-    return;
-  }
-
-  const data = _getConflicts();
-  const id   = _editingId || 'custom_' + Date.now();
-
-  const entry = {id, name, lat, lng, i:intensity, since, parties, deaths, summary, cat:'general', _custom:true};
-
-  if(_editingId){
-    const idx = data.findIndex(x => x.id === _editingId);
-    if(idx >= 0) data[idx] = entry;
-  } else {
-    data.push(entry);
-  }
-
-  _saveConflicts(data).then(()=>{}); // async shared storage
-  _conflicts = data;
-  _drawConflicts();
-
-  _showAEMsg('✓ Guardado (compartido)', 'var(--grn)');
-  setTimeout(() => admTab('list', document.getElementById('atab-list')), 800);
-}
-
-// ── Delete conflict ───────────────────────────────────────
-function adminDeleteConflict(){
-  if(!_editingId) return;
-  if(!confirm('¿Eliminar este conflicto?')) return;
-  const data = _getConflicts().filter(x => x.id !== _editingId);
-  _saveConflicts(data); // async
-  _conflicts = data;
-  _drawConflicts();
-  _editingId = null;
-  admTab('list', document.getElementById('atab-list'));
-}
-
-// ── Reset to defaults ─────────────────────────────────────
-function adminResetToDefault(){
-  if(!confirm('¿Restaurar el dataset original? Se perderán todos los cambios.')) return;
-  localStorage.removeItem(SK_CONFLICTS);
-  try{ window.storage.delete('map_conflicts', true); }catch(e){}
-  _conflicts = _getConflicts();
-  _drawConflicts();
-  _renderAdminList();
-}
-
-// ── Pick coordinates on map ───────────────────────────────
-function adminPickOnMap(){
-  alert('El mapa ha sido desactivado.'); return;
-  _pickingCoord = true;
-
-  const btn = document.getElementById('pick-map-btn');
-  btn.textContent = '🎯 Clic en el mapa...';
-  btn.style.background = 'rgba(232,68,90,.1)';
-  btn.style.borderColor = 'var(--red)';
-
-  const handler = e => {
-    document.getElementById('ae-lat').value = e.latlng.lat.toFixed(4);
-    document.getElementById('ae-lng').value = e.latlng.lng.toFixed(4);
-        btn.textContent = `📍 ${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`;
-    btn.style.background = 'rgba(45,212,160,.1)';
-    btn.style.borderColor = 'var(--grn)';
-    btn.style.color = 'var(--grn)';
-    _pickingCoord = false;
-    // Revert after 3s
-    setTimeout(() => {
-      btn.textContent = '📍 Clicar en el mapa para seleccionar coordenadas';
-      btn.style.background = '';
-      btn.style.borderColor = 'var(--b0)';
-      btn.style.color = 'var(--t0)';
-    }, 3000);
-  };
-}
-
-// ── DRAW MODE ─────────────────────────────────────────────
-function setDrawColor(el, col){
-  _drawColor = col;
-  document.querySelectorAll('.draw-col-btn').forEach(b => b.style.border = '2px solid transparent');
-  el.style.border = '2px solid #fff';
-}
-
-
-
-
-
-
-
-
-
-// ── GitHub — shared storage via repo file ─────────────────
-// Setup: github.com → Settings → Developer settings → Personal access tokens
-//        → Fine-grained token → repo: lokiff/worldmonitor → permisos: Contents (read+write)
-// GitHub config moved to Cloudflare Worker environment variables
-
-async function _getConflictsAsync(){
-  // 1. Worker GET /conflicts — sin auth, datos en GitHub via Worker
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000),
-      { signal: AbortSignal.timeout(5000) });
-    if(r.ok){
-      const data = await r.json();
-      if(Array.isArray(data) && data.length){
-        localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-        return data;
-      }
-    }
-  }catch(e){}
-  // 2. localStorage
-  const raw = localStorage.getItem(SK_CONFLICTS);
-  if(raw){ try{ const d=JSON.parse(raw); if(d.length) return d; }catch(e){} }
-  // 3. Hardcoded defaults
-  return [];
-}
-
-function _getConflicts(){
-  const raw = localStorage.getItem(SK_CONFLICTS);
-  if(raw) try{ return JSON.parse(raw); }catch(e){}
-  return [];
-}
-
-async function _saveConflicts(data){
-  localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-  if(!ADMIN_SECRET){
-    console.warn('ADMIN_SECRET not set — saved locally only');
-    return true;
-  }
-  try{
-    const res = await fetch(WORKER_CONFLICTS_PUT, {
-      method: 'PUT',
-      headers:{
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': ADMIN_SECRET,
-      },
-      body: JSON.stringify(data),
-      signal: AbortSignal.timeout(12000),
-    });
-    if(res.ok){
-      console.log('✓ conflicts.json publicado via Worker');
-      return true;
-    }
-    const err = await res.json().catch(() => ({}));
-    console.error('Worker PUT error:', res.status, err);
-    _showSyncStatus('✗ Error '+res.status+': '+(err.error||''), 'var(--red)');
-    return false;
-  }catch(e){
-    console.error('Worker exception:', e);
-    _showSyncStatus('✗ Error de red: '+e.message, 'var(--red)');
-    return false;
-  }
-}
-
-function _showAEMsg(msg, col){
-  const el = document.getElementById('ae-msg');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = col;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display='none'; }, 2500);
-}
-
-
-
-// ═══════════════════════════════════════════════════════════
-// MOBILE TAB NAVIGATION
-// ═══════════════════════════════════════════════════════════
-function mobTab(which, btn){
-  // Update tab buttons
-  document.querySelectorAll('.mob-tab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  // Show correct column
-  document.querySelectorAll('.col').forEach(c => c.classList.remove('mob-active'));
-  const col = document.getElementById('col-' + which);
-  if(col) col.classList.add('mob-active');
-}
-
-// Keep mobile badges in sync with col badges
-function syncMobBadges(){
-  const mn = document.getElementById('ft-media');
-  const mo = document.getElementById('ft-osint');
-  const bn = document.getElementById('mbadge-news');
-  const bo = document.getElementById('mbadge-osint');
-  if(mn && bn) bn.textContent = mn.textContent || '—';
-  if(mo && bo) bo.textContent = mo.textContent || '—';
-}
-
-
-function init(){
-  loadPrefs();
-  startClock();
-  renderSaved();
-  renderCustomList();
-
-  // Initial load
-  progSet(2);
-  setTimeout(async ()=>{
-    await Promise.all([loadMedia(), loadOSINT()]);
-    setLastUpdated();
-    setTimeout(loadBreakingBar,  300);
-    setTimeout(loadGDELT,       800);
-    setTimeout(loadOREF,       1200);
-  }, 300);
-
-  // Background refresh — tab-aware, no countdown
-  startAutoRefresh();
-  renderConflicts();
-  setInterval(loadOREF,       15000);
-  setInterval(loadGDELT,        15*60*1000);
-  setInterval(_pollRemoteConflicts, 5*60*1000);
-}
-
 
 function loadPrefs(){
   const font = localStorage.getItem('ct_font');
@@ -3771,501 +1352,54 @@ function loadPrefs(){
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// CUSTOM SOURCES
-// ═══════════════════════════════════════════════════════════
-function addSource(){
-  const name = document.getElementById('src-name').value.trim();
-  const url  = document.getElementById('src-url').value.trim();
-  const cat  = document.getElementById('src-cat').value;
-  if(!name||!url) return;
-  customSources.push({n:name, url, cat});
-  localStorage.setItem('ct_custom', JSON.stringify(customSources));
-  document.getElementById('src-name').value = '';
-  document.getElementById('src-url').value  = '';
-  renderCustomList();
-}
-function removeSource(i){
-  customSources.splice(i,1);
-  localStorage.setItem('ct_custom', JSON.stringify(customSources));
-  renderCustomList();
-}
-function renderCustomList(){
-  const el = document.getElementById('custom-list'); if(!el) return;
-  if(!customSources.length){ el.innerHTML='<div style="font-size:11px;color:var(--t2);">Sin fuentes personalizadas.</div>'; return; }
-  el.innerHTML = customSources.map((s,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b0);">
-      <span style="flex:1;font-size:12px;color:var(--t1);">${s.n}</span>
-      <span style="font-size:10px;color:var(--t2);">${s.cat}</span>
-      <button onclick="removeSource(${i})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;">✕</button>
-    </div>`).join('');
+function applyFont(v){
+  // v is the raw option value e.g. "Inter" or "'JetBrains Mono'"
+  document.documentElement.style.setProperty('--font', v + ',sans-serif');
+  localStorage.setItem('ct_font', v);
+  const s = document.getElementById('pref-font');
+  if(s) s.value = v;
 }
 
-// ═══════════════════════════════════════════════════════════
-// CLOCK
-// ═══════════════════════════════════════════════════════════
-function startClock(){
-  const el = document.getElementById('clock');
-  setInterval(()=>{
-    const n=new Date();
-    if(el) el.textContent =
-      String(n.getUTCHours()).padStart(2,'0')+':'+
-      String(n.getUTCMinutes()).padStart(2,'0')+':'+
-      String(n.getUTCSeconds()).padStart(2,'0')+' UTC';
-  },1000);
+function applySize(v){
+  v = parseInt(v);
+  document.documentElement.style.fontSize = v+'px';
+  const sv = document.getElementById('size-val'); if(sv) sv.textContent=v+'px';
+  const sl = document.getElementById('pref-size'); if(sl) sl.value=v;
+  localStorage.setItem('ct_size', v);
 }
 
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
+function setLastUpdated(){
+  const el=document.getElementById('last-updated'); if(!el) return;
+  const n=new Date();
+  el.textContent='Actualizado '+String(n.getUTCHours()).padStart(2,'0')+':'+String(n.getUTCMinutes()).padStart(2,'0')+' UTC';
+}
 
-
-
-
-
-// ═══════════════════════════════════════════════════════════
-// ADMIN — Map editor (password protected)
-// ═══════════════════════════════════════════════════════════
-
-// Admin password — stored as SHA-256 hash
-// Default password: "conflicttracker2025"
-// To change: run btoa(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('newpassword')))
-
-
-// ── Admin: Publish & Sync ─────────────────────────────────
-async function adminPublish(){
-  const btn = document.getElementById('admin-publish-btn');
-  const resetBtn = () => {
-    if(btn){ btn.disabled=false; btn.innerHTML='&#8593; Publicar cambios'; }
-  };
-
-  if(btn){ btn.disabled=true; btn.innerHTML='<span style="opacity:.6">Publicando...</span>'; }
-
-  if(!ADMIN_SECRET){
-    document.getElementById('admin-jsonbin-setup').style.display = 'block';
-    _showSyncStatus('⚠ ADMIN_SECRET no configurado', 'var(--amb)');
-    resetBtn(); return;
+function startAutoRefresh(){
+  const INTERVAL=5*60*1000;
+  let lastRun=Date.now();
+  function schedule(){
+    const wait=Math.max(0,INTERVAL-(Date.now()-lastRun));
+    setTimeout(async()=>{
+      if(!document.hidden){lastRun=Date.now();await refreshAll();}
+      schedule();
+    },wait);
   }
-
-  try{
-    const data = _getConflicts();
-    const ok = await _saveConflicts(data);
-    _showSyncStatus(
-      ok ? '✓ Publicado — '+data.length+' conflictos en GitHub' : '✗ Error — revisa la consola (F12)',
-      ok ? 'var(--grn)' : 'var(--red)'
-    );
-  }catch(e){
-    console.error('adminPublish error:', e);
-    _showSyncStatus('✗ Error: '+e.message, 'var(--red)');
-  } finally {
-    resetBtn();
-  }
-}
-
-function _showSyncStatus(msg, col){
-  col = col || 'var(--grn)';
-  const el = document.getElementById('admin-sync-status');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = col;
-  setTimeout(() => { if(el.textContent===msg) el.textContent=''; }, 5000);
-}
-
-async function _pollRemoteConflicts(){
-  if(_adminAuthed) return;
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000), {
-      signal: AbortSignal.timeout(6000),
-    });
-    if(!r.ok) return;
-    const data = await r.json();
-    if(!Array.isArray(data)) return;
-    if(!Array.isArray(data) || !data.length) return;
-    const current = JSON.stringify(_conflicts);
-    if(JSON.stringify(data) !== current){
-      _conflicts = data;
-      localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-      _drawConflicts();
-    }
-  }catch(e){}
-}
-
-
-// Storage keys
-
-// ── Open admin panel ──────────────────────────────────────
-function openAdminPanel(){
-  openPanel('admin');
-  if(_adminAuthed){
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  }
-}
-
-// ── Login ─────────────────────────────────────────────────
-async function adminLogin(){
-  const pwd = document.getElementById('admin-pwd').value;
-  const err = document.getElementById('admin-err');
-  if(!pwd){ err.style.display='block'; return; }
-
-  // Hash the input and compare
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-  if(hash === ADMIN_PWD_HASH){
-    _adminAuthed = true;
-    err.style.display = 'none';
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-workspace').style.display = 'flex';
-    _renderAdminList();
-    _loadDrawingsFromStorage();
-  } else {
-    err.style.display = 'block';
-    document.getElementById('admin-pwd').value = '';
-  }
-}
-
-// ── Admin tabs ────────────────────────────────────────────
-function admTab(tab, btn){
-  document.querySelectorAll('.adm-tab').forEach(b => {
-    b.style.borderBottomColor = 'transparent';
-    b.style.color = 'var(--t2)';
-    b.classList.remove('on');
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&Date.now()-lastRun>INTERVAL){lastRun=Date.now();refreshAll();}
   });
-  btn.style.borderBottomColor = 'var(--t0)';
-  btn.style.color = 'var(--t1)';
-  btn.classList.add('on');
-
-  ['list','add','draw'].forEach(t => {
-    const el = document.getElementById('adm-'+t);
-    if(el) el.style.display = t===tab ? 'block' : 'none';
-  });
-
-  if(tab==='list') _renderAdminList();
-  if(tab==='draw') _loadDrawingsFromStorage();
+  schedule();
 }
-
-// ── Conflict list ─────────────────────────────────────────
-function _renderAdminList(){
-  const el = document.getElementById('admin-conflict-list');
-  if(!el) return;
-  const data = _getConflicts();
-  el.innerHTML = data.map(d => {
-    const col = ['#4d8cf5','#f0a832','#e8445a'][d.i] || '#4d8cf5';
-    return `<div onclick="adminEditConflict('${d.id}')" style="
-      display:flex;align-items:center;gap:10px;
-      padding:9px 10px;border-radius:0px;
-      cursor:pointer;margin-bottom:4px;
-      background:var(--s2);
-      border:1px solid var(--b0);
-      transition:border-color .15s;
-    " onmouseover="this.style.borderColor='var(--b1)'"
-       onmouseout="this.style.borderColor='var(--b0)'">
-      <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;
-        box-shadow:0 0 4px ${col};"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:11px;font-weight:500;color:var(--t0);
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
-        <div style="font-size:9px;color:var(--t2);font-family:var(--mono);">
-          ${d.lat.toFixed(1)}, ${d.lng.toFixed(1)} · ${d.since||''}
-        </div>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </div>`;
-  }).join('');
-}
-
-// ── Edit conflict ─────────────────────────────────────────
-function adminEditConflict(id){
-  const data = _getConflicts();
-  const d = data.find(x => x.id === id);
-  if(!d) return;
-
-  _editingId = id;
-  document.getElementById('ae-id').value      = id;
-  document.getElementById('ae-name').value    = d.name;
-  document.getElementById('ae-lat').value     = d.lat;
-  document.getElementById('ae-lng').value     = d.lng;
-  document.getElementById('ae-intensity').value = d.i;
-  document.getElementById('ae-since').value   = d.since || '';
-  document.getElementById('ae-parties').value = d.parties || '';
-  document.getElementById('ae-deaths').value  = d.deaths || '';
-  document.getElementById('ae-summary').value = d.summary || '';
-  document.getElementById('ae-delete-btn').style.display = 'block';
-
-  // Fly to conflict on map
-
-  // Switch to add/edit tab
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── New conflict ──────────────────────────────────────────
-function adminNewConflict(){
-  _editingId = null;
-  ['ae-id','ae-name','ae-lat','ae-lng','ae-since','ae-parties','ae-deaths','ae-summary']
-    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('ae-intensity').value = '1';
-  document.getElementById('ae-delete-btn').style.display = 'none';
-  admTab('add', document.getElementById('atab-add'));
-}
-
-// ── Save conflict ─────────────────────────────────────────
-function adminSaveConflict(){
-  const name    = document.getElementById('ae-name').value.trim();
-  const lat     = parseFloat(document.getElementById('ae-lat').value);
-  const lng     = parseFloat(document.getElementById('ae-lng').value);
-  const intensity = parseInt(document.getElementById('ae-intensity').value);
-  const since   = document.getElementById('ae-since').value.trim();
-  const parties = document.getElementById('ae-parties').value.trim();
-  const deaths  = document.getElementById('ae-deaths').value.trim();
-  const summary = document.getElementById('ae-summary').value.trim();
-
-  if(!name || isNaN(lat) || isNaN(lng)){
-    _showAEMsg('Nombre, latitud y longitud son obligatorios.', 'var(--red)');
-    return;
-  }
-  if(lat < -90||lat > 90||lng < -180||lng > 180){
-    _showAEMsg('Coordenadas fuera de rango.', 'var(--red)');
-    return;
-  }
-
-  const data = _getConflicts();
-  const id   = _editingId || 'custom_' + Date.now();
-
-  const entry = {id, name, lat, lng, i:intensity, since, parties, deaths, summary, cat:'general', _custom:true};
-
-  if(_editingId){
-    const idx = data.findIndex(x => x.id === _editingId);
-    if(idx >= 0) data[idx] = entry;
-  } else {
-    data.push(entry);
-  }
-
-  _saveConflicts(data).then(()=>{}); // async shared storage
-  _conflicts = data;
-  _drawConflicts();
-
-  _showAEMsg('✓ Guardado (compartido)', 'var(--grn)');
-  setTimeout(() => admTab('list', document.getElementById('atab-list')), 800);
-}
-
-// ── Delete conflict ───────────────────────────────────────
-function adminDeleteConflict(){
-  if(!_editingId) return;
-  if(!confirm('¿Eliminar este conflicto?')) return;
-  const data = _getConflicts().filter(x => x.id !== _editingId);
-  _saveConflicts(data); // async
-  _conflicts = data;
-  _drawConflicts();
-  _editingId = null;
-  admTab('list', document.getElementById('atab-list'));
-}
-
-// ── Reset to defaults ─────────────────────────────────────
-function adminResetToDefault(){
-  if(!confirm('¿Restaurar el dataset original? Se perderán todos los cambios.')) return;
-  localStorage.removeItem(SK_CONFLICTS);
-  try{ window.storage.delete('map_conflicts', true); }catch(e){}
-  _conflicts = _getConflicts();
-  _drawConflicts();
-  _renderAdminList();
-}
-
-// ── Pick coordinates on map ───────────────────────────────
-function adminPickOnMap(){
-  alert('El mapa ha sido desactivado.'); return;
-  _pickingCoord = true;
-
-  const btn = document.getElementById('pick-map-btn');
-  btn.textContent = '🎯 Clic en el mapa...';
-  btn.style.background = 'rgba(232,68,90,.1)';
-  btn.style.borderColor = 'var(--red)';
-
-  const handler = e => {
-    document.getElementById('ae-lat').value = e.latlng.lat.toFixed(4);
-    document.getElementById('ae-lng').value = e.latlng.lng.toFixed(4);
-        btn.textContent = `📍 ${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`;
-    btn.style.background = 'rgba(45,212,160,.1)';
-    btn.style.borderColor = 'var(--grn)';
-    btn.style.color = 'var(--grn)';
-    _pickingCoord = false;
-    // Revert after 3s
-    setTimeout(() => {
-      btn.textContent = '📍 Clicar en el mapa para seleccionar coordenadas';
-      btn.style.background = '';
-      btn.style.borderColor = 'var(--b0)';
-      btn.style.color = 'var(--t0)';
-    }, 3000);
-  };
-}
-
-// ── DRAW MODE ─────────────────────────────────────────────
-function setDrawColor(el, col){
-  _drawColor = col;
-  document.querySelectorAll('.draw-col-btn').forEach(b => b.style.border = '2px solid transparent');
-  el.style.border = '2px solid #fff';
-}
-
-
-
-
-
-
-
-
-
-// ── GitHub — shared storage via repo file ─────────────────
-// Setup: github.com → Settings → Developer settings → Personal access tokens
-//        → Fine-grained token → repo: lokiff/worldmonitor → permisos: Contents (read+write)
-// GitHub config moved to Cloudflare Worker environment variables
-
-async function _getConflictsAsync(){
-  // 1. Worker GET /conflicts — sin auth, datos en GitHub via Worker
-  try{
-    const r = await fetch(WORKER_CONFLICTS_GET + '?t=' + Math.floor(Date.now()/60000),
-      { signal: AbortSignal.timeout(5000) });
-    if(r.ok){
-      const data = await r.json();
-      if(Array.isArray(data) && data.length){
-        localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-        return data;
-      }
-    }
-  }catch(e){}
-  // 2. localStorage
-  const raw = localStorage.getItem(SK_CONFLICTS);
-  if(raw){ try{ const d=JSON.parse(raw); if(d.length) return d; }catch(e){} }
-  // 3. Hardcoded defaults
-  return [];
-}
-
-function _getConflicts(){
-  const raw = localStorage.getItem(SK_CONFLICTS);
-  if(raw) try{ return JSON.parse(raw); }catch(e){}
-  return [];
-}
-
-async function _saveConflicts(data){
-  localStorage.setItem(SK_CONFLICTS, JSON.stringify(data));
-  if(!ADMIN_SECRET){
-    console.warn('ADMIN_SECRET not set — saved locally only');
-    return true;
-  }
-  try{
-    const res = await fetch(WORKER_CONFLICTS_PUT, {
-      method: 'PUT',
-      headers:{
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': ADMIN_SECRET,
-      },
-      body: JSON.stringify(data),
-      signal: AbortSignal.timeout(12000),
-    });
-    if(res.ok){
-      console.log('✓ conflicts.json publicado via Worker');
-      return true;
-    }
-    const err = await res.json().catch(() => ({}));
-    console.error('Worker PUT error:', res.status, err);
-    _showSyncStatus('✗ Error '+res.status+': '+(err.error||''), 'var(--red)');
-    return false;
-  }catch(e){
-    console.error('Worker exception:', e);
-    _showSyncStatus('✗ Error de red: '+e.message, 'var(--red)');
-    return false;
-  }
-}
-
-function _showAEMsg(msg, col){
-  const el = document.getElementById('ae-msg');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = col;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display='none'; }, 2500);
-}
-
-
-
-// ═══════════════════════════════════════════════════════════
-// MOBILE TAB NAVIGATION
-// ═══════════════════════════════════════════════════════════
-function mobTab(which, btn){
-  // Update tab buttons
-  document.querySelectorAll('.mob-tab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  // Show correct column
-  document.querySelectorAll('.col').forEach(c => c.classList.remove('mob-active'));
-  const col = document.getElementById('col-' + which);
-  if(col) col.classList.add('mob-active');
-}
-
-// Keep mobile badges in sync with col badges
-function syncMobBadges(){
-  const mn = document.getElementById('ft-media');
-  const mo = document.getElementById('ft-osint');
-  const bn = document.getElementById('mbadge-news');
-  const bo = document.getElementById('mbadge-osint');
-  if(mn && bn) bn.textContent = mn.textContent || '—';
-  if(mo && bo) bo.textContent = mo.textContent || '—';
-}
-
 
 function init(){
-  loadPrefs();
-  startClock();
-  renderSaved();
-  renderCustomList();
-
-  // Initial load
-  progSet(2);
-  setTimeout(async ()=>{
-    await Promise.all([loadMedia(), loadOSINT()]);
-    setLastUpdated();
-    setTimeout(loadBreakingBar,  300);
-    setTimeout(loadGDELT,       800);
-    setTimeout(loadOREF,       1200);
-  }, 300);
-
-  // Background refresh — tab-aware, no countdown
+  loadPrefs(); startClock(); renderConflicts(); progSet(2);
+  setTimeout(async()=>{
+    await Promise.all([loadMedia(),loadOSINT()]);
+    setLastUpdated(); setTimeout(loadBreakingBar,400);
+  },200);
   startAutoRefresh();
-  renderConflicts();
-  setInterval(loadOREF,       15000);
-  setInterval(loadGDELT,        15*60*1000);
-  setInterval(_pollRemoteConflicts, 5*60*1000);
+  setInterval(_pollRemoteConflicts,300000);
 }
-
-
-function init() {
-  loadPrefs();
-  startClock();
-  renderConflicts();
-  initDeaths();
-  initAirspace();
-  progSet(2);
-  setTimeout(async () => {
-    await Promise.all([loadMedia(), loadOSINT()]);
-    setLastUpdated();
-    setTimeout(loadBreakingBar, 300);
-  }, 200);
-  let lastRun = Date.now();
-  const INTERVAL = 5 * 60 * 1000;
-  const autoRefeed = () => {
-    if (!document.hidden && Date.now() - lastRun > INTERVAL) {
-      lastRun = Date.now(); loadMedia(); loadOSINT();
-    }
-  };
-  setInterval(autoRefeed, 30000);
-  document.addEventListener('visibilitychange', autoRefeed);
-  setInterval(_pollRemoteConflicts, 5 * 60 * 1000);
-}
-
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded',init);
 
 </script>
 </body>
