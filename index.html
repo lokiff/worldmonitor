@@ -1401,6 +1401,35 @@ function init(){
 }
 document.addEventListener('DOMContentLoaded',init);
 
+
+const sortByDate = arr => arr.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+function prependNew(items, feedId){
+  const el = document.getElementById(feedId); if(!el||!items.length) return;
+  const ob = el.querySelector('.nbadge'); if(ob) ob.remove();
+  const badge = document.createElement('div');
+  badge.className = 'nbadge';
+  badge.innerHTML = `<span class="npip"></span>+${items.length} nuevas`;
+  badge.onclick = ()=>badge.remove();
+  setTimeout(()=>{ if(badge.parentNode) badge.remove(); }, 8000);
+  el.insertBefore(badge, el.firstChild);
+  const frag = document.createDocumentFragment();
+  items.forEach((item,ix)=>{
+    const d = document.createElement('div'); d.innerHTML=itemHTML(item);
+    const node = d.firstChild; node.style.animationDelay=(ix*.04)+'s'; frag.appendChild(node);
+  });
+  el.insertBefore(frag, badge.nextSibling);
+}
+
+function syncMobBadges(){
+  const mn = document.getElementById('ft-media');
+  const mo = document.getElementById('ft-osint');
+  const bn = document.getElementById('mbadge-news');
+  const bo = document.getElementById('mbadge-osint');
+  if(mn && bn) bn.textContent = mn.textContent || '—';
+  if(mo && bo) bo.textContent = mo.textContent || '—';
+}
+
 </script>
 </body>
 </html>
